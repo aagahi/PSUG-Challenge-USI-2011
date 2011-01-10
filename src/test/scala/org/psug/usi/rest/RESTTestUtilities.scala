@@ -16,9 +16,14 @@ import com.sun.jersey.test.framework.spi.container.inmemory.InMemoryTestContaine
  * @author abailly@oqube.com
  * @version $Id$
  */
-abstract class ServiceTestUtilities extends JerseyTest(new InMemoryTestContainerFactory()) {
+abstract class RESTTestUtilities extends JerseyTest(new InMemoryTestContainerFactory()) {
 
-  var webResource: WebResource = _
+  var webResource : WebResource = _
+
+  @Before 
+  def defineResource = {
+    webResource = resource()
+  }
 
   override def configure() : AppDescriptor = {
     new WebAppDescriptor.Builder(restletsPath()).contextPath("")
@@ -27,19 +32,4 @@ abstract class ServiceTestUtilities extends JerseyTest(new InMemoryTestContainer
 
   def restletsPath() : String = "org.psug.usi.rest"
   
-  @Before
-  def getResource() : Unit = {
-    webResource = resource()
-  }
-
-  def assertResponseTo[T](url : String , klass: Class[T], matchExpected: Matcher[T]) : Unit = {
-    val response = webResource.path(url).get(klass)
-    assertThat(response, matchExpected)
-  }
-
-  def assertResponseTo[T](url : String , klass: Class[T], matchExpected: Matcher[T], param : (String, String)) : Unit = {
-    val response = webResource.path(url).queryParam(param._1, param._2).get(klass)
-    assertThat(response, matchExpected)
-  }
-
 }
