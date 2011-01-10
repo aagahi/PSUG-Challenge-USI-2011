@@ -19,7 +19,7 @@ class UserRegistrationTest extends ServiceTestUtilities {
   @Test
   def succeedsIfUserDoesNotExist() = {
     def userDescription = "{\"firstname\": \"Martin\", \"lastname\": \"Odersky\", \"mail\": \"m.odersky@scala-lang.org\", \"password\": \"0xcafebabe\"}"
-    def response = webResource.path("/api/user/").post(classOf[String], userDescription)
+    def response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], userDescription)
     assertThat(response, is(""))
   }
  
