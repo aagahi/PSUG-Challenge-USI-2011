@@ -1,0 +1,119 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.psug</groupId>
+  <artifactId>challenge-usi</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <name>Challenge USI</name>
+  <packaging>war</packaging>
+  <description>PSUG : Challenge USI Solution</description>
+  
+  <dependencies>
+
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>2.8.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-math</groupId>
+      <artifactId>commons-math</artifactId>
+      <version>1.2</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.scala-tools.testing</groupId>
+      <artifactId>specs_2.8.0</artifactId>
+      <version>1.6.5</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-json</artifactId>
+      <version>1.1-M7</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.7</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.8.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JAX-RS Stuff -->
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-client</artifactId>
+      <version>1.1.2-ea</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-server</artifactId>
+      <version>1.1.2-ea</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.glassfish.embedded</groupId>
+          <artifactId>glassfish-embedded-all</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-test-framework</artifactId>
+      <exclusions>
+	<exclusion>
+	  <groupId>com.sun.grizzly</groupId>
+	  <artifactId>grizzly-servlet-webserver</artifactId>
+	</exclusion>
+      </exclusions>
+      <version>1.1.2-ea</version>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
+      <scope>provided</scope>
+    </dependency>
+
+  </dependencies>
+  
+  <build>
+    <plugins>
+
+      <plugin>
+	<artifactId>maven-compiler-plugin</artifactId>
+	<configuration>
+	  <source>1.6</source>
+	  <target>1.6</target>
+	</configuration>
+      </plugin>
+      
+      <plugin>
+	<groupId>org.scala-tools</groupId>
+	<artifactId>maven-scala-plugin</artifactId>
+	<version>2.13.1</version>
+	<executions>
+	  <execution>
+	    <goals>
+	      <goal>add-source</goal>
+	      <goal>compile</goal>
+	      <goal>testCompile</goal>
+	    </goals>
+	  </execution>
+	</executions>
+      </plugin>
+      
+    </plugins>
+  </build>
+</project>
