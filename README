@@ -1,1 +1,22 @@
-Check https://sites.google.com/a/octo.com/challengeusi2011/
+* Références
+
+ - Le challenge: https://sites.google.com/a/octo.com/challengeusi2011/
+ - L'intégration continue: https://dev.oqube.net:444/hudson/
+   login/password: psug/ChallengeUSI2011
+ - Le référentiel Git: git+ssh://git@dev.oqube.net:2222/home/git/challenge-usi
+
+* Build
+
+Le projet utilise maven comme système de build principal. Pour
+compiler et installer les sources dans le référentiel local
+(ie. par défaut ${HOME}/.m2/repository), et en supposant que maven
+soit disponible dans le ${PATH}:
+
+: mvn clean install
+
+Pour ajouter l'accès aux référéntiels de java.net (pour jersey) et
+scala-tools (pour scala):
+
+: mvn clean install -Pwith-repo
+
+
