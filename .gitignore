@@ -86,3 +86,5 @@ files/
 !lib/murex/CMakeLists.txt
 
 lib/
+*.pub
+*~
