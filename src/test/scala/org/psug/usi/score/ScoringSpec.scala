@@ -38,7 +38,7 @@ class ScoringSpec extends SpecificationWithJUnit {
     }
     
     "compute score for a very large number of users" in {
-      val numberOfPlayers = 1000
+      val numberOfPlayers = 4000
       val scorer = new Scorer(numberOfPlayers)(10)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
       scorer.start
@@ -49,9 +49,8 @@ class ScoringSpec extends SpecificationWithJUnit {
 	if(i % 4  == 0) users(i).ok
 	if(i % 2  == 0) users(i).ok 
       }
-      val sc = scorer.score(900)
-      print(sc.deep.mkString(","))
-      sc(10) must be_==((900,3))
+      val sc = scorer.score(1000)
+       sc(10) must be_==((1000,4))
     }
   }
 }
