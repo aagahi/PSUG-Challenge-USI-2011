@@ -2,17 +2,18 @@ package org.psug.usi.score
 
 import scala.actors._
 
-case class UserScore(val id: Int, val score : Int)
 
-class UserResponseAgent(val scorer : Scorer) {
+class UserResponseAgent(val uid : Int, val scorer : Scorer) {
+  
+  def this(scorer : Scorer) = this(0,scorer)
 
-  def ok (userId : Int) : Int = {
-    (scorer !? userId).asInstanceOf[Int]
+  def ok : Int = {
+    (scorer !? uid).asInstanceOf[Int]
   }
 
 }
 
-class Scorer(val numUsers : Int) extends Actor {
+class Scorer(val numUsers : Int)(implicit val interval : Int) extends Actor {
   
   /*
    * Sorted array of scores. This array is expected to be always sorted in increasing
@@ -21,7 +22,8 @@ class Scorer(val numUsers : Int) extends Actor {
   var scores : Array[(Int,Int)] = new Array[(Int,Int)](numUsers)
 
   /*
-   * Index user ids within scores array. The index of this array are the user ids.
+   * Index user ids within scores array. The index of this array are the user ids, elements
+   * are indices in the scores array containing this users score.
    */ 
   var usersScoresIndex  : Array[Int] = new Array[Int](numUsers)
 
@@ -36,7 +38,7 @@ class Scorer(val numUsers : Int) extends Actor {
       val tmp = scores(i)
       updatePosition(i,score)
       updatePosition(i-1,tmp)
-      reassign(score,scores,usersScoresIndex)
+      reassign(score)
     } else {
       scores(i-1) = score
       usersScoresIndex(score._1) = i-1
@@ -63,9 +65,10 @@ class Scorer(val numUsers : Int) extends Actor {
   }
 
   def score(uid : Int) : Array[(Int,Int)] = 
-    scores
+    scores.slice(usersScoresIndex(uid)-10,usersScoresIndex(uid)+11)
 
-  def toString = {
+  
+  override def toString = {
     "Scores: (" + 
     scores.deep.mkString(",") + 
     "), Users positions: (" + 
