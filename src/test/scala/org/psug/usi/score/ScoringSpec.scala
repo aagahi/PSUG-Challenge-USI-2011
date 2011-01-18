@@ -16,14 +16,15 @@ class ScoringSpec extends SpecificationWithJUnit {
       scorer.score(user)(0) must be_==((0,2))
     }
 
-    "send score of users before and after" in {
+    "update position of user and send score of users before and after" in {
       val scorer = new Scorer(3)
       val userResponse = new UserResponseAgent(scorer)
       val user = 1
       scorer.start
       userResponse.ok(user) must be_==(1)
-      scorer.score(user)(1) must be_==((1,1))      
+      scorer.score(user)(2) must be_==((1,1))      
     }
+    
   }
 }
 
