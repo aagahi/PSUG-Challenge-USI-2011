@@ -11,17 +11,26 @@ class UserResponseAgent(val scorer : Scorer) {
   }
 }
 
-class Scorer extends Actor {
+class Scorer(val numUsers : Int) extends Actor {
   
-  var scores : Array[Int] = new Array[Int](1)
+  var scores : Array[(Int,Int)] = new Array[(Int,Int)](numUsers)
+  var usersScoresIndex  : Array[Int] = new Array[Int](numUsers)
+
+  for(i <- 0 to numUsers -1) { usersScoresIndex(i) = i; scores(i) = (i,0) }
 
   def act {
     loop {
       react {
-	case UserScore(uid,score) => scores(uid) = scores(uid) + score; reply(scores(uid))
+	case UserScore(uid,score) => {
+	  val (_,sc) = scores(usersScoresIndex(uid))
+	  scores(usersScoresIndex(uid)) = (uid,sc + score)
+	  reply(sc + score) 
+	}
       }
     }
   }
 
-  def score(uid : Int) : Int = scores(uid)
+  def score(uid : Int) : Array[(Int,Int)] = 
+    scores
+    
 }
