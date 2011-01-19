@@ -4,6 +4,28 @@ import org.junit._
 import java.util.Random
 import org.apache.commons.math.stat.StatUtils.{mean,variance}
 
+trait PerfUtilities {
+
+  val random = new Random(System.nanoTime)
+
+  /**
+   * Compute standard deviation from variance.
+   */
+  def stddev(used : Array[Double]) : Double = Math.sqrt(variance(used))
+
+  implicit def asArray[A : ClassManifest](s : IndexedSeq[A]) : Array[A] = s.toArray
+
+  /**
+   * Provide the execution time of the suspension given in parameter.
+   */
+  def time[A](f : => A) : Double = {
+      val start = System.nanoTime
+      f
+      System.nanoTime - start
+  }
+
+}
+
 /**
  * Generates performance profiles for the scoring agents.
  * This class runs a single test repeatedly with various arguments to produce an
@@ -16,27 +38,16 @@ import org.apache.commons.math.stat.StatUtils.{mean,variance}
  * <li>record the mean and standard deviation for each point,</li>
  * </ul>
  */
-class ScoringPerf {
+class ScoringPerf extends PerfUtilities{
 
   val numberOfUsers = List(10,50,100,500,1000,5000)
-  val random = new Random(System.nanoTime)
-
-  def stddev(used : Array[Double]) : Double = Math.sqrt(variance(used))
-
-  implicit def asArray[A : ClassManifest](s : IndexedSeq[A]) : Array[A] = s.toArray
-
-  def time[A](f : => A) : Double = {
-      val start = System.nanoTime
-      f
-      System.nanoTime - start
-  }
 
   @Test
   def runPerformanceTests = {
     runWithNumberOfUsers(1000)
     for(num <- numberOfUsers) {
       val (mean,stddev) = runWithNumberOfUsers(num)
-      println(num + ": mean="+ (mean/1000000).asInstanceOf[Long]+ ", stddev=" +(stddev/1000000).asInstanceOf[Long])
+      println(num + ": mean="+ (mean/1000000).asInstanceOf[Long] + ", stddev=" +(stddev/1000000).asInstanceOf[Long])
     }
   }
 
@@ -45,11 +56,11 @@ class ScoringPerf {
     val users = new Array[UserResponseAgent](num)
     scorer.start
     for (i <- 0 to num-1) { users(i) = new UserResponseAgent(i,scorer) }
-    val values = for(j <- 1 to 30) yield time(singleTestWith(num,users))
+    val values = for(j <- 1 to 30) yield time(singleTest(num,users))
     (mean(values), stddev(values))
   }
 
-  def singleTestWith(num : Int,users : Array[UserResponseAgent]) : Unit = {
+  def singleTest(num : Int,users : Array[UserResponseAgent]) : Unit = {
       for(j <- 1 to 10) 
 	for(i <- 0 to num-1) 
 	  if(random.nextDouble < 0.5) users(i).ok 
