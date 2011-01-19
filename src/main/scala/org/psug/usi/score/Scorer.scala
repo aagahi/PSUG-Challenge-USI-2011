@@ -33,15 +33,27 @@ class Scorer(val numUsers : Int)(implicit val interval : Int) extends Actor {
    * Reassign a score for a user id within the sorted array of scores.
    */
   def reassign(score : (Int,Int)) : Int = {
-    var i = usersScoresIndex(score._1) +1
-    while(scores.length > i && scores(i)._2 < score._2) {
-      val tmp = scores(i)
-      updatePosition(i,score)
-      updatePosition(i-1,tmp)
-      i = usersScoresIndex(score._1) +1
+    var start = usersScoresIndex(score._1) +1
+    var end = usersScoresIndex(score._1) +1
+    while(scores.length > end && scores(end)._2 < score._2) {
+      end = end + 1
     } 
-    updatePosition(i-1,score)
-    i-1
+    if(end > start) {
+      val toMove = scores.slice(start,end)
+      System.arraycopy(toMove,0,scores,start-1,toMove.length)
+      decreasePositions(start-1,end-1)
+      usersScoresIndex(score._1) = end-1
+    }
+    scores(end-1) = score
+    end-1
+  }
+
+  /**
+   * Decrement by one the position of each user within the given range (to not included).
+   */
+  def decreasePositions(beg : Int, end : Int) = {
+    for(i <- beg to end-1)
+      usersScoresIndex(scores(i)._1) = i
   }
 
   def updatePosition(i : Int, score : (Int,Int)) = {

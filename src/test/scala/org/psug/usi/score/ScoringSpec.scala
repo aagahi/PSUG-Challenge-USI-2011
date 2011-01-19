@@ -50,7 +50,7 @@ class ScoringSpec extends SpecificationWithJUnit {
 	if(i % 2  == 0) users(i).ok 
       }
       val sc = scorer.score(1000)
-       sc(10) must be_==((1000,4))
+      sc(10) must be_==((1000,4))
     }
   }
 }

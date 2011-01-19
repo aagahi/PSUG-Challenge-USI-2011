@@ -99,7 +99,6 @@
 	  <includes>
             <include>**/*Test.java</include>
             <include>**/*Spec.java</include>
-            <include>**/*Perf.java</include>
           </includes>
 	</configuration>
       </plugin>
