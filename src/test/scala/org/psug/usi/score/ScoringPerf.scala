@@ -23,6 +23,14 @@ class ScoringPerf {
 
   def stddev(used : Array[Double]) : Double = Math.sqrt(variance(used))
 
+  implicit def asArray[A : ClassManifest](s : IndexedSeq[A]) : Array[A] = s.toArray
+
+  def time[A](f : => A) : Double = {
+      val start = System.nanoTime
+      f
+      System.nanoTime - start
+  }
+
   @Test
   def runPerformanceTests = {
     runWithNumberOfUsers(1000)
@@ -34,20 +42,16 @@ class ScoringPerf {
 
   def runWithNumberOfUsers(num : Int) :(Double,Double)= {
     val scorer = new Scorer(num)(10)
-    val users : Array[UserResponseAgent] = new Array[UserResponseAgent](num)
+    val users = new Array[UserResponseAgent](num)
     scorer.start
-    for(i <- 0 to num-1) { users(i) = new UserResponseAgent(i,scorer) }
-    var values = new Array[Double](30)
-    for(j <- 1 to 30) {
-      val start = System.nanoTime
-      for(k <- 1 to 10) {
-	for(i <- 0 to num-1) {
-	  if(random.nextDouble < 0.5) users(i).ok
-	}
-      }
-      val end = System.nanoTime
-      values(j-1) = end - start
-    }
+    for (i <- 0 to num-1) { users(i) = new UserResponseAgent(i,scorer) }
+    val values = for(j <- 1 to 30) yield time(singleTestWith(num,users))
     (mean(values), stddev(values))
   }
+
+  def singleTestWith(num : Int,users : Array[UserResponseAgent]) : Unit = {
+      for(j <- 1 to 10) 
+	for(i <- 0 to num-1) 
+	  if(random.nextDouble < 0.5) users(i).ok 
+    }
 }
