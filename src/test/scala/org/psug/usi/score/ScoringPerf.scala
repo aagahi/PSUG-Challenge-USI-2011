@@ -23,7 +23,12 @@ trait PerfUtilities {
       f
       System.nanoTime - start
   }
-
+  
+  def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, users : Array[UserResponseAgent]) = {
+    for(j <- 1 to numQuestions) 
+      for(i <- 0 to users.length-1) 
+	  if(random.nextDouble < correctAnswerProbability) users(i).ok 
+  }
 }
 
 /**
