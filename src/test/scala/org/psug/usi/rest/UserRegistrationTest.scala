@@ -20,6 +20,8 @@ class UserRegistrationTest extends RESTTestUtilities {
 					 ("password"	-> "0xcafebabe")))
     val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], userDescription)
     assertThat(response, is("1"))
+    val user = webResource.path("/api/user/1").get(classOf[String])
+    assertThat(user,is(userDescription))
   }
   
 }
