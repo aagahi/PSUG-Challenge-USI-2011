@@ -1,5 +1,5 @@
 /**
- * Script de lancement du serveur USI 2011 
+ * Script de lancement du serveur USI 2011 en mode developpement. 
  *  - mvn est dans le PATH
  *  - le repertoire courant est la racine du projet challenge-usi
  * Usage: scala usi.scala [port]
@@ -45,6 +45,8 @@ object usi {
   def reap(proc : Process) : Unit = 
     Runtime.getRuntime().addShutdownHook(new Thread { override def run() = proc.destroy })
 
+  def mvnExecutable = if(getProperty("os.name").toLowerCase.startsWith("windows")) "mvn.bat" else "mvn"
+
   def main(args: Array[String]) = { 
     val port = if(args.length > 0) args(0) else DEFAULT_PORT
 
@@ -53,7 +55,7 @@ object usi {
       exit(1)
     }
     
-    val pb = system("mvn.bat","-q","dependency:build-classpath","-Dmdep.outputFile=" + cpFile)
+    val pb = system(mvnExecutable,"-q","dependency:build-classpath","-Dmdep.outputFile=" + cpFile)
 
     if(pb.waitFor != 0) { 
       println("Failed to generate classpath.txt. Is maven in your PATH?")

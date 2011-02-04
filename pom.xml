@@ -106,8 +106,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <classpathPrefix>${settings.localRepository}/</classpathPrefix>
-              <classpathLayoutType>repository</classpathLayoutType>
+              <classpathPrefix>lib/</classpathPrefix>
 	      <mainClass>org.psug.usi.Main</mainClass>
             </manifest>
           </archive>
