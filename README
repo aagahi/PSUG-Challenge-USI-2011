@@ -1,22 +1,27 @@
-* RÈfÈrences
+* R√©f√©rences
 
  - Le challenge: https://sites.google.com/a/octo.com/challengeusi2011/
- - L'intÈgration continue: https://dev.oqube.net:444/hudson/
+ - L'int√©gration continue: https://dev.oqube.net:444/hudson/
    login/password: psug/ChallengeUSI2011
- - Le rÈfÈrentiel Git: git+ssh://git@dev.oqube.net:2222/home/git/challenge-usi
+ - Le r√©f√©rentiel Git: git+ssh://git@dev.oqube.net:2222/home/git/challenge-usi
 
 * Build
 
-Le projet utilise maven comme systËme de build principal. Pour
-compiler et installer les sources dans le rÈfÈrentiel local
-(ie. par dÈfaut ${HOME}/.m2/repository), et en supposant que maven
+Le projet utilise maven comme syst√®me de build principal. Pour
+compiler et installer les sources dans le r√©f√©rentiel local
+(ie. par d√©faut ${HOME}/.m2/repository), et en supposant que maven
 soit disponible dans le ${PATH}:
 
 : mvn clean install
 
-Pour ajouter l'accËs aux rÈfÈrÈntiels de java.net (pour jersey) et
+Pour ajouter l'acc√®s aux r√©f√©r√©ntiels de java.net (pour jersey) et
 scala-tools (pour scala):
 
 : mvn clean install -Pwith-repo
 
+* Run
 
+Un script usi.scala permet de lancer le projet en mode local. Il
+suppose que l'ex√©cutable *mvn* est disponible dans le PATH courant:
+
+: scala usi.scala 
