@@ -2,6 +2,7 @@
  * Script de lancement du serveur USI 2011 
  *  - mvn est dans le PATH
  *  - le repertoire courant est la racine du projet challenge-usi
+ * Usage: scala usi.scala [port]
  */
 
 import java.io._
@@ -15,6 +16,8 @@ object usi {
 
   val EOL = getProperty("line.separator")
   val PATH = getProperty("path.separator")
+  val DEFAULT_PORT = "8082"
+
   val cpFile = "target/classpath.txt"
 
   def system (cmd: String*): Process = {
@@ -43,6 +46,7 @@ object usi {
     Runtime.getRuntime().addShutdownHook(new Thread { override def run() = proc.destroy })
 
   def main(args: Array[String]) = { 
+    val port = if(args.length > 0) args(0) else DEFAULT_PORT
 
     if(!assertInRootDirectory) { 
       println("Not in toplevel directory for project challenge-usi, giving up")
@@ -58,7 +62,7 @@ object usi {
 
     val classpath = "target/classes" + PATH + fromFile(new File(cpFile)).mkString
 
-    val java = system(Array("java","org.psug.usi.Main"), Map("CLASSPATH" -> classpath))
+    val java = system(Array("java","org.psug.usi.Main",port), Map("CLASSPATH" -> classpath))
     
     collectOutput(java)
     reap(java)
