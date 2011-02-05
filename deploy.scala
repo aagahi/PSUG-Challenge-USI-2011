@@ -35,11 +35,11 @@ object deploy {
   def system (cmd: Array[String], wd : File): Process = 
     new ProcessBuilder (cmd:_*).redirectErrorStream(true).directory(wd).start
 
-  def assertInRootDirectory : Boolean = { 
+  def assertInRootDirectory (f : => Unit): Unit = { 
     try { 
       (loadFile(new File(cwd,"pom.xml")) \ "artifactId").text == "challenge-usi"
     } catch { 
-      case e => false
+      case e => f
     }
   }
 
@@ -70,7 +70,7 @@ object deploy {
   def main(args: Array[String]) = { 
     val port = if(args.length > 0) args(0) else DEFAULT_PORT
 
-    if(!assertInRootDirectory) { 
+    assertInRootDirectory { 
       println("Not in toplevel directory for project challenge-usi, giving up")
       exit(1)
     }
@@ -81,25 +81,28 @@ object deploy {
     if(!libDir.exists && !libDir.mkdirs) { 
       println("Cannot create directory 'target/deployment/lib', check permissions")
       exit(1)
-    }
+    } else 
+      println("deployment directory "+ deployDir +" OK")
 
     val pb = system(mvnExecutable,"-q","dependency:copy-dependencies","-DincludeScope=runtime","-DoutputDirectory=" + libDir.getAbsolutePath)
 
     if(pb.waitFor != 0) { 
       println("Failed to copy needed dependencies to deployment directory. Is maven in your PATH?")
       exit(1)
-    } 
+    } else
+      println("copy dependencies to " + libDir + " OK")
 
     val version = (loadFile(new File(cwd,"pom.xml")) \ "version").text
 
     val jar = new File("target/challenge-usi-"+version+".jar")
+    val dest = new File(deployDir,jar.getName)
+    copyFile(jar,dest)
 
     if(!jar.exists) { 
-      println("Jar file for project challenge-usi does not exist. Have you run 'mvn package'")
+      println("Jar file for project challenge-usi does not exist. Have you run 'mvn package'?")
       exit(1)
-    }
-
-    copyFile(jar,new File(deployDir,jar.getName))
+    } else
+      println("copy main jar to " + deployDir + " OK")
 
     val java = system(Array("java","-jar",jar.getName, port),jar.getParentFile)
     
