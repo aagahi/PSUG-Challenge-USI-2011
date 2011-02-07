@@ -38,6 +38,8 @@ object inMemoryUserRepository extends UserRepository {
 	    users = users + (m -> idUser)
 	    reply(idUser)
           }
+	  case email : String => 
+	    reply(users.get(email))
 	}
       }
     }
@@ -47,5 +49,7 @@ object inMemoryUserRepository extends UserRepository {
     Right((usersStore !? user).asInstanceOf[User])
   }
  
-  override def findByEmail(email : String) : Option[User] = None
+  override def findByEmail(email : String) : Option[User] = { 
+    (usersStore !? email).asInstanceOf[Option[User]]
+  }
 }
