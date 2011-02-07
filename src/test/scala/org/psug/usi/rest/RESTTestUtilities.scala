@@ -26,7 +26,7 @@ abstract class RESTTestUtilities extends JerseyTest(new InMemoryTestContainerFac
   }
 
   override def configure() : AppDescriptor = {
-    new WebAppDescriptor.Builder(restletsPath()).contextPath("")
+    new WebAppDescriptor.Builder(restletsPath()).initParam("com.sun.jersey.config.property.packages","org.psug.usi.rest").initParam("com.sun.jersey.config.property.resourceConfigClass","com.sun.jersey.api.core.PackagesResourceConfig").contextPath("")
     .build()
   }
 
