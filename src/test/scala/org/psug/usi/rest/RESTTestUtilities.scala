@@ -11,6 +11,9 @@ import com.sun.jersey.test.framework.JerseyTest
 import com.sun.jersey.test.framework.WebAppDescriptor
 import com.sun.jersey.test.framework.spi.container.inmemory.InMemoryTestContainerFactory
 
+import java.util.logging._
+import Level._
+
 /**
  * 
  * @author abailly@oqube.com
@@ -26,6 +29,7 @@ abstract class RESTTestUtilities extends JerseyTest(new InMemoryTestContainerFac
   }
 
   override def configure() : AppDescriptor = {
+    Logger.getLogger("com.sun.jersey").setLevel(WARNING)
     new WebAppDescriptor.Builder(restletsPath()).initParam("com.sun.jersey.config.property.packages","org.psug.usi.rest").initParam("com.sun.jersey.config.property.resourceConfigClass","com.sun.jersey.api.core.PackagesResourceConfig").contextPath("")
     .build()
   }
