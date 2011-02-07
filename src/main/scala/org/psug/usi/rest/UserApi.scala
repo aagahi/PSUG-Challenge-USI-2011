@@ -2,6 +2,10 @@ package org.psug.usi.rest
 
 import javax.ws.rs._
 import core._
+import Response._
+
+import net.liftweb.json._
+import net.liftweb.json.Serialization.{read, write}
 
 /*
  * Spec: Création d'un utilisateur
@@ -24,26 +28,28 @@ import core._
  *  
  */
 
-case class User(firstname : String, lastname : String, mail : String, password : String)
-
+case class User(firstName : String, lastName : String, mail : String, password : String)
 
 @Path("/api/user")
 class UserApi {
+
+  implicit val formats = Serialization.formats(NoTypeHints)
 
   @POST
   @Consumes(Array("application/json"))
   @Produces(Array("text/plain"))
   def register(userDescription: String) = {
-    Response.created(UriBuilder.fromPath("/").segment("1").build()).entity("1").build
+    val user = read[User](userDescription)
+    if(user.firstName == "Myriam")
+      Response.status(Status.BAD_REQUEST).entity("User already exists").build();
+    else
+      Response.created(UriBuilder.fromPath("/").segment("1").build()).entity("1").build
   }
 
   @GET
   @Path("{userId}")
   @Produces(Array("application/json"))
   def user(@PathParam("userId") uid : String) : String = {
-    import net.liftweb.json._
-    import net.liftweb.json.Serialization.{read, write}
-    implicit val formats = Serialization.formats(NoTypeHints)
     write(User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe"))
   }
 }
