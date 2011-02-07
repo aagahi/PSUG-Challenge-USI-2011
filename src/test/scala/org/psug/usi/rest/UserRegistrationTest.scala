@@ -12,33 +12,28 @@ import JsonAST._
 
 import com.sun.jersey.api.client._
 
+import net.liftweb.json._
+import net.liftweb.json.Serialization.{read, write}
+
 class UserRegistrationTest extends RESTTestUtilities {
+  implicit val formats = Serialization.formats(NoTypeHints)
+
+  val martinOdersky = User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
+  val myriamOdersky = User("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
 
   @Test
   def succeedsIfUserDoesNotExist() = {
-    val userDescription = compact(render(("firstName"	-> "Martin") ~ 
-					 ("lastName"	-> "Odersky") ~ 
-					 ("mail"	-> "m.odersky@scala-lang.org") ~ 
-					 ("password"	-> "0xcafebabe")))
-    val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], userDescription)
+    val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
     assertThat(response, is("1"))
     val user = webResource.path("/api/user/1").get(classOf[String])
-    assertThat(user,is(userDescription))
+    assertThat(read[User](user),is(martinOdersky))
   }
   
   @Test
   def doesNotSucceedIfUserWithSameEmailExists() = {
-    val userDescription = compact(render(("firstName"	-> "Martin") ~ 
-					 ("lastName"	-> "Odersky") ~ 
-					 ("mail"	-> "m.odersky@scala-lang.org") ~ 
-					 ("password"	-> "0xcafebabe")))
-    webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], userDescription)
-    val otherUser = compact(render(("firstName"	-> "Myriam") ~ 
-				   ("lastName"	-> "Odersky") ~ 
-				   ("mail"	-> "m.odersky@scala-lang.org") ~ 
-				   ("password"	-> "0x12345678")))
+    webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
     try { 
-      val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], otherUser)
+      val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(myriamOdersky))
     } catch { 
       case e : UniformInterfaceException => assertThat(e.getResponse.getStatus,is(400))
     }
