@@ -3,7 +3,29 @@ package org.psug.usi.rest
 import javax.ws.rs._
 import core._
 
+/*
+ * Spec: Création d'un utilisateur
+ *
+ *  * URI : .../api/user
+ *  * méthode POST
+ *  * Paramètre d'entrée 
+ *
+ * {
+ *   "firstname" : "string",
+ *   "lastname" : "string",
+ *   "mail" : "string",
+ *   "password" : "string"
+ * }
+ *
+ *  * Codes de retour
+ *        o OK : CREATED 201
+ *        o Erreur : 400
+ *  * Commentaires : si un utilisateur ayant la même adresse mail existe déjà, une erreur est retournée.
+ *  
+ */
+
 case class User(firstname : String, lastname : String, mail : String, password : String)
+
 
 @Path("/api/user")
 class UserApi {
