@@ -4,6 +4,8 @@ import javax.ws.rs._
 import core._
 import Response._
 
+import org.psug.usi.users._
+
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}
 
@@ -28,8 +30,6 @@ import net.liftweb.json.Serialization.{read, write}
  *  
  */
 
-case class User(firstName : String, lastName : String, mail : String, password : String)
-
 @Path("/api/user")
 class UserApi {
 
@@ -50,6 +50,6 @@ class UserApi {
   @Path("{userId}")
   @Produces(Array("application/json"))
   def user(@PathParam("userId") uid : String) : String = {
-    write(User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe"))
+    write(User(0,"Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe"))
   }
 }

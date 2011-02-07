@@ -1,5 +1,7 @@
 package org.psug.usi.rest
 
+import org.psug.usi.users._
+
 import org.junit.Assert._
 import org.junit.Test
 
@@ -18,8 +20,8 @@ import net.liftweb.json.Serialization.{read, write}
 class UserRegistrationTest extends RESTTestUtilities {
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  val martinOdersky = User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
-  val myriamOdersky = User("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
+  val martinOdersky = User(0,"Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
+  val myriamOdersky = User(0,"Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
 
   @Test
   def succeedsIfUserDoesNotExist() = {
