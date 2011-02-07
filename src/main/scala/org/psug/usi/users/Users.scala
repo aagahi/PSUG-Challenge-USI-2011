@@ -6,6 +6,7 @@ import scala.actors._
 case class User(id : Int, firstName : String, lastName : String, mail : String, password : String)
 
 trait UserRepository { 
+  
 
   /**
    * @return a User with same characteristics but with (unique) id defined, or an error message
@@ -17,6 +18,10 @@ trait UserRepository {
    */
   def findByEmail(email : String) : Option[User]
 
+  /**
+   * clear this repository's content.
+   */
+  def reset : Unit
 }
 
 
@@ -24,6 +29,8 @@ trait UserRepository {
  * Stores users in memory, using an actor to serialize access to underlying map.
  */
 object inMemoryUserRepository extends UserRepository { 
+
+  case object Clear 
 
   val usersStore = new Actor { 
     val nextId : AtomicInteger    = new AtomicInteger
@@ -40,6 +47,8 @@ object inMemoryUserRepository extends UserRepository {
           }
 	  case email : String => 
 	    reply(users.get(email))
+	  case Clear =>
+	    users = Map()
 	}
       }
     }
@@ -52,4 +61,6 @@ object inMemoryUserRepository extends UserRepository {
   override def findByEmail(email : String) : Option[User] = { 
     (usersStore !? email).asInstanceOf[Option[User]]
   }
+
+  override def reset : Unit = usersStore ! Clear
 }
