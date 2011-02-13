@@ -19,7 +19,10 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       scorer.start
       userResponse.ok must be_==(UserScore(0,1,1))
       userResponse.ok must be_==(UserScore(0,3,2))
-      scorer.score(score)(0) must be_==(UserScore(0,3,2))
+      userResponse.ko must be_==(UserScore(0,3,0))
+      userResponse.ok must be_==(UserScore(0,4,1))
+      userResponse.ok must be_==(UserScore(0,6,2))
+      scorer.score(score)(0) must be_==(UserScore(0,6,2))
     }
 
     "update position of user and send score of users before and after" in {
