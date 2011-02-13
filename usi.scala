@@ -33,7 +33,7 @@ object usi {
   def assertInRootDirectory : Boolean = { 
     val cwd = new File(System.getProperty("user.dir"))
     try { 
-      (loadFile(new File(cwd,"pom.xml")) \ "artifactId").text == "challenge-usi"
+      (loadFile(new File(cwd,"pom.xml")), "artifactId").text == "challenge-usi"
     } catch { 
       case e => false
     }
@@ -59,6 +59,8 @@ object usi {
 
     if(pb.waitFor != 0) { 
       println("Failed to generate classpath.txt. Is maven in your PATH?")
+      println("If so, check that you configured your #/.m2/setting.xml to activate 'with-repo' profile")
+      println("See http://maven.apache.org/settings.html#Active_Profiles")
       exit(1)
     } 
 
