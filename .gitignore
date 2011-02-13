@@ -78,6 +78,7 @@ files/
 *.tex
 *.out
 *.cache
+# IDEA Intellij
 *.iml
 *.ipr
 *.iws
