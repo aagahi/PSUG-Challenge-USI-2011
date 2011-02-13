@@ -6,8 +6,8 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
 
   implicit val defaultInterval = 100
 
-  def isSorted(seq : Seq[(Int,Int)]) : Boolean = { 
-    seq.foldLeft(Integer.MIN_VALUE,true)( (r: (Int,Boolean),s : (Int,Int)) => (s._2,r._2 & (s._2 >= r._1)))._2
+  def isSorted(seq : Seq[UserScore]) : Boolean = {
+    seq.foldLeft( 0, true )( ( r:(Int,Boolean), s:UserScore) => ( s.score, r._2 & (s.score >= r._1) ) )._2
   }
 
   "scoring agent" should {
@@ -17,9 +17,9 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val userResponse = new UserResponseAgent(scorer)
       val score = 0
       scorer.start
-      userResponse.ok must be_==(1)
-      userResponse.ok must be_==(2)
-      scorer.score(score)(0) must be_==((0,2))
+      userResponse.ok must be_==(UserScore(0,1,1))
+      userResponse.ok must be_==(UserScore(0,3,2))
+      scorer.score(score)(0) must be_==(UserScore(0,3,2))
     }
 
     "update position of user and send score of users before and after" in {
@@ -27,8 +27,8 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val user = 1
       val userResponse = new UserResponseAgent(user,scorer)
       scorer.start
-      userResponse.ok must be_==(1)
-      scorer.score(user)(2) must be_==((1,1))      
+      userResponse.ok must be_==( UserScore(1,1,1) )
+      scorer.score(user)(2) must be_==(UserScore(1,1,1))
     }
     
     "send score of all users within a specific given interval" in {
@@ -58,13 +58,13 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       scorer.start
       for(i <- 0 to numberOfPlayers-1) { users(i) = new UserResponseAgent(i,scorer) }
       for(i <- 0 to numberOfPlayers-1) { 
-	if(i % 1000 == 0) users(i).ok
-	if(i % 10 == 0) users(i).ok
-	if(i % 4  == 0) users(i).ok
-	if(i % 2  == 0) users(i).ok 
+	    if(i % 1000 == 0) users(i).ok
+	    if(i % 10 == 0) users(i).ok
+	    if(i % 4  == 0) users(i).ok
+	    if(i % 2  == 0) users(i).ok
       }
       val sc = scorer.score(1000)
-      sc(10) must be_==((1000,4))
+      sc(10) must be_==(UserScore(1000,4+(0+1+2+3),4))
     }
   }
 }

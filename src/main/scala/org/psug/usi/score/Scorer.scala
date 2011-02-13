@@ -6,11 +6,20 @@ class UserResponseAgent(val uid: Int, val scorer: Scorer) {
 
   def this(scorer: Scorer) = this(0, scorer)
 
-  def ok: Int = {
-    (scorer !? uid).asInstanceOf[Int]
-  }
+  def ok : UserScore = sendResponse( true )
+  def ko : UserScore = sendResponse( false )
+    
+  private def sendResponse( b:Boolean ) = (scorer !? UserResponse( uid, b ) ).asInstanceOf[UserScore]
 
 }
+
+case class UserScore( userId:Int, score:Int, bonus:Int ) {
+    def update( okResponse:Boolean ) = {
+        if( okResponse ) UserScore( userId, score + 1 + bonus, bonus+1 )
+        else UserScore( userId, score, 0 )
+    }
+}
+case class UserResponse( userId:Int, ok:Boolean )
 
 class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
 
@@ -18,7 +27,7 @@ class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
    * Sorted array of scores. This array is expected to be always sorted in increasing
    * order of scores.
    */
-  val scores: Array[(Int, Int)] = new Array[(Int, Int)](numUsers)
+  val scores: Array[UserScore] = new Array[UserScore](numUsers)
 
   /*
    * Index user ids within scores array. The index of this array are the user ids, elements
@@ -26,19 +35,19 @@ class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
    */
   val usersScoresIndex: Array[Int] = new Array[Int](numUsers)
 
-  for (i <- 0 to numUsers - 1) { usersScoresIndex(i) = i; scores(i) = (i, 0) }
+  for (i <- 0 to numUsers - 1) { usersScoresIndex(i) = i; scores(i) = UserScore(i, 0, 0) }
 
   /**
    * Reassign a score for a user id within the sorted array of scores.
    */
-  def reassign(score: (Int, Int)): Int = {
-    val start = usersScoresIndex(score._1) + 1
+  def reassign(score: UserScore): Int = {
+    val start = usersScoresIndex(score.userId) + 1
     val end = findPosition(score,start)
     if (end > start) {
       val toMove = scores.slice(start, end)
       System.arraycopy(toMove, 0, scores, start - 1, toMove.length)
       decreasePositions(start - 1, end - 1)
-      usersScoresIndex(score._1) = end - 1
+      usersScoresIndex(score.userId) = end - 1
     }
     scores(end - 1) = score
     end - 1
@@ -49,12 +58,12 @@ class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
    * @return the index in scores with score greater than score's value, or the
    * length of scores.
    */
-  private def findPosition(score: (Int, Int), start: Int): Int = {
+  private def findPosition(score: UserScore, start: Int): Int = {
     var beg = start
     var end = scores.length
     var mid = (end - beg) / 2 + beg
     while(mid != end && beg != mid) {
-      if(scores(mid)._2 < score._2) {
+      if(scores(mid).score < score.score) {
 	beg = mid
       } else {
 	end = mid
@@ -69,29 +78,28 @@ class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
    */
   def decreasePositions(beg: Int, end: Int) = {
     for (i <- beg to end - 1)
-      usersScoresIndex(scores(i)._1) = i
+      usersScoresIndex(scores(i).userId) = i
   }
 
-  def updatePosition(i: Int, score: (Int, Int)) = {
-    usersScoresIndex(score._1) = i
+  def updatePosition(i: Int, score: UserScore) = {
+    usersScoresIndex(score.userId) = i
     scores(i) = score
   }
 
   def act {
     loop {
       react {
-        case uid: Int => {
-          val (user, sc) = scores(usersScoresIndex(uid))
-          val newScore = (user, sc + 1)
+        case UserResponse( uid, ok ) =>
+          val userScore = scores(usersScoresIndex(uid))
+          val newScore = userScore.update( ok )
           reassign(newScore)
-          reply(newScore._2)
-        }
+          reply( newScore )
       }
     }
   }
 
-  def score(uid: Int): Array[(Int, Int)] =
-    scores.slice(usersScoresIndex(uid) - 10, usersScoresIndex(uid) + 11)
+  def score(userId: Int): Array[UserScore] =
+    scores.slice( usersScoresIndex(userId) - 10, usersScoresIndex(userId) + 11 )
 
   override def toString = {
     "Scores: (" +
