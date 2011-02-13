@@ -78,7 +78,7 @@ files/
 *.tex
 *.out
 *.cache
-*.imi
+*.iml
 *.ipr
 *.iws
 # cpp blend stuff
