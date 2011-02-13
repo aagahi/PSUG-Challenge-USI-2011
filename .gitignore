@@ -78,7 +78,9 @@ files/
 *.tex
 *.out
 *.cache
-
+*.imi
+*.ipr
+*.iws
 # cpp blend stuff
 !lib/murex/pgop/
 !lib/murex/mdk/
