@@ -122,7 +122,7 @@ object deploy {
 
     run("scp",dist.getPath,user + "@" +host + ":" + deploymentDirectory +"/challenge-usi-dist.zip")("Cannot remote copy distribution archive to "+host+". Check credentials, network and other usual suspects for SSH related stuff","remote copy archive "+ dist + " to "+ host +":"+ deploymentDirectory+" OK")
 
-    val java = system("ssh","-batch",user + "@" +host,"cd " + deploymentDirectory + "; unzip -qo challenge-usi-dist.zip; nohup java -jar challenge-usi.jar "+port+" &")
+    val java = system("ssh","-batch",user + "@" +host,"cd " + deploymentDirectory + "; jar xf challenge-usi-dist.zip; nohup java -jar challenge-usi.jar "+port+" &")
     val thread = expectOutput(java,".*Starting PSUG USI2011 Challenge on port "+port+".*",60000)
     if(thread.isInterrupted)
       println("failed to launch web application on port "+port)
