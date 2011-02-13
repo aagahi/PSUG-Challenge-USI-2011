@@ -2,8 +2,12 @@ package org.psug.usi.users
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.actors._
+import collection.mutable.HashMap
 
-case class User(id : Int, firstName : String, lastName : String, mail : String, password : String)
+object User{
+    def apply(firstName : String, lastName : String, email : String, password : String):User = User( 0, firstName, lastName, email, password )
+}
+case class User( id : Int, firstName : String, lastName : String, email : String, password : String)
 
 trait UserRepository { 
   
@@ -28,27 +32,28 @@ trait UserRepository {
 /**
  * Stores users in memory, using an actor to serialize access to underlying map.
  */
-object inMemoryUserRepository extends UserRepository { 
+object InMemoryUserRepository extends UserRepository {
 
   case object Clear 
 
   val usersStore = new Actor { 
-    val nextId : AtomicInteger    = new AtomicInteger
-    var users  : Map[String,User] = Map() 
+    private var currentId = 1
+    private var usersByEmail  : HashMap[String,User] = new HashMap()
     
     def act {
       loop {
-	react {
-          case User(_,f,l,m,p) => {
-	    val id = nextId.incrementAndGet
-	    val idUser = User(id,f,l,m,p)
-	    users = users + (m -> idUser)
-	    reply(idUser)
-          }
+	  react {
+        case User(_,firstname,lastname,email,password) =>
+          currentId += 1
+	      val user = User(currentId,firstname,lastname,email,password)
+	      usersByEmail(email) = user
+	      reply(user)
+
 	  case email : String => 
-	    reply(users.get(email))
+	    reply(usersByEmail.get(email))
+
 	  case Clear =>
-	    users = Map()
+	    usersByEmail.clear
 	}
       }
     }

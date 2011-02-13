@@ -8,7 +8,7 @@ package org.psug.usi.rest
  *  * Paramètres d'entrée 
  *
  * {
- *   "mail" : "string",
+ *   "email" : "string",
  *   "password" : "string"
  * }
  * 

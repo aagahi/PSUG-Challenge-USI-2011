@@ -19,14 +19,14 @@ import net.liftweb.json.Serialization.{read, write}
  * {
  *   "firstname" : "string",
  *   "lastname" : "string",
- *   "mail" : "string",
+ *   "email" : "string",
  *   "password" : "string"
  * }
  *
  *  * Codes de retour
  *        o OK : CREATED 201
  *        o Erreur : 400
- *  * Commentaires : si un utilisateur ayant la même adresse mail existe déjà, une erreur est retournée.
+ *  * Commentaires : si un utilisateur ayant la même adresse email existe déjà, une erreur est retournée.
  *  
  */
 
