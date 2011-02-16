@@ -10,10 +10,10 @@ class UsersSpec extends SpecificationWithJUnit {
     
   "in-memory user repository" should { clearRepository.before
 
-    val martinOdersky = User(0,"Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
+    val martinOdersky = User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
 
     "assign unique id to user when registering" in { 
-      val myriamOdersky = User(0,"Myriam", "Odersky","my.odersky@scala-lang.org","0xcafebabe")
+      val myriamOdersky = User("Myriam", "Odersky","my.odersky@scala-lang.org","0xcafebabe")
       var u1:User = null
       InMemoryUserRepository.store(martinOdersky){ case Right( user ) => u1 = user }
       var u2:User = null
@@ -23,17 +23,18 @@ class UsersSpec extends SpecificationWithJUnit {
       u1.id must not(be_==(u2.id))
     }
 
+
     "lookup user by email" in { 
       val counter = new AtomicInteger(0)
 
       InMemoryUserRepository.store(martinOdersky){
         user =>
 
-        InMemoryUserRepository.findByEmail("m.odersky@scala-lang.org"){
+        InMemoryUserRepository.findByStoreKey("m.odersky@scala-lang.org"){
           user => user.get.lastName must be_==("Odersky"); counter.incrementAndGet
         }
 
-        InMemoryUserRepository.findByEmail("my.odersky@scala-lang.org"){
+        InMemoryUserRepository.findByStoreKey("my.odersky@scala-lang.org"){
           user => user must be_==(None); counter.incrementAndGet
         }
 

@@ -4,7 +4,7 @@ package org.psug.usi.rest
 /*
  * Génération d'une partie
  *
- *  * URI : .../api/game
+ *  * URI : .../api/games
  *  * méthode POST
  *  * Paramètres d'entrée 
  *
