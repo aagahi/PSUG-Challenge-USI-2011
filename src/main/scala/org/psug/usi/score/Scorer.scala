@@ -23,6 +23,8 @@ case class UserResponse( userId:Int, ok:Boolean )
 
 class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
 
+  start
+  
   /*
    * Sorted array of scores. This array is expected to be always sorted in increasing
    * order of scores.

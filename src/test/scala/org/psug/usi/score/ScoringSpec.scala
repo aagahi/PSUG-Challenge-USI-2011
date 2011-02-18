@@ -16,7 +16,6 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val scorer = new Scorer(1)
       val userResponse = new UserResponseAgent(scorer)
       val score = 0
-      scorer.start
       userResponse.ok must be_==(UserScore(0,1,1))
       userResponse.ok must be_==(UserScore(0,3,2))
       userResponse.ko must be_==(UserScore(0,3,0))
@@ -29,7 +28,6 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val scorer = new Scorer(3)
       val user = 1
       val userResponse = new UserResponseAgent(user,scorer)
-      scorer.start
       userResponse.ok must be_==( UserScore(1,1,1) )
       scorer.score(user)(2) must be_==(UserScore(1,1,1))
     }
@@ -38,7 +36,6 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val numberOfPlayers = 1000
       val scorer = new Scorer(numberOfPlayers)(10)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
-      scorer.start
       scorer.score(900).length must be_==(21)
       scorer.score(999).length must be_==(11)
       scorer.score(0).length must be_==(11)
@@ -48,7 +45,6 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val numberOfPlayers = 1000
       val scorer = new Scorer(numberOfPlayers)(10)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
-      scorer.start
       for(i <- 0 to numberOfPlayers-1) { users(i) = new UserResponseAgent(i,scorer) }
       simulateAnswers(10,0.4,users)
       isSorted(scorer.scores) must be_==(true)
@@ -58,7 +54,6 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       val numberOfPlayers = 4000
       val scorer = new Scorer(numberOfPlayers)(10)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
-      scorer.start
       for(i <- 0 to numberOfPlayers-1) { users(i) = new UserResponseAgent(i,scorer) }
       for(i <- 0 to numberOfPlayers-1) { 
 	    if(i % 1000 == 0) users(i).ok
