@@ -80,7 +80,7 @@ class GamesSpec extends SpecificationWithJUnit {
       val gameManager = new GameManager( game )
 
       // 1st question
-      users.foreach( userId => gameManager.send( userId, endpoint ) )
+      users.foreach( user => gameManager.send( Register( user.id ), endpoint ) )
       while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
 
 

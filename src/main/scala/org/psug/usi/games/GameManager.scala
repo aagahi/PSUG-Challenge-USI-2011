@@ -11,6 +11,7 @@ import collection.mutable.HashMap
  * Time: 11:32 PM
  */
 
+case class Register( userId:Int )
 
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
 
@@ -58,7 +59,7 @@ class GameManager( val game:Game ) extends Actor {
   def act {
     loop {
       react {
-        case user:User => register( user )
+        case Register( userId ) => register( userId )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout()
         case _ =>
@@ -70,9 +71,7 @@ class GameManager( val game:Game ) extends Actor {
   /*
    * Long polling stage -> all user register until the required game player is reach, proceedToNextQuestion is called
    */
-  def register( user:User ) { appendUserId( user.id ) }
-
-  private def appendUserId( userId:Int ){
+  private def register( userId:Int ){
     players(playerIndex) = userId
     playerIndex += 1
     playerActors( userId ) =  sender
