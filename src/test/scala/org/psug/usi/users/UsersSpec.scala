@@ -5,7 +5,7 @@ import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 
 class UsersSpec extends SpecificationWithJUnit { 
-
+  import InMemoryUserRepository._
   def clearRepository = InMemoryUserRepository.reset
     
   "in-memory user repository" should { clearRepository.before
@@ -14,33 +14,24 @@ class UsersSpec extends SpecificationWithJUnit {
 
     "assign unique id to user when registering" in { 
       val myriamOdersky = User("Myriam", "Odersky","my.odersky@scala-lang.org","0xcafebabe")
-      var u1:User = null
-      InMemoryUserRepository.store(martinOdersky){ case Right( user ) => u1 = user }
-      var u2:User = null
-      InMemoryUserRepository.store(myriamOdersky){ case Right( user ) => u2 = user }
 
-      while( u1 == null && u2 == null ) Thread.sleep(10)
+      val DataStored( Right( u1 ) ) = InMemoryUserRepository !? StoreData(martinOdersky)
+      val DataStored( Right( u2 ) ) = InMemoryUserRepository !? StoreData(myriamOdersky)
+
       u1.id must not(be_==(u2.id))
     }
 
 
     "lookup user by email" in { 
-      val counter = new AtomicInteger(0)
+      
+      InMemoryUserRepository !? InMemoryUserRepository.StoreData(martinOdersky)
 
-      InMemoryUserRepository.store(martinOdersky){
-        user =>
+      val DataPulled( Some( user ) ) = InMemoryUserRepository !? InMemoryUserRepository.PullData("m.odersky@scala-lang.org")
+      user.lastName must be_==("Odersky")
 
-        InMemoryUserRepository.findByStoreKey("m.odersky@scala-lang.org"){
-          user => user.get.lastName must be_==("Odersky"); counter.incrementAndGet
-        }
+      val DataPulled( nouser ) = InMemoryUserRepository !? InMemoryUserRepository.PullData("my.odersky@scala-lang.org")
+      nouser must be_==( None )
 
-        InMemoryUserRepository.findByStoreKey("my.odersky@scala-lang.org"){
-          user => user must be_==(None); counter.incrementAndGet
-        }
-
-      }
-
-      while( counter.get < 2 ) Thread.sleep(10)
 
     }
   }

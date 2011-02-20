@@ -14,7 +14,7 @@ import org.psug.usi.users.User
 
 
 class GamesSpec extends SpecificationWithJUnit {
-
+  import InMemoryGameRepository._
   def clearRepository = InMemoryGameRepository.reset
 
   "in-memory game repository" should { clearRepository.before
@@ -23,24 +23,17 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil ) :: Nil )
 
     "assign unique id to user when registering" in {
-      val counter = new AtomicInteger(0)
-      InMemoryGameRepository.store(game){ case Right( game ) => game.id must be_!=("") ; counter.incrementAndGet }
-      while( counter.get < 1 ) Thread.sleep(10)
+      val DataStored( Right( gameStored ) ) = InMemoryGameRepository !? InMemoryGameRepository.StoreData(game)
+      gameStored.id must be_!=( game.id )
+
     }
 
 
     "lookup game by id" in {
-      val counter = new AtomicInteger(0)
 
-      InMemoryGameRepository.store(game){
-        game =>
-
-        InMemoryGameRepository.findByStoreKey( game.right.get.id ){
-          game => game.get.questions.head.question must be_==( "Q1" ); counter.incrementAndGet
-        }
-      }
-
-      while( counter.get < 1 ) Thread.sleep(10)
+      val DataStored( Right( gameStored ) ) = InMemoryGameRepository !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = InMemoryGameRepository !? PullData(gameStored.id)
+      gameFound.questions.head.question must be_==( game.questions.head.question )
 
     }
   }
@@ -62,9 +55,10 @@ class GamesSpec extends SpecificationWithJUnit {
 
       val playerAckCount = new AtomicInteger(0)
 
+      // note we added self.loop & react because !? method used in prev test create un "instance" actor and endpoint loop might refer this this one
       val endpoint = actor {
-        loop {
-          react {
+        self.loop {
+          self.react {
             case UserQuestion( userId, Some( question ), scoreSlice ) =>
               question must be_==( game.questions(currentQuestion) )
               if( currentQuestion > 0 ){
