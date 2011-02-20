@@ -34,16 +34,16 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
     
     "send score of all users within a specific given interval" in {
       val numberOfPlayers = 1000
-      val scorer = new Scorer(numberOfPlayers)(10)
+      val scorer = new Scorer(numberOfPlayers, -50 to 50)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
-      scorer.score(900).length must be_==(21)
-      scorer.score(999).length must be_==(11)
-      scorer.score(0).length must be_==(11)
+      scorer.score(900).length must be_==(50 * 2)
+      scorer.score(999).length must be_==(50 + 1)
+      scorer.score(0).length must be_==(50)
     }
     
     "scorer always store scores in a sorted array" in {
       val numberOfPlayers = 1000
-      val scorer = new Scorer(numberOfPlayers)(10)
+      val scorer = new Scorer(numberOfPlayers)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
       for(i <- 0 to numberOfPlayers-1) { users(i) = new UserResponseAgent(i,scorer) }
       simulateAnswers(10,0.4,users)
@@ -52,7 +52,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
     
     "compute score for a very large number of users" in {
       val numberOfPlayers = 4000
-      val scorer = new Scorer(numberOfPlayers)(10)
+      val scorer = new Scorer(numberOfPlayers)
       val users : Array[UserResponseAgent] = new Array[UserResponseAgent](numberOfPlayers)
       for(i <- 0 to numberOfPlayers-1) { users(i) = new UserResponseAgent(i,scorer) }
       for(i <- 0 to numberOfPlayers-1) { 

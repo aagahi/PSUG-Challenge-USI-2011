@@ -57,7 +57,7 @@ class ScoringPerf extends PerfUtilities{
   }
 
   def runWithNumberOfUsers(num : Int) :(Double,Double)= {
-    val scorer = new Scorer(num)(10)
+    val scorer = new Scorer(num)
     val users = new Array[UserResponseAgent](num)
     scorer.start
     for (i <- 0 to num-1) { users(i) = new UserResponseAgent(i,scorer) }

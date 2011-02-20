@@ -1,8 +1,9 @@
 package org.psug.usi.games
 
 import org.psug.usi.users.User
-import actors.Actor
 import org.psug.usi.score.{UserScore, UserResponseAgent, Scorer}
+import actors.{OutputChannel, Actor}
+import collection.mutable.HashMap
 
 /**
  * User: alag
@@ -12,11 +13,17 @@ import org.psug.usi.score.{UserScore, UserResponseAgent, Scorer}
 
 
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
+
+// Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
 case class UserQuestion( userId:Int, question:Option[Question], scoreSlice:Option[Array[UserScore]] = None )
 
 
-object GameManagerTimer extends Actor {
+
+object GameManagerTimer {
   case class QuestionTimeout(questionIndex:Int, timoutSec:Int)
+}
+class GameManagerTimer extends Actor {
+  import GameManagerTimer._
 
   start
   def act {
@@ -33,15 +40,19 @@ object GameManagerTimer extends Actor {
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManager( val game:Game, val endpoint:Actor ) extends Actor {
-
+class GameManager( val game:Game ) extends Actor {
+  import GameManagerTimer._
+  
   start
-  val scorer = new Scorer(game.numPlayer)(10)
+  val scorer = new Scorer(game.numPlayer)
+  val timer = new GameManagerTimer
 
   val players = new Array[Int]( game.numPlayer )
   var playerIndex = 0
 
-  var currentQuestionIndex = 0
+  val playerActors = new HashMap[Int,OutputChannel[Any]]
+
+  var currentQuestionIndex = -1 // start -1 cause proceedToNextQuestion do a +=1 -> 1st question case
 
 
   def act {
@@ -49,7 +60,7 @@ class GameManager( val game:Game, val endpoint:Actor ) extends Actor {
       react {
         case user:User => register( user )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
-        case GameManagerTimer.QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => proceedToNextQuestion()
+        case QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout()
         case _ =>
       }
     }
@@ -61,6 +72,13 @@ class GameManager( val game:Game, val endpoint:Actor ) extends Actor {
    */
   def register( user:User ) { appendUserId( user.id ) }
 
+  private def appendUserId( userId:Int ){
+    players(playerIndex) = userId
+    playerIndex += 1
+    playerActors( userId ) =  sender
+    if( playerIndex >= game.numPlayer ) proceedToNextQuestion()
+  }
+
   /*
    * A user answer the current question, when all player respond or timeout occurs proceedToNextQuestion is called
    */
@@ -70,30 +88,37 @@ class GameManager( val game:Game, val endpoint:Actor ) extends Actor {
 
     if( currentQuestion.answers( answerIndex ).status ) userResponse.ok
     else userResponse.ko
- 
-    players(playerIndex) = userId
-    playerIndex += 1
-    if( playerIndex >= game.numPlayer ) proceedToNextQuestion()
-  }
 
-  private def appendUserId( userId:Int ){
-    players(playerIndex) = userId
-    playerIndex += 1
-    if( playerIndex >= game.numPlayer ) proceedToNextQuestion()
+    playerActors( userId ) = sender
+    if( playerActors.size >= game.numPlayer ){
+      proceedToNextQuestion()
+    }
+
   }
 
   private def proceedToNextQuestion(){
-    for( i <- 0 until playerIndex ){
-      val userId = players(i)
-      val nextQuestion = if( currentQuestionIndex < game.questions.size ) Some( game.questions(currentQuestionIndex) ) else None
-      val scoreSlice = if( currentQuestionIndex > 0 ) Some( scorer.score( userId ) ) else None
-      endpoint ! UserQuestion( userId, nextQuestion, scoreSlice )
-    }
-    GameManagerTimer ! GameManagerTimer.QuestionTimeout( currentQuestionIndex, game.timeoutSec )
-
     currentQuestionIndex += 1
-    playerIndex = 0
+
+    playerActors.foreach{
+      case ( userId, playerActor ) =>
+        val nextQuestion = if( currentQuestionIndex < game.questions.size ) Some( game.questions(currentQuestionIndex) ) else None
+        val scoreSlice = if( currentQuestionIndex > 0 ) Some( scorer.score( userId ) ) else None
+        playerActor ! UserQuestion( userId, nextQuestion, scoreSlice )
+    }
+    playerActors.clear
+    
+    timer ! QuestionTimeout( currentQuestionIndex, game.timeoutSec )
+
+
   }
 
 
+  private def timeout(){
+    for( userId <- players ){
+      if( !playerActors.contains( userId ) ){
+        UserResponseAgent( userId, scorer ).ko
+      }
+    }
+    proceedToNextQuestion()
+  }
 }

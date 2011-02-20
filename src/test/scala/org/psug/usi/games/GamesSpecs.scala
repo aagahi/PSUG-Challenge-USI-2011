@@ -77,7 +77,7 @@ class GamesSpec extends SpecificationWithJUnit {
         }
       }
 
-      val gameManager = new GameManager( game, endpoint )
+      val gameManager = new GameManager( game )
 
       // 1st question
       users.foreach( userId => gameManager.send( userId, endpoint ) )

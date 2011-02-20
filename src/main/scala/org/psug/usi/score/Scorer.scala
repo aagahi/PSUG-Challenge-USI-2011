@@ -2,7 +2,7 @@ package org.psug.usi.score
 
 import scala.actors._
 
-class UserResponseAgent(val uid: Int, val scorer: Scorer) {
+case class UserResponseAgent(val uid: Int, val scorer: Scorer) {
 
   def this(scorer: Scorer) = this(0, scorer)
 
@@ -21,7 +21,7 @@ case class UserScore( userId:Int, score:Int, bonus:Int ) {
 }
 case class UserResponse( userId:Int, ok:Boolean )
 
-class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
+class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
 
   start
   
@@ -101,7 +101,7 @@ class Scorer(val numUsers: Int)(implicit val interval: Int) extends Actor {
   }
 
   def score(userId: Int): Array[UserScore] =
-    scores.slice( usersScoresIndex(userId) - 10, usersScoresIndex(userId) + 11 )
+    scores.slice( usersScoresIndex(userId) + sliceRange.start, usersScoresIndex(userId) + sliceRange.end )
 
   override def toString = {
     "Scores: (" +
