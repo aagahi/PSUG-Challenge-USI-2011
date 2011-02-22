@@ -28,29 +28,27 @@ class NettyUserRegistrationTest {
   val martinOdersky = User( "Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
   val myriamOdersky = User("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
 
-  WebServer.defaultWebServer
-  
+  val webServer = WebServer.defaultWebServer
+
+  def webResource( path:String ) = new Client().resource("http://localhost:"+webServer.listenPort+path)
+
   // TODO need to test webserver on appropriate port
   @Test
   def succeedsIfUserDoesNotExist() = {
-/*
-    val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
+    val response = webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
     assertThat(response, is("1"))
-    val user = webResource.path("/api/user/1").get(classOf[String])
+    val user = webResource("/api/user/1").get(classOf[String])
     assertThat(read[User](user),is(martinOdersky))
-    */
   }
 
   @Test
   def doesNotSucceedIfUserWithSameEmailExists() = {
-    /*
-    webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
+    webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], write(martinOdersky))
     try {
-      val response = webResource.path("/api/user/").header("Content-Type","application/json").post(classOf[String], write(myriamOdersky))
+      val response = webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], write(myriamOdersky))
     } catch {
       case e : UniformInterfaceException => assertThat(e.getResponse.getStatus,is(400))
     }
-*/
   }
 
 

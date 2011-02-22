@@ -31,7 +31,8 @@ class HttpRequestHandler extends SimpleChannelUpstreamHandler {
       case _ => println( "Unknown message" )
     }
 
-    event.getChannel().write(response);
+    event.getChannel.write(response)
+    event.getChannel.close
 
   }
 
@@ -57,6 +58,8 @@ class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
 
       case _ =>
+        response.setStatus(HttpResponseStatus.NOT_FOUND)
+
     }
 
 
