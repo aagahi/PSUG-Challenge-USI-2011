@@ -17,7 +17,7 @@ import actors.Actor
  */
 
 class RequestActor extends Actor{
-  import InMemoryUserRepository._
+  import UserRepository._
 
   implicit val formats = Serialization.formats(NoTypeHints)
 
@@ -56,11 +56,11 @@ class RequestActor extends Actor{
     ( method, queryStringDecoder.getPath.split('/').tail ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
-        InMemoryUserRepository ! PullData( userId.toInt )
+        UserRepository ! PullData( userId.toInt )
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val user = read[User](content)
-        InMemoryUserRepository ! StoreData(user)
+        UserRepository ! StoreData(user)
 
     }
   }

@@ -10,8 +10,8 @@ import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 class GamesSpec extends SpecificationWithJUnit {
-  import InMemoryGameRepository._
-  def clearRepository = InMemoryGameRepository ! InMemoryGameRepository.Clear
+  import GameRepository._
+  def clearRepository = GameRepository ! GameRepository.Clear
 
   "in-memory game repository" should { clearRepository.before
 
@@ -19,7 +19,7 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil ) :: Nil )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = InMemoryGameRepository !? InMemoryGameRepository.StoreData(game)
+      val DataStored( Right( gameStored ) ) = GameRepository !? GameRepository.StoreData(game)
       gameStored.id must be_!=( game.id )
 
     }
@@ -27,8 +27,8 @@ class GamesSpec extends SpecificationWithJUnit {
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = InMemoryGameRepository !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = InMemoryGameRepository !? PullData(gameStored.id)
+      val DataStored( Right( gameStored ) ) = GameRepository !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = GameRepository !? PullData(gameStored.id)
       gameFound.questions.head.question must be_==( game.questions.head.question )
 
     }

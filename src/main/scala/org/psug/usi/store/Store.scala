@@ -42,6 +42,10 @@ trait DataRepository[K<:Any,T<:Data[K]] extends Actor {
     throw new Exception( "Unexpected message " + any )
   }
 
+
+    /**
+     * @return  true if data contrains are respected
+     */
   protected def checkConstraint( data:T ):Boolean
 
   /**

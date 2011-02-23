@@ -11,7 +11,7 @@ case class User( id : Int, firstName : String, lastName : String, email : String
 }
 
  
-object InMemoryUserRepository extends InMemoryDataRepository[Int,User]{
+object UserRepository extends InMemoryDataRepository[Int,User]{
   case class PullDataByEmail( email : String )
 
   override protected def checkConstraint( user:User )={

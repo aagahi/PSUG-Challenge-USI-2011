@@ -16,7 +16,7 @@ import com.sun.jersey.api.client._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.netty.WebServer
-import org.psug.usi.domain.{InMemoryUserRepository, User}
+import org.psug.usi.domain.{UserRepository, User}
 
 class NettyUserRegistrationTest {
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -25,7 +25,7 @@ class NettyUserRegistrationTest {
   val myriamOdersky = User("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
 
   val webServer = WebServer.defaultWebServer
-  def clearRepository = InMemoryUserRepository ! InMemoryUserRepository.Clear
+  def clearRepository = UserRepository ! UserRepository.Clear
 
   def webResource( path:String ) = new Client().resource("http://localhost:"+webServer.listenPort+path)
 
