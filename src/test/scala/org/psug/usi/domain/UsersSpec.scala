@@ -4,7 +4,7 @@ import org.specs._
 
 class UsersSpec extends SpecificationWithJUnit { 
   import InMemoryUserRepository._
-  def clearRepository = InMemoryUserRepository.reset
+  def clearRepository = InMemoryUserRepository ! InMemoryUserRepository.Clear
     
   "in-memory user repository" should { clearRepository.before
 
@@ -24,10 +24,10 @@ class UsersSpec extends SpecificationWithJUnit {
       
       InMemoryUserRepository !? InMemoryUserRepository.StoreData(martinOdersky)
 
-      val DataPulled( Some( user ) ) = InMemoryUserRepository !? InMemoryUserRepository.PullData("m.odersky@scala-lang.org")
+      val DataPulled( Some( user ) ) = InMemoryUserRepository !? InMemoryUserRepository.PullDataByEmail("m.odersky@scala-lang.org")
       user.lastName must be_==("Odersky")
 
-      val DataPulled( nouser ) = InMemoryUserRepository !? InMemoryUserRepository.PullData("my.odersky@scala-lang.org")
+      val DataPulled( nouser ) = InMemoryUserRepository !? InMemoryUserRepository.PullDataByEmail("my.odersky@scala-lang.org")
       nouser must be_==( None )
 
 

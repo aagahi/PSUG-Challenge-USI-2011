@@ -11,7 +11,7 @@ import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 class GamesSpec extends SpecificationWithJUnit {
   import InMemoryGameRepository._
-  def clearRepository = InMemoryGameRepository.reset
+  def clearRepository = InMemoryGameRepository ! InMemoryGameRepository.Clear
 
   "in-memory game repository" should { clearRepository.before
 

@@ -7,6 +7,8 @@ import org.jboss.netty.channel._
 import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
+import actors.Actor
+
 
 /**
  * User: alag
@@ -14,29 +16,38 @@ import net.liftweb.json.Serialization.{read, write}
  * Time: 1:07 AM
  */
 
+class RequestActor extends Actor{
+  import InMemoryUserRepository._
 
-@ChannelHandler.Sharable
-class HttpRequestHandler extends SimpleChannelUpstreamHandler {
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  override def messageReceived( ctx:ChannelHandlerContext , event:MessageEvent ) {
-    val channel = ctx.getChannel
+  var channel:Channel = null
 
-    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+  start
+  def act {
+    loop {
+      react {
+        case event:MessageEvent =>
+          channel = event.getChannel
+          event.getMessage match
+          {
+            case request:HttpRequest => handleRequest( request )
+            case _ => println( "Unknown message" )
+          }
 
-    event.getMessage match
-    {
-      case request:HttpRequest => handleRequest( request, response )
-      case _ => println( "Unknown message" )
+        case DataStored( Right( data ) ) =>  sendResponse( Some( data ), HttpResponseStatus.OK )
+        case DataStored( Left( message ) ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+
+        case DataPulled( Some( data ) ) =>  sendResponse( Some( data ), HttpResponseStatus.OK )
+        case DataPulled( None ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+
+      }
     }
-
-    event.getChannel.write(response)
-    event.getChannel.close
-
   }
 
-  private def handleRequest( request:HttpRequest, response:HttpResponse ){
+
+
+  private def handleRequest( request:HttpRequest ){
 
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
@@ -45,30 +56,42 @@ class HttpRequestHandler extends SimpleChannelUpstreamHandler {
     ( method, queryStringDecoder.getPath.split('/').tail ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
-        val str = write(User(0,"Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe"))
-        response.setContent(ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8))
+        InMemoryUserRepository ! PullData( userId.toInt )
 
-        
       case ( HttpMethod.POST, Array("api","user") ) =>
         val user = read[User](content)
-        if(user.firstName == "Myriam")
-          response.setStatus(HttpResponseStatus.BAD_REQUEST)
-        else
-          response.setContent(ChannelBuffers.copiedBuffer( "1", CharsetUtil.UTF_8))
-
-
-      case _ =>
-        response.setStatus(HttpResponseStatus.NOT_FOUND)
+        InMemoryUserRepository ! StoreData(user)
 
     }
+  }
 
 
+  private def sendResponse( value:Option[AnyRef], status:HttpResponseStatus ){
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
 
+    value.foreach{
+      data =>
+      val str = write( data )
+      response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8")
+      response.setContent(ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8))
+    }
+
+    val future = channel.write(response)
+    future.addListener(ChannelFutureListener.CLOSE)
+  }
+}
+
+@ChannelHandler.Sharable
+class HttpRequestHandler extends SimpleChannelUpstreamHandler {
+
+  override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
+    new RequestActor() ! e
   }
 
 
 
+
   override def exceptionCaught( ctx:ChannelHandlerContext, e:ExceptionEvent ){
-      e.getChannel.close();
+      e.getChannel.close
   }
 }
