@@ -1,4 +1,4 @@
-package org.psug.usi.games
+package org.psug.usi.domain
 
 import org.psug.usi.store.{InMemoryDataRepository, Data}
 

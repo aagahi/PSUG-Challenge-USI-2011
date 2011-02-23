@@ -1,7 +1,5 @@
-package org.psug.usi.games
+package org.psug.usi.domain
 
-import org.psug.usi.users.User
-import org.psug.usi.score.{UserScore, UserResponseAgent, Scorer}
 import actors.{OutputChannel, Actor}
 import collection.mutable.HashMap
 

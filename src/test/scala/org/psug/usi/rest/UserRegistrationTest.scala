@@ -1,17 +1,11 @@
 package org.psug.usi.rest
 
-import org.psug.usi.users._
+import org.psug.usi.domain._
 
 import org.junit.Assert._
 import org.junit.Test
 
 import org.hamcrest.CoreMatchers._
-import org.junit.matchers.JUnitMatchers._
-
-import net.liftweb.json._
-import JsonDSL._
-import JsonAST._
-
 import com.sun.jersey.api.client._
 
 import net.liftweb.json._

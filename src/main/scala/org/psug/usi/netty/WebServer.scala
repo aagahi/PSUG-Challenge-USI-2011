@@ -43,7 +43,7 @@ class WebServer( val listenPort:Int = 18080 )  {
   bootstrap.setPipelineFactory( new HttpServerPipelineFactory() )
   bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
 
-  println("Web Initializer bound to 0.0.0.0:"+listenPort+": "+ bootstrap.getOptions )
+  println("Netty WebServer bound to 0.0.0.0:"+listenPort+": "+ bootstrap.getOptions )
 }
 
 

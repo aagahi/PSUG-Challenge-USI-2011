@@ -6,20 +6,17 @@ package org.psug.usi.rest
  * Time: 1:28 AM
  */
 
-import org.psug.usi.users._
 
 import org.junit.Assert._
 import org.junit.Test
 
 import org.hamcrest.CoreMatchers._
-
-import net.liftweb.json._
-
 import com.sun.jersey.api.client._
 
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.netty.WebServer
+import org.psug.usi.domain.User
 
 
 class NettyUserRegistrationTest {

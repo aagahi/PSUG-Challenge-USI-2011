@@ -1,4 +1,4 @@
-package org.psug.usi.score
+package org.psug.usi.domain
 
 import org.specs._
 

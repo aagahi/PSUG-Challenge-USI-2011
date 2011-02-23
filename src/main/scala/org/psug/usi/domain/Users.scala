@@ -1,8 +1,5 @@
-package org.psug.usi.users
+package org.psug.usi.domain
 
-import scala.actors._
-import scala.actors.Actor._
-import collection.mutable.HashMap
 import org.psug.usi.store.{Data, InMemoryDataRepository}
 
 object User{

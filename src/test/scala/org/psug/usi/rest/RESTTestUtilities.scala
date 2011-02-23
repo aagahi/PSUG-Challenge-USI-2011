@@ -1,8 +1,5 @@
 package org.psug.usi.rest;
 
-import org.junit.Assert.assertThat
-
-import org.hamcrest.Matcher
 import org.junit.Before
 
 import com.sun.jersey.api.client.WebResource

@@ -2,7 +2,6 @@ package org.psug.usi.rest.test
 
 import org.psug.usi.system._
 import com.sun.jersey.spi.inject._
-import java.lang.reflect.Type
 import javax.ws.rs.ext._
 import javax.ws.rs.core._
 

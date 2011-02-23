@@ -1,4 +1,4 @@
-package org.psug.usi.games
+package org.psug.usi.domain
 
 /**
  * User: alag
@@ -6,13 +6,9 @@ package org.psug.usi.games
  * Time: 12:19 AM
  */
 
-import org.specs.runner.JUnit4
 import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
-import org.psug.usi.users.User
-
-
 class GamesSpec extends SpecificationWithJUnit {
   import InMemoryGameRepository._
   def clearRepository = InMemoryGameRepository.reset

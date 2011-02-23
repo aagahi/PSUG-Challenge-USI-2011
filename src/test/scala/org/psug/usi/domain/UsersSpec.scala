@@ -1,8 +1,6 @@
-package org.psug.usi.users
+package org.psug.usi.domain
 
-import org.specs.runner.JUnit4
 import org.specs._
-import java.util.concurrent.atomic.AtomicInteger
 
 class UsersSpec extends SpecificationWithJUnit { 
   import InMemoryUserRepository._

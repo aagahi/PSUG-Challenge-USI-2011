@@ -1,6 +1,6 @@
 package org.psug.usi.netty
 
-import org.psug.usi.users.User
+import org.psug.usi.domain._
 import org.jboss.netty.util.CharsetUtil
 import net.liftweb.json.{Serialization, NoTypeHints}
 import org.jboss.netty.channel._

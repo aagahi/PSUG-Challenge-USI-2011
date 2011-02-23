@@ -5,7 +5,7 @@ import org.psug.usi.system._
 import javax.ws.rs._
 import core._
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.json.Serialization.write
 
 
 @Path("/admin")

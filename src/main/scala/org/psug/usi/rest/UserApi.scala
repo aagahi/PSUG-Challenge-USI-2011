@@ -4,7 +4,7 @@ import javax.ws.rs._
 import core._
 import Response._
 
-import org.psug.usi.users._
+import org.psug.usi.domain._
 
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}

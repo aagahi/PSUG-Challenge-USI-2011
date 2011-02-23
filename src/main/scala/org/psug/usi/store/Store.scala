@@ -6,7 +6,6 @@ package org.psug.usi.store
  * Time: 11:26 PM
  */
 import scala.actors._
-import scala.actors.Actor._
 import collection.mutable.HashMap
 
 trait Data[K<:Any] {
