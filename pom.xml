@@ -194,6 +194,14 @@
           <url>http://scala-tools.org/repo-releases/</url>
         </repository>
 
+        <repository>
+          <id>repository.jboss.org</id>
+          <url>https://repository.jboss.org/nexus/content/groups/public</url>
+          <snapshots>
+          <enabled>false</enabled>
+          </snapshots>
+        </repository>
+
       </repositories>
     </profile>
 
