@@ -1,7 +1,8 @@
-package org.psug.usi.domain
+package org.psug.usi.service
 
 import actors.{OutputChannel, Actor}
 import collection.mutable.HashMap
+import org.psug.usi.domain._
 
 /**
  * User: alag
@@ -39,10 +40,12 @@ class GameManagerTimer extends Actor {
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManager( val game:Game ) extends Actor {
+class GameManagerService( val game:Game ) extends CommonService {
   import GameManagerTimer._
-  
-  start
+  override val symbol = Symbol("GameManagerService")
+
+  registerAsRemoteActor
+
   val scorer = new Scorer(game.numPlayer)
   val timer = new GameManagerTimer
 
@@ -60,7 +63,7 @@ class GameManager( val game:Game ) extends Actor {
         case Register( userId ) => register( userId )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout()
-        case _ =>
+        case x => 
       }
     }
   }

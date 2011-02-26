@@ -6,9 +6,7 @@
  */
 
 import java.io._
-import scala.xml.pull._
 import scala.io.Source._
-import Stream._
 import scala.xml.XML._
 import System._
 

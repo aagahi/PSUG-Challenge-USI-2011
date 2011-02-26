@@ -9,9 +9,11 @@ package org.psug.usi.domain
 import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
+import org.psug.usi.service._
 class GamesSpec extends SpecificationWithJUnit {
   import GameRepository._
-  def clearRepository = GameRepository ! GameRepository.Clear
+
+  def clearRepository = GameRepositoryService.remoteRef ! ClearRepository()
 
   "in-memory game repository" should { clearRepository.before
 
@@ -19,7 +21,7 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil ) :: Nil )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = GameRepository !? GameRepository.StoreData(game)
+      val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
       gameStored.id must be_!=( game.id )
 
     }
@@ -27,8 +29,8 @@ class GamesSpec extends SpecificationWithJUnit {
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = GameRepository !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = GameRepository !? PullData(gameStored.id)
+      val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = GameRepositoryService.remoteRef !? PullData(gameStored.id)
       gameFound.questions.head.question must be_==( game.questions.head.question )
 
     }
@@ -53,6 +55,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
       // note we added self.loop & react because !? method used in prev test create un "instance" actor and endpoint loop might refer this this one
       val endpoint = actor {
+
         self.loop {
           self.react {
             case UserQuestion( userId, Some( question ), scoreSlice ) =>
@@ -67,21 +70,22 @@ class GamesSpec extends SpecificationWithJUnit {
         }
       }
 
-      val gameManager = new GameManager( game )
-
+      val gameManager = new GameManagerService( game )
       // 1st question
-      users.foreach( user => gameManager.send( Register( user.id ), endpoint ) )
+      users.foreach( user => gameManager.remoteRef.send( Register( user.id ), endpoint ) )
       while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
+
 
 
       // 2nd question
       playerAckCount.set(0)
       currentQuestion += 1
-      users.foreach( user => gameManager.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
+      users.foreach( user => gameManager.remoteRef.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
 
 
     }
 
   }
+  
 }
 

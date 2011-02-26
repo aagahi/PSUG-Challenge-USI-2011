@@ -1,10 +1,11 @@
 package org.psug.usi.domain
 
 import org.specs._
+import org.psug.usi.service.UserRepositoryService
 
 class UsersSpec extends SpecificationWithJUnit { 
   import UserRepository._
-  def clearRepository = UserRepository ! UserRepository.Clear
+  def clearRepository = UserRepositoryService.remoteRef ! ClearRepository()
     
   "in-memory user repository" should { clearRepository.before
 
@@ -13,8 +14,8 @@ class UsersSpec extends SpecificationWithJUnit {
     "assign unique id to user when registering" in { 
       val myriamOdersky = User("Myriam", "Odersky","my.odersky@scala-lang.org","0xcafebabe")
 
-      val DataStored( Right( u1 ) ) = UserRepository !? StoreData(martinOdersky)
-      val DataStored( Right( u2 ) ) = UserRepository !? StoreData(myriamOdersky)
+      val DataStored( Right( u1 ) ) = UserRepositoryService.remoteRef !? StoreData(martinOdersky)
+      val DataStored( Right( u2 ) ) = UserRepositoryService.remoteRef !? StoreData(myriamOdersky)
 
       u1.id must not(be_==(u2.id))
     }
@@ -22,12 +23,12 @@ class UsersSpec extends SpecificationWithJUnit {
 
     "lookup user by email" in { 
       
-      UserRepository !? UserRepository.StoreData(martinOdersky)
+      UserRepositoryService.remoteRef !? StoreData(martinOdersky)
 
-      val DataPulled( Some( user ) ) = UserRepository !? UserRepository.PullDataByEmail("m.odersky@scala-lang.org")
+      val DataPulled( Some( user ) ) = UserRepositoryService.remoteRef !? PullDataByEmail("m.odersky@scala-lang.org")
       user.lastName must be_==("Odersky")
 
-      val DataPulled( nouser ) = UserRepository !? UserRepository.PullDataByEmail("my.odersky@scala-lang.org")
+      val DataPulled( nouser ) = UserRepositoryService.remoteRef !? PullDataByEmail("my.odersky@scala-lang.org")
       nouser must be_==( None )
 
 

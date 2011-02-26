@@ -21,4 +21,3 @@ case class Answer( anwser:String, status:Boolean )
 object GameRepository extends InMemoryDataRepository[String,Game]
 
 
-

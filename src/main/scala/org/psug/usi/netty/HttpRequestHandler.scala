@@ -8,6 +8,7 @@ import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
+import org.psug.usi.service.UserRepositoryService
 
 
 /**
@@ -56,11 +57,11 @@ class RequestActor extends Actor{
     ( method, queryStringDecoder.getPath.split('/').tail ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
-        UserRepository ! PullData( userId.toInt )
+        UserRepositoryService.remoteRef ! PullData( userId.toInt )
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val user = read[User](content)
-        UserRepository ! StoreData(user)
+        UserRepositoryService.remoteRef ! StoreData(user)
 
     }
   }
