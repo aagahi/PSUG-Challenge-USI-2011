@@ -18,6 +18,6 @@ case class Question( question:String, answers:Seq[Answer])
 case class Answer( anwser:String, status:Boolean )
 
 
-object GameRepository extends InMemoryDataRepository[String,Game]
+class GameRepository extends InMemoryDataRepository[String,Game]
 
 

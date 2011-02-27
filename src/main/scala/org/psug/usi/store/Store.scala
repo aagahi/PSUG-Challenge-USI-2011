@@ -15,33 +15,26 @@ trait Data[K<:Any] {
 
 trait DataRepositoryMessage
 
-trait DataRepository[K<:Any,T<:Data[K]] extends Serializable {
+case class StoreData[K<:Any]( data:Data[K] ) extends DataRepositoryMessage
+case class DataStored[K<:Any,T<:Data[K]]( errorEitherData:Either[String,T] ) extends DataRepositoryMessage
+
+case class PullData[K<:Any]( key:K ) extends DataRepositoryMessage
+case class DataPulled[K<:Any]( data:Option[Data[K]] ) extends DataRepositoryMessage
+
+case object ClearRepository extends DataRepositoryMessage
 
 
-  case class StoreData( data:T ) extends DataRepositoryMessage
-  case class DataStored( errorEitherData:Either[String,T] ) extends DataRepositoryMessage
-
-  case class PullData( key : K ) extends DataRepositoryMessage
-  case class DataPulled( data:Option[T] ) extends DataRepositoryMessage
+trait DataRepository[K<:Any,T<:Data[K]] {
 
 
-  case class ClearRepository() extends DataRepositoryMessage
 
   def handleMessage( any:Any ) = {
-    if( any.isInstanceOf[StoreData]) DataStored( store( any.asInstanceOf[StoreData].data ) )
-    else if( any.isInstanceOf[PullData] ) DataPulled( findByStoreKey( any.asInstanceOf[PullData].key ) )
-    else if( any.isInstanceOf[ClearRepository] ){ reset }
-    else {
-      any match{
-        /* => does not work with remote actor... scala bug?
-        case StoreData( data ) => DataStored( store( data ) )
-        case PullData( key ) => DataPulled( findByStoreKey( key ) )
-        case Clear => reset
-        */
-        case x => throw new Exception( "Unexpected message " + any )
-      }
+    any match{
+      case StoreData( data ) if( data.isInstanceOf[T]) => DataStored[K,T]( store( data.asInstanceOf[T] ) )
+      case PullData( key ) if( key.isInstanceOf[K] ) => DataPulled[K]( findByStoreKey( key.asInstanceOf[K] ) )
+      case ClearRepository => reset
+      case x => throw new Exception( "Unexpected message " + any )
     }
-
   }
 
 

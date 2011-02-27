@@ -9,7 +9,7 @@ import actors.Actor
  * Time: 5:24 PM
  */
 
-abstract class RemoteService extends Actor {
+trait RemoteService extends Actor {
   val port = 55555
   val host = "localhost"
   val symbol = Symbol(getClass.getName)

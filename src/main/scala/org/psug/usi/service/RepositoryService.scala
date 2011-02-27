@@ -27,9 +27,6 @@ trait RepositoryService extends RemoteService {
 }
 
 
-object UserRepositoryService extends RepositoryService{
-  override def handleMessage( any:Any ) = UserRepository.handleMessage( any )
-}
-object GameRepositoryService extends RepositoryService{
-  override def handleMessage( any:Any ) = GameRepository.handleMessage( any )
-}
+object UserRepositoryService extends UserRepository with RepositoryService
+
+object GameRepositoryService extends GameRepository with RepositoryService

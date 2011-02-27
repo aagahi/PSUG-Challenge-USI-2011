@@ -10,11 +10,11 @@ import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 import org.psug.usi.service._
-import org.psug.usi.domain.GameRepository._
+import org.psug.usi.store._
 
 class GamesSpec extends SpecificationWithJUnit {
 
-  def clearRepository = GameRepositoryService.remoteRef ! ClearRepository()
+  def clearRepository = GameRepositoryService.remoteRef ! ClearRepository
 
   "in-memory game repository" should { clearRepository.before
 
@@ -23,7 +23,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
     "assign unique id to user when registering" in {
       val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
-      gameStored.id must be_!=( game.id )
+      gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
 
@@ -31,8 +31,8 @@ class GamesSpec extends SpecificationWithJUnit {
     "lookup game by id" in {
 
       val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = GameRepositoryService.remoteRef !? PullData(gameStored.id)
-      gameFound.questions.head.question must be_==( game.questions.head.question )
+      val DataPulled( Some( gameFound ) ) = GameRepositoryService.remoteRef !? PullData(gameStored.asInstanceOf[Game].id)
+      gameFound.asInstanceOf[Game].questions.head.question must be_==( game.questions.head.question )
 
     }
   }

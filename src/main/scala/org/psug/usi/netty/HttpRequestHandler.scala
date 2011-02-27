@@ -9,7 +9,7 @@ import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
 import org.psug.usi.service.UserRepositoryService
-
+import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 
 /**
  * User: alag
@@ -18,8 +18,7 @@ import org.psug.usi.service.UserRepositoryService
  */
 
 class RequestActor extends Actor{
-  import org.psug.usi.domain.UserRepository._
-
+  
   implicit val formats = Serialization.formats(NoTypeHints)
 
   var channel:Channel = null
