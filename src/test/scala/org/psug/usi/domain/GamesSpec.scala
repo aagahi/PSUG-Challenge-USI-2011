@@ -10,8 +10,9 @@ import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 import org.psug.usi.service._
+import org.psug.usi.domain.GameRepository._
+
 class GamesSpec extends SpecificationWithJUnit {
-  import GameRepository._
 
   def clearRepository = GameRepositoryService.remoteRef ! ClearRepository()
 

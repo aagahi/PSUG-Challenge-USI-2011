@@ -9,15 +9,16 @@ import actors.Actor
  * Time: 5:24 PM
  */
 
-abstract class CommonService extends Actor {
+abstract class RemoteService extends Actor {
   val port = 55555
   val host = "localhost"
-  val symbol = Symbol("CommonService")
+  val symbol = Symbol(getClass.getName)
+
 
   start
+  registerAsRemoteActor
 
   def registerAsRemoteActor {
-    if( symbol == null ) throw new Exception( "null sym")
     println( "Register Remote actor " + symbol + " host: " + host  + " port: " + port )
     RemoteActor.alive( port )
     RemoteActor.register( symbol, this )

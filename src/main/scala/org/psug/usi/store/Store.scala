@@ -24,7 +24,8 @@ trait DataRepository[K<:Any,T<:Data[K]] extends Serializable {
   case class PullData( key : K ) extends DataRepositoryMessage
   case class DataPulled( data:Option[T] ) extends DataRepositoryMessage
 
-  case class ClearRepository( dummy:Int = 0 ) extends DataRepositoryMessage
+
+  case class ClearRepository() extends DataRepositoryMessage
 
   def handleMessage( any:Any ) = {
     if( any.isInstanceOf[StoreData]) DataStored( store( any.asInstanceOf[StoreData].data ) )

@@ -2,9 +2,10 @@ package org.psug.usi.domain
 
 import org.specs._
 import org.psug.usi.service.UserRepositoryService
+import org.psug.usi.domain.UserRepository._
 
 class UsersSpec extends SpecificationWithJUnit { 
-  import UserRepository._
+
   def clearRepository = UserRepositoryService.remoteRef ! ClearRepository()
     
   "in-memory user repository" should { clearRepository.before

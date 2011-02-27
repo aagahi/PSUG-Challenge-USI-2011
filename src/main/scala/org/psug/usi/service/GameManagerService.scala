@@ -40,11 +40,9 @@ class GameManagerTimer extends Actor {
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService( val game:Game ) extends CommonService {
+class GameManagerService( val game:Game ) extends RemoteService {
   import GameManagerTimer._
-  override val symbol = Symbol("GameManagerService")
 
-  registerAsRemoteActor
 
   val scorer = new Scorer(game.numPlayer)
   val timer = new GameManagerTimer

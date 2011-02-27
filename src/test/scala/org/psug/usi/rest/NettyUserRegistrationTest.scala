@@ -18,9 +18,9 @@ import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.netty.WebServer
 import org.psug.usi.domain.User
 import org.psug.usi.service.UserRepositoryService
+import org.psug.usi.domain.UserRepository._
 
 class NettyUserRegistrationTest {
-  import org.psug.usi.domain.UserRepository._
 
   implicit val formats = Serialization.formats(NoTypeHints)
 

@@ -18,7 +18,7 @@ import org.psug.usi.service.UserRepositoryService
  */
 
 class RequestActor extends Actor{
-  import UserRepository._
+  import org.psug.usi.domain.UserRepository._
 
   implicit val formats = Serialization.formats(NoTypeHints)
 
