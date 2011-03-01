@@ -2,9 +2,7 @@ package org.psug.usi
 
 import com.sun.jersey.spi.container.servlet.ServletContainer
 
-import org.mortbay.jetty.Server
-import org.mortbay.jetty.servlet.Context
-import org.mortbay.jetty.servlet.ServletHolder
+import org.psug.usi.netty.WebServer
 
 /**
  * 
@@ -17,17 +15,10 @@ object Main {
 
   def main(args : Array[String]) = {
     val port = if(args.length > 0) args(0) else DEFAULT_PORT
-    val holder = new ServletHolder(classOf[ServletContainer])
-    holder.setInitParameter("com.sun.jersey.config.property.resourceConfigClass", "com.sun.jersey.api.core.PackagesResourceConfig")
-    holder.setInitParameter("com.sun.jersey.config.property.packages", "org.psug.usi.rest;org.psug.usi.system.rest")
 
-    val server = new Server(Integer.parseInt(port))
-    val context = new Context(server, "/", Context.SESSIONS)
-    context.addServlet(holder, "/*")
-    server.start()
+    val server = new WebServer(Integer.parseInt(port))
     
-    println( "Starting PSUG USI2011 Challenge on port "+port +"..." )
-    server.join()
+    println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + port)
   }
 
 }

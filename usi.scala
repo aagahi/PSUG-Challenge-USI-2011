@@ -31,14 +31,14 @@ object usi {
   def assertInRootDirectory : Boolean = { 
     val cwd = new File(System.getProperty("user.dir"))
     try { 
-      (loadFile(new File(cwd,"pom.xml")), "artifactId").text == "challenge-usi"
+      (loadFile(new File(cwd,"pom.xml")) \ "artifactId").text == "challenge-usi"
     } catch { 
       case e => false
     }
   }
 
-  def collectOutput(proc : Process) : Unit =   
-    new Thread {  override def run() = for(c <- fromInputStream(proc.getInputStream)) print(c) }.start
+  def collectOutput(proc : Process, to : PrintStream) : Unit =   
+    new Thread {  override def run() = for(c <- fromInputStream(proc.getInputStream)) to.print(c) }.start
 
   def reap(proc : Process) : Unit = 
     Runtime.getRuntime().addShutdownHook(new Thread { override def run() = proc.destroy })
@@ -54,6 +54,8 @@ object usi {
     }
     
     val pb = system(mvnExecutable,"-q","dependency:build-classpath","-Dmdep.outputFile=" + cpFile)
+    collectOutput(pb,out)
+    reap(pb)
 
     if(pb.waitFor != 0) { 
       println("Failed to generate classpath.txt. Is maven in your PATH?")
@@ -64,9 +66,10 @@ object usi {
 
     val classpath = "target/classes" + PATH + fromFile(new File(cpFile)).mkString
 
+    println("generated classpath ")
     val java = system(Array("java","org.psug.usi.Main",port), Map("CLASSPATH" -> classpath))
     
-    collectOutput(java)
+    collectOutput(java,out)
     reap(java)
     java.waitFor
   }
