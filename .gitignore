@@ -87,7 +87,7 @@ files/
 !lib/murex/mdk/
 !lib/murex/tools/
 !lib/murex/CMakeLists.txt
-
+bdb/
 lib/
 *.pub
 *~

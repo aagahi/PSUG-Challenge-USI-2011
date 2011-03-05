@@ -14,7 +14,7 @@ case class User( id : Int, firstName : String, lastName : String, email : String
 
 case class PullDataByEmail( email : String ) extends DataRepositoryMessage
 
-class UserRepository extends BDBDataRepository[User]( "userRepository" ) {
+class UserRepository extends BDBDataRepository[User]( "bdb/UserRepository" ) {
 
   override def store( id:Int, in:User ){
     val key = new DatabaseEntry()
