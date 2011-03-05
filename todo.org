@@ -10,6 +10,9 @@
 
 *** DONE creation base de joueur
 *** DONE core game management
+*** DONE traitement du bonus dans le scoring du joueur
+*** DONE persistence + replication avec BDB
+
 *** TODO implementation login + generation cookie
     :PROPERTIES:
     :WHO:      abailly
@@ -40,7 +43,11 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
-*** DONE traitement du bonus dans le scoring du joueur
+**** TODO mise a jour du scorer et du retour des n joueur avant/apres dans le classement
+    - voir https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/4#issue/4/comment/836207
+    :PROPERTIES:
+    :WHO:
+    :END:
 *** TODO tweet final
     :PROPERTIES:
     :WHO:      aagahi
