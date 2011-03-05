@@ -27,7 +27,7 @@ trait PerfUtilities {
   def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, scorer:Scorer, userIds:Iterable[Int]) = {
     for(j <- 1 to numQuestions) 
       for( userId <- userIds )
-	      if(random.nextDouble < correctAnswerProbability) scorer !? UserResponse( userId, 1 )
+	      if(random.nextDouble < correctAnswerProbability) scorer !? ScorerAnwserValue( userId, 1 )
   }
 }
 
@@ -39,7 +39,7 @@ trait PerfUtilities {
  * <ul>
  * <li>run the test 5 times with medium number of users without recording result,</li>
  * <li>then run the test 30 times for each user number,</li>
- * <li>for each shot, score randomly 10 "questions" with each user having a 1/2 probability of answering a question,</li>
+ * <li>for each shot, scoreSlice randomly 10 "questions" with each user having a 1/2 probability of answering a question,</li>
  * <li>record the mean and standard deviation for each point,</li>
  * </ul>
  */
@@ -66,6 +66,6 @@ class ScoringPerf extends PerfUtilities{
   def singleTest( num:Int, scorer:Scorer, userIds:Iterable[Int] ) : Unit = {
     for(j <- 1 to 10)
   	  for( userId <- userIds)
-	    if(random.nextDouble < 0.5) scorer !? UserResponse( userId, 1 )
+	    if(random.nextDouble < 0.5) scorer !? ScorerAnwserValue( userId, 1 )
   }
 }

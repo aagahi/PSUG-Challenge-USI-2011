@@ -84,7 +84,7 @@ class GameManagerService( val game:Game ) extends RemoteService {
     val currentQuestion = game.questions(currentQuestionIndex)
 
     val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
-    scorer ! UserResponse( userId, answerValue )
+    scorer ! ScorerAnwserValue( userId, answerValue )
 
     playerActors( userId ) = sender
     if( playerActors.size >= game.numPlayer ){
@@ -99,7 +99,7 @@ class GameManagerService( val game:Game ) extends RemoteService {
     playerActors.foreach{
       case ( userId, playerActor ) =>
         val nextQuestion = if( currentQuestionIndex < game.questions.size ) Some( game.questions(currentQuestionIndex) ) else None
-        val scoreSlice = if( currentQuestionIndex > 0 ) Some( scorer.score( userId ) ) else None
+        val scoreSlice = if( currentQuestionIndex > 0 ) Some( scorer.scoreSlice( userId ) ) else None
         playerActor ! UserQuestion( userId, nextQuestion, scoreSlice )
     }
     playerActors.clear
@@ -113,7 +113,7 @@ class GameManagerService( val game:Game ) extends RemoteService {
   private def timeout(){
     for( userId <- players ){
       if( !playerActors.contains( userId ) ){
-        scorer ! UserResponse( userId, 0 )
+        scorer ! ScorerAnwserValue( userId, 0 )
       }
     }
     proceedToNextQuestion()

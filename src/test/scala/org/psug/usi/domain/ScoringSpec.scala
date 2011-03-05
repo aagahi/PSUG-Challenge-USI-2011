@@ -7,7 +7,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
   implicit val defaultInterval = 100
 
   def score( scorer:Scorer, answerValue:Int, userId:Int = 0 ):UserScore = {
-    ( scorer !? UserResponse( userId, answerValue ) ).asInstanceOf[UserScore]
+    ( scorer !? ScorerAnwserValue( userId, answerValue ) ).asInstanceOf[UserScore]
   }
 
   def isSorted(seq : Seq[UserScore]) : Boolean = {
@@ -16,7 +16,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
 
   "scoring agent" should {
     
-    "record correct answer update score as (ansserValue + bonus) for a single user" in {
+    "record correct answer update scoreSlice as (ansserValue + bonus) for a single user" in {
       val scorer = new Scorer(1)
       val userId = 0
 
@@ -27,24 +27,24 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       score( scorer, 3, userId ) must be_==(UserScore(0,1+5+1+1+3+1,2))
 
 
-      scorer.score(userId)(0) must be_==(UserScore(0,1+5+1+1+3+1,2))
+      scorer.scoreSlice(userId)(0) must be_==(UserScore(0,1+5+1+1+3+1,2))
     }
 
-    "update position of user and send score of users before and after" in {
+    "update position of user and send scoreSlice of users before and after" in {
       val scorer = new Scorer(3)
       val userId = 1
 
       score( scorer, 1, userId ) must be_==( UserScore(1,1,1) )
-      scorer.score(userId)(2) must be_==(UserScore(1,1,1))
+      scorer.scoreSlice(userId)(2) must be_==(UserScore(1,1,1))
     }
     
-    "send score of all users within a specific given interval" in {
+    "send scoreSlice of all users within a specific given interval" in {
       val numberOfPlayers = 1000
       val scorer = new Scorer(numberOfPlayers, -50 to 50)
 
-      scorer.score(900).length must be_==(50 * 2)
-      scorer.score(999).length must be_==(50 + 1)
-      scorer.score(0).length must be_==(50)
+      scorer.scoreSlice(900).length must be_==(50 * 2)
+      scorer.scoreSlice(999).length must be_==(50 + 1)
+      scorer.scoreSlice(0).length must be_==(50)
     }
     
     "scorer always store scores in a sorted array" in {
@@ -55,7 +55,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
     }
 
 
-    "compute score for a very large number of users" in {
+    "compute scoreSlice for a very large number of users" in {
       val numberOfPlayers = 4000
       val scorer = new Scorer(numberOfPlayers)
 
@@ -66,7 +66,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
         if(i % 2  == 0) score( scorer, 1, i )
       }
 
-      val sc = scorer.score(1000)
+      val sc = scorer.scoreSlice(1000)
       sc(10) must be_==(UserScore(1000,4+(0+1+2+3),4))
     }
   }

@@ -10,7 +10,7 @@ case class UserScore( userId:Int, score:Int, bonus:Int ) {
         else UserScore( userId, score, answerValue )
     }
 }
-case class UserResponse( userId:Int, answerValue:Int ) // 0 mean wrong answer
+case class ScorerAnwserValue( userId:Int, answerValue:Int ) // 0 mean wrong answer
 
 class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
 
@@ -24,14 +24,14 @@ class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
 
   /*
    * Index user ids within scores array. The index of this array are the user ids, elements
-   * are indices in the scores array containing this users score.
+   * are indices in the scores array containing this users scoreSlice.
    */
   val usersScoresIndex: Array[Int] = new Array[Int](numUsers)
 
   for (i <- 0 to numUsers - 1) { usersScoresIndex(i) = i; scores(i) = UserScore(i, 0, 0) }
 
   /**
-   * Reassign a score for a user id within the sorted array of scores.
+   * Reassign a scoreSlice for a user id within the sorted array of scores.
    */
   def reassign(score: UserScore): Int = {
     val start = usersScoresIndex(score.userId) + 1
@@ -47,8 +47,8 @@ class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
   }
 
   /**
-   * Find position of new score within scores array with dichotomic search.
-   * @return the index in scores with score greater than score's value, or the
+   * Find position of new scoreSlice within scores array with dichotomic search.
+   * @return the index in scores with scoreSlice greater than scoreSlice's value, or the
    * length of scores.
    */
   private def findPosition(score: UserScore, start: Int): Int = {
@@ -82,7 +82,7 @@ class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
   def act {
     loop {
       react {
-        case UserResponse( uid, answserValue ) =>
+        case ScorerAnwserValue( uid, answserValue ) =>
           val userScore = scores(usersScoresIndex(uid))
           val newScore = userScore.update( answserValue )
           reassign(newScore)
@@ -91,7 +91,7 @@ class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
     }
   }
 
-  def score(userId: Int): Array[UserScore] =
+  def scoreSlice(userId: Int): Array[UserScore] =
     scores.slice( usersScoresIndex(userId) + sliceRange.start, usersScoresIndex(userId) + sliceRange.end )
 
   override def toString = {
