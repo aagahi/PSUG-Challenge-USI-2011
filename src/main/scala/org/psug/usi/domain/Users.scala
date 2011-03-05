@@ -1,6 +1,8 @@
 package org.psug.usi.domain
 
-import org.psug.usi.store.{DataPulled, DataRepositoryMessage, Data, InMemoryDataRepository}
+import org.psug.usi.store._
+import com.sleepycat.bind.tuple.{IntegerBinding, StringBinding}
+import com.sleepycat.je.{LockMode, DatabaseEntry}
 
 object User{
     def apply(firstName : String, lastName : String, email : String, password : String):User = User( 0, firstName, lastName, email, password )
@@ -12,19 +14,42 @@ case class User( id : Int, firstName : String, lastName : String, email : String
 
 case class PullDataByEmail( email : String ) extends DataRepositoryMessage
 
-class UserRepository extends InMemoryDataRepository[Int,User]{
+class UserRepository extends BDBDataRepository[User]( "userRepository" ) {
+
+  override def store( id:Int, in:User ){
+    val key = new DatabaseEntry()
+    StringBinding.stringToEntry( in.email, key )
+
+    val data = new DatabaseEntry()
+    IntegerBinding.intToEntry( id, data )
+    database.put( null, key, data )
+
+    super.store( id, in )
+  }
+
+  def idByEmail( email:String ) = {
+    val key = new DatabaseEntry()
+    StringBinding.stringToEntry( email, key )
+
+    val data = new DatabaseEntry()
+    database.get( null, key, data, LockMode.READ_UNCOMMITTED )
+    if( data.getData != null ){
+      Some( IntegerBinding.entryToInt(data ) )
+    }
+    else None
+  }
 
 
   override protected def checkConstraint( user:User )={
-    dataByKey.values.find( _.email == user.email ).isEmpty
+    idByEmail( user.email ).isEmpty
   }
 
   override def handleMessage( any:Any )={
-    // matcher does not work with remote actors => scala bug???
-    if( any.isInstanceOf[PullDataByEmail] ){
-      val email = any.asInstanceOf[PullDataByEmail].email
-      DataPulled[Int]( dataByKey.values.find( _.email == email ) )
+    any match {
+      case PullDataByEmail( email ) =>
+        val user = idByEmail( email ).flatMap( id => load( id ) )
+        DataPulled[Int]( user )
+      case _ => super.handleMessage( any )
     }
-    else super.handleMessage( any )
   }
 }

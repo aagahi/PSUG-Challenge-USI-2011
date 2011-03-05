@@ -37,7 +37,13 @@
       <version>3.2.4.Final</version>
     </dependency>
 
-
+    <!-- BDB -->
+    <dependency>
+      <groupId>com.sleepycat</groupId>
+      <artifactId>je</artifactId>
+      <version>4.1.7</version>
+    </dependency>
+    
     <!-- Test stuff -->
     <dependency>
       <groupId>junit</groupId>
