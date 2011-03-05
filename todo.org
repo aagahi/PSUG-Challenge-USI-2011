@@ -40,10 +40,6 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
-*** TODO prise en compte de la valeur des questions
-    :PROPERTIES:
-    :WHO:      aagahi
-    :END:
 *** DONE traitement du bonus dans le scoring du joueur
 *** TODO tweet final
     :PROPERTIES:

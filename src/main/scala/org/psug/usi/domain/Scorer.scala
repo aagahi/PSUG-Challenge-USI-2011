@@ -2,24 +2,15 @@ package org.psug.usi.domain
 
 import scala.actors._
 
-case class UserResponseAgent(val uid: Int, val scorer: Scorer) {
 
-  def this(scorer: Scorer) = this(0, scorer)
-
-  def ok : UserScore = sendResponse( true )
-  def ko : UserScore = sendResponse( false )
-    
-  private def sendResponse( b:Boolean ) = (scorer !? UserResponse( uid, b ) ).asInstanceOf[UserScore]
-
-}
 
 case class UserScore( userId:Int, score:Int, bonus:Int ) {
-    def update( okResponse:Boolean ) = {
-        if( okResponse ) UserScore( userId, score + 1 + bonus, bonus+1 )
-        else UserScore( userId, score, 0 )
+    def update( answerValue:Int ) = {
+        if( answerValue > 0 ) UserScore( userId, score + answerValue + bonus, bonus+1 )
+        else UserScore( userId, score, answerValue )
     }
 }
-case class UserResponse( userId:Int, ok:Boolean )
+case class UserResponse( userId:Int, answerValue:Int ) // 0 mean wrong answer
 
 class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
 
@@ -91,9 +82,9 @@ class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
   def act {
     loop {
       react {
-        case UserResponse( uid, ok ) =>
+        case UserResponse( uid, answserValue ) =>
           val userScore = scores(usersScoresIndex(uid))
-          val newScore = userScore.update( ok )
+          val newScore = userScore.update( answserValue )
           reassign(newScore)
           reply( newScore )
       }

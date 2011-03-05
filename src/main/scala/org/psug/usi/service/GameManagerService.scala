@@ -81,11 +81,10 @@ class GameManagerService( val game:Game ) extends RemoteService {
    * A user answer the current question, when all player respond or timeout occurs proceedToNextQuestion is called
    */
   def answer( userId:Int, answerIndex:Int ){
-    val userResponse = new UserResponseAgent( userId, scorer )
     val currentQuestion = game.questions(currentQuestionIndex)
 
-    if( currentQuestion.answers( answerIndex ).status ) userResponse.ok
-    else userResponse.ko
+    val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
+    scorer ! UserResponse( userId, answerValue )
 
     playerActors( userId ) = sender
     if( playerActors.size >= game.numPlayer ){
@@ -114,7 +113,7 @@ class GameManagerService( val game:Game ) extends RemoteService {
   private def timeout(){
     for( userId <- players ){
       if( !playerActors.contains( userId ) ){
-        UserResponseAgent( userId, scorer ).ko
+        scorer ! UserResponse( userId, 0 )
       }
     }
     proceedToNextQuestion()
