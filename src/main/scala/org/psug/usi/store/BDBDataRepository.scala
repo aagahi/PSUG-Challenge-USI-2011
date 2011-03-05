@@ -3,6 +3,8 @@ package org.psug.usi.store
 import com.sleepycat.je._
 import com.sleepycat.bind.tuple.{IntegerBinding}
 import java.io._
+import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfig}
+import collection.mutable.ListBuffer
 
 /**
  * User: alag
@@ -11,62 +13,122 @@ import java.io._
  */
 
 
-trait BDB[T<:Data[Int]]
-{
-  val databaseName:String
-
+object BDBEnvironment {
   val cacheSizeInByte = 1024*1024*8
+  val replicaGroupName = "ChallengeUSI"
+  val nodeName = "Node1"
+  val replicaHostName = "localhost:5501"
+  val replicaHelperHostName = "localhost:5501"
 
-  lazy val dbFolder = new File( databaseName )
-  lazy val environment:Environment = getEnvironment
+  val envHome = new File( "./bdb" )
 
+  var openDatabases = new ListBuffer[Database]
 
-  private var _database:Database = null
+  Runtime.getRuntime().addShutdownHook( new ShutdownHook )
+  
 
-  def database = {
-    if( _database == null ){
-      val dbConfig = new DatabaseConfig()
-      dbConfig.setAllowCreate( true )
-      dbConfig.setTransactional( false )
-      dbConfig.setDeferredWrite( false )
-      _database = environment.openDatabase(null, databaseName, dbConfig );
-    }
-    _database
-  }
-
-
-  def getEnvironment =
-  {
+  lazy val environment = {
     val envConfig = new EnvironmentConfig()
     envConfig.setAllowCreate( true )
-    envConfig.setCacheSize( cacheSizeInByte )
 
-    //envConfig.setCachePercent( 5 );
-    envConfig.setSharedCache( false )
-    envConfig.setTransactional( false )
-    //envConfig.setDurability( Durability.COMMIT_NO_SYNC )
-    if( !dbFolder.exists() ) dbFolder.mkdirs()
-    new Environment( dbFolder, envConfig )
+    envConfig.setCacheSize( cacheSizeInByte )
+    //envConfig.setCachePercent( 5 )
+    envConfig.setSharedCache( true )
+
+    envConfig.setTransactional( true )
+
+
+    val durability = new Durability(Durability.SyncPolicy.WRITE_NO_SYNC,
+                                    Durability.SyncPolicy.NO_SYNC,
+                                    Durability.ReplicaAckPolicy.NONE )
+
+    envConfig.setDurability( durability )
+
+    /*
+    new Environment( envHome, envConfig )
+    */
+
+    println( "Starting replicated environment on " + replicaHostName + " contacting helper " + replicaHelperHostName)
+
+    val repConfig = new ReplicationConfig()
+    repConfig.setGroupName( replicaGroupName )
+    repConfig.setNodeName( nodeName )
+    repConfig.setNodeHostPort( replicaHostName )
+    repConfig.setDesignatedPrimary(true)
+    repConfig.setHelperHosts( replicaHelperHostName )
+
+    repConfig.setConsistencyPolicy( new NoConsistencyRequiredPolicy() )
+
+    new ReplicatedEnvironment( envHome, repConfig, envConfig )
+  }
+
+  def registerDatabase( database:Database ){
+    openDatabases += database
+  }
+  def unregisterDatabase( database:Database ){
+    openDatabases += database
   }
 
 
 
   def shutdown() {
-    database.close()
+    openDatabases.foreach( _.close )
     environment.sync()
     environment.cleanLog()
     environment.close()
   }
 
 
+  class ShutdownHook extends Thread {
+    override def run() {
+        println( "Shutting down databases" )
+          shutdown
+    }
+  }
+
+}
+
+trait BDB[T<:Data[Int]]
+{
+  import BDBEnvironment._
+  
+  val databaseName:String
+  lazy val dbFolder = new File( envHome, databaseName )
+
+  private var _database:Database = null
+
+  def database = {
+    if( _database == null ){
+      if( !dbFolder.exists() ) dbFolder.mkdirs()
+      val dbConfig = new DatabaseConfig()
+      dbConfig.setAllowCreate( true )
+      dbConfig.setTransactional( true )
+      dbConfig.setDeferredWrite( false )
+      _database = environment.openDatabase(null, databaseName, dbConfig );
+      registerDatabase( _database )
+    }
+    _database
+  }
+
+
+
+
+
+  def close() {
+    database.close()
+    _database = null
+  }
+
+
   def removeDatabase() {
     database.close()
-    environment.removeDatabase( null, databaseName );
+    environment.removeDatabase( null, databaseName )
+    unregisterDatabase( database )
     _database = null
   }
 
   def store( id:Int, in:T ) {
-    //val tx = environment.beginTransaction( null, null )
+    val tx = environment.beginTransaction( null, null )
     val key = new DatabaseEntry()
     IntegerBinding.intToEntry( id, key )
 
@@ -77,9 +139,26 @@ trait BDB[T<:Data[Int]]
     val data = new DatabaseEntry( baos.toByteArray )
     database.put( null, key, data )
 
-    //tx.commit()
+    tx.commit()
   }
 
+
+  def lastIndex = {
+    val cursor = database.openCursor(null, null)
+    try{
+      val key = new DatabaseEntry()
+      val data = new DatabaseEntry()
+      cursor.getLast( key, data, LockMode.DEFAULT );
+      if( key.getData() != null ){
+          IntegerBinding.entryToInt( key )
+      }
+      else 0
+    }
+    finally {
+      cursor.close()
+    }
+
+ }
 
   def load( id:Int ):Option[T] = {
     //val tx = environment.beginTransaction( null, null )
@@ -113,11 +192,9 @@ trait BDB[T<:Data[Int]]
 /**
  * Stores users in memory, using an actor to serialize access to underlying map.
  */
-// TODO: should not use K<:Any for the storeKey...
 class BDBDataRepository[T<:Data[Int]]( override val databaseName:String ) extends DataRepository[Int,T] with BDB[T] {
 
-  private var currentId = 0
-  //protected var dataByKey  : HashMap[K,T] = new HashMap()
+  private var currentId = lastIndex
 
   override protected def checkConstraint(data:T) = true
 
