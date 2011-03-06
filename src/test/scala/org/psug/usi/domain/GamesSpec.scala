@@ -17,7 +17,6 @@ class GamesSpec extends SpecificationWithJUnit {
   def clearRepository = GameRepositoryService.remoteRef ! ClearRepository
 
   "in-memory game repository" should { clearRepository.before
-
      
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil ) :: Nil )
 
@@ -26,7 +25,6 @@ class GamesSpec extends SpecificationWithJUnit {
       gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
-
 
     "lookup game by id" in {
 
@@ -76,13 +74,10 @@ class GamesSpec extends SpecificationWithJUnit {
       users.foreach( user => gameManager.remoteRef.send( Register( user.id ), endpoint ) )
       while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
 
-
-
       // 2nd question
       playerAckCount.set(0)
       currentQuestion += 1
       users.foreach( user => gameManager.remoteRef.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
-
 
     }
 

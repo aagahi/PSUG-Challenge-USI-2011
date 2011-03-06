@@ -27,34 +27,40 @@ object WebServer{
 
 class WebServer( val listenPort:Int = 18080 )  {
   import  WebServer._
-  val bootstrap = new ServerBootstrap(
-                                    new NioServerSocketChannelFactory(
-                                    Executors.newCachedThreadPool(),
-                                    Executors.newCachedThreadPool()))
 
+  var bootstrap : ServerBootstrap = _
+  
+  def start = {
+    bootstrap = new ServerBootstrap(
+      new NioServerSocketChannelFactory(
+        Executors.newCachedThreadPool(),
+        Executors.newCachedThreadPool()))
 
-  bootstrap.setOption("child.tcpNoDelay", tcpNoDelay );
-  bootstrap.setOption("child.receiveBufferSize", ioBufferSize )
-  bootstrap.setOption("child.sendBufferSize", ioBufferSize )
-  bootstrap.setOption("child.keepAlive", keepAlive )
-  bootstrap.setOption( "backlog", backLog )
+    bootstrap.setOption("child.tcpNoDelay", tcpNoDelay );
+    bootstrap.setOption("child.receiveBufferSize", ioBufferSize )
+    bootstrap.setOption("child.sendBufferSize", ioBufferSize )
+    bootstrap.setOption("child.keepAlive", keepAlive )
+    bootstrap.setOption( "backlog", backLog )
 
+    bootstrap.setPipelineFactory( new HttpServerPipelineFactory() )
+    bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
+  }
 
-  bootstrap.setPipelineFactory( new HttpServerPipelineFactory() )
-  bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
-
+  def stop = {
+    bootstrap.releaseExternalResources
+  }
 }
 
 
 
 class HttpServerPipelineFactory extends ChannelPipelineFactory {
 
-    def getPipeline() = {
-        val pipeline = Channels.pipeline()
-        pipeline.addLast("decoder", new HttpRequestDecoder());
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("handler", new HttpRequestHandler())
-        pipeline
-      }
+  def getPipeline() = {
+    val pipeline = Channels.pipeline()
+    pipeline.addLast("decoder", new HttpRequestDecoder());
+    pipeline.addLast("encoder", new HttpResponseEncoder());
+    pipeline.addLast("handler", new HttpRequestHandler())
+    pipeline
+  }
 }
 

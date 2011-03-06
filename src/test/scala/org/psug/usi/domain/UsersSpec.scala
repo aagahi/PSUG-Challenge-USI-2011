@@ -32,7 +32,6 @@ class UsersSpec extends SpecificationWithJUnit {
       val DataPulled( nouser ) = UserRepositoryService.remoteRef !? PullDataByEmail("my.odersky@scala-lang.org")
       nouser must be_==( None )
 
-
     }
   }
 }

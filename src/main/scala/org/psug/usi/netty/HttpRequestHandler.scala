@@ -16,7 +16,6 @@ import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
  * Date: 2/22/11
  * Time: 1:07 AM
  */
-
 class RequestActor extends Actor{
   
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -35,17 +34,15 @@ class RequestActor extends Actor{
             case _ => println( "Unknown message" )
           }
 
-        case DataStored( Right( data ) ) =>  sendResponse( Some( data ), HttpResponseStatus.OK )
-        case DataStored( Left( message ) ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
+        case DataStored( Left( message ) )	=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
-        case DataPulled( Some( data ) ) =>  sendResponse( Some( data ), HttpResponseStatus.OK )
-        case DataPulled( None ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
+        case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
       }
     }
   }
-
-
 
   private def handleRequest( request:HttpRequest ){
 
