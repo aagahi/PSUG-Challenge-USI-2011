@@ -4,7 +4,7 @@ import com.sleepycat.je._
 import com.sleepycat.bind.tuple.{IntegerBinding}
 import java.io._
 import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfig}
-import collection.mutable.ListBuffer
+
 
 /**
  * User: alag
@@ -22,7 +22,7 @@ object BDBEnvironment {
 
   val envHome = new File( "./bdb" )
 
-  var openDatabases = new ListBuffer[Database]
+  var openDatabases = Set[Database]()
 
   Runtime.getRuntime().addShutdownHook( new ShutdownHook )
   
@@ -66,7 +66,7 @@ object BDBEnvironment {
     openDatabases += database
   }
   def unregisterDatabase( database:Database ){
-    openDatabases += database
+    openDatabases -= database
   }
 
 
@@ -116,15 +116,14 @@ trait BDB[T<:Data[Int]]
 
   def close() {
     database.close()
+    unregisterDatabase( database )
     _database = null
   }
 
 
   def removeDatabase() {
-    database.close()
+    close()
     environment.removeDatabase( null, databaseName )
-    unregisterDatabase( database )
-    _database = null
   }
 
   def store( id:Int, in:T ) {
