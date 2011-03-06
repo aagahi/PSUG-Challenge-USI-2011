@@ -24,10 +24,10 @@ trait PerfUtilities {
       System.nanoTime - start
   }
   
-  def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, users : Array[UserResponseAgent]) = {
+  def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, scorer:Scorer, userIds:Iterable[Int]) = {
     for(j <- 1 to numQuestions) 
-      for(i <- 0 to users.length-1) 
-	  if(random.nextDouble < correctAnswerProbability) users(i).ok 
+      for( userId <- userIds )
+	      if(random.nextDouble < correctAnswerProbability) scorer !? ScorerAnwserValue( userId, 1 )
   }
 }
 
@@ -39,7 +39,7 @@ trait PerfUtilities {
  * <ul>
  * <li>run the test 5 times with medium number of users without recording result,</li>
  * <li>then run the test 30 times for each user number,</li>
- * <li>for each shot, score randomly 10 "questions" with each user having a 1/2 probability of answering a question,</li>
+ * <li>for each shot, scoreSlice randomly 10 "questions" with each user having a 1/2 probability of answering a question,</li>
  * <li>record the mean and standard deviation for each point,</li>
  * </ul>
  */
@@ -58,16 +58,14 @@ class ScoringPerf extends PerfUtilities{
 
   def runWithNumberOfUsers(num : Int) :(Double,Double)= {
     val scorer = new Scorer(num)
-    val users = new Array[UserResponseAgent](num)
-    scorer.start
-    for (i <- 0 to num-1) { users(i) = new UserResponseAgent(i,scorer) }
-    val values = for(j <- 1 to 30) yield time(singleTest(num,users))
+
+    val values = for(j <- 1 to 30) yield time( singleTest(num, scorer, 0 until num ) )
     (mean(values), stddev(values))
   }
 
-  def singleTest(num : Int,users : Array[UserResponseAgent]) : Unit = {
-      for(j <- 1 to 10) 
-	for(i <- 0 to num-1) 
-	  if(random.nextDouble < 0.5) users(i).ok 
-    }
+  def singleTest( num:Int, scorer:Scorer, userIds:Iterable[Int] ) : Unit = {
+    for(j <- 1 to 10)
+  	  for( userId <- userIds)
+	    if(random.nextDouble < 0.5) scorer !? ScorerAnwserValue( userId, 1 )
+  }
 }

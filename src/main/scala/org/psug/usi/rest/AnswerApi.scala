@@ -16,7 +16,7 @@ package org.psug.usi.rest
  * {
  *   "are_u_right" : "boolean",
  *   "good_answer" : "string",
- *   "score" : number
+ *   "scoreSlice" : number
  * }
  *
  *  * Codes de retour

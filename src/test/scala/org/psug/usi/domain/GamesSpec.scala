@@ -18,7 +18,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
   "in-memory game repository" should { clearRepository.before
      
-    val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil ) :: Nil )
+    val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil )
 
     "assign unique id to user when registering" in {
       val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
@@ -38,8 +38,8 @@ class GamesSpec extends SpecificationWithJUnit {
 
   "game manager" should { clearRepository.before
 
-    val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", false)::Nil )
-                                  :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil )
+    val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", false)::Nil, 1 )
+                                  :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil, 2 )
                                   :: Nil,
                      timeoutSec = 10,
                      numPlayer = 1000 )

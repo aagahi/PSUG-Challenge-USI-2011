@@ -13,7 +13,7 @@ package org.psug.usi.rest
  *   "answer_2" : "string",
  *   "answer_3" : "string",
  *   "answer_4" : "string",
- *   "score" : number
+ *   "scoreSlice" : number
  * }
  *
  *  * Codes de retours
@@ -21,7 +21,7 @@ package org.psug.usi.rest
  *        o Clé de session non reconnue : 401
  *        o Non respect de la séquence ou autre erreur : 400
  *  * Commentaires
- *        o Retourne la question N ainsi que les réponses possibles et le score actuel de l'utilisateur.
+ *        o Retourne la question N ainsi que les réponses possibles et le scoreSlice actuel de l'utilisateur.
  *        o Cette API utilise un mécanisme de long polling : le serveur ne retourne sa réponse qu'au 
  *          bout d'un certain temps. Le serveur attend qu'il y ait un nombre X de joueurs. Ce nombre X
  *          est défini dans les paramètres du jeu fournis lors d'un appel à 'games'.

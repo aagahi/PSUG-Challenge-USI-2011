@@ -37,7 +37,13 @@
       <version>3.2.4.Final</version>
     </dependency>
 
-
+    <!-- BDB -->
+    <dependency>
+      <groupId>com.sleepycat</groupId>
+      <artifactId>je</artifactId>
+      <version>4.1.7</version>
+    </dependency>
+    
     <!-- Test stuff -->
     <dependency>
       <groupId>junit</groupId>
@@ -202,6 +208,13 @@
           <snapshots>
           <enabled>false</enabled>
           </snapshots>
+        </repository>
+
+        <repository>
+          <id>oracleReleases</id>
+          <name>Oracle Released Java Packages</name>
+          <url>http://download.oracle.com/maven</url>
+          <layout>default</layout>
         </repository>
 
       </repositories>
