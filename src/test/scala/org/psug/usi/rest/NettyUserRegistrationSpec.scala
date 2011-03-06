@@ -29,6 +29,7 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
 
   val martinOdersky = User( "Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
   val myriamOdersky = User("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
+  val robertOdersky = User("Robert", "Odersky","r.odersky@scala-lang.org","0xdeadbeef")
 
   val listenPort = 12345
 
@@ -46,13 +47,17 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
   }
 
   def registerUser(user : User) : String = {
-     webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], Serialization.write(martinOdersky))
+     webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], Serialization.write(user))
   }
 
   def userLogsIn(credentials: Credentials) : ClientResponse = {
      webResource("/api/login/").header("Content-Type","application/json").post(classOf[ClientResponse], Serialization.write(credentials))
   }
 
+  def getCookieFrom(response : ClientResponse) : Option[Cookie] = {
+    Some(new CookieDecoder().decode(response.getHeaders.getFirst("Set-Cookie")).iterator.next)
+  }
+  
   "user registration" should {
     shareVariables()
     
@@ -96,11 +101,16 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
     }
 
     "encodes user email and id in cookie" in {
+      import AuthenticationToken._
+      
       registerUser(martinOdersky)
-      val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe"))
-      val cookie : Cookie = new CookieDecoder().decode(response.getHeaders.getFirst("Set-Cookie")).iterator.next
-      cookie.getName must be_==("session_key")
-      AuthenticationToken.decrypt(cookie.getValue) must be_==(AuthenticationToken(1, "m.odersky@scala-lang.org"))
+      registerUser(robertOdersky)
+
+      val Some(martinCookie) = getCookieFrom(userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe")))
+      martinCookie.getName must be_==("session_key")
+      decrypt(martinCookie.getValue) must be_==(AuthenticationToken(1, "m.odersky@scala-lang.org"))
+      val Some(robertCookie) = getCookieFrom(userLogsIn(Credentials("r.odersky@scala-lang.org", "0xdeadbeef")))
+      decrypt(robertCookie.getValue) must be_==(AuthenticationToken(2, "r.odersky@scala-lang.org"))
     }
   }
 

@@ -4,17 +4,23 @@ import org.psug.usi.store._
 import com.sleepycat.bind.tuple.{IntegerBinding, StringBinding}
 import com.sleepycat.je.{LockMode, DatabaseEntry}
 
+import com.sun.jersey.core.util.Base64
+
 object User{
     def apply(firstName : String, lastName : String, email : String, password : String):User = User( 0, firstName, lastName, email, password )
 }
 
 object AuthenticationToken {
-  implicit def decrypt(value : String) : AuthenticationToken = AuthenticationToken(1, "m.odersky@scala-lang.org")
+  val re = "(\\d+);(.*)".r
+  implicit def decrypt(value : String) : AuthenticationToken = Base64.base64Decode(value) match {
+    case re(id,email) => AuthenticationToken(Integer.parseInt(id),email)
+    case _            => throw new IllegalArgumentException("cannot decode token "+value)
+  }
+
+  implicit def encrypt(token : AuthenticationToken) : String = new String(Base64.encode(token.id + ";" + token.email))
 }
 
-case class AuthenticationToken(id : Int, email : String) {
-  def encrypt : String = "toto"
-}
+case class AuthenticationToken(id : Int, email : String)
 
 case class Credentials(email: String, password: String)
 
@@ -31,8 +37,6 @@ case class User( id:Int, firstName:String, lastName:String, email:String, passwo
     email.length >= 2 && email.length <= 50 &&
     password.length >= 2 && password.length <= 50
   }
-
-
 
 }
 
@@ -68,15 +72,21 @@ class UserRepository extends BDBDataRepository[User]( "UserRepository" ) {
     si un utilisateur ayant la même adresse mail existe déjà, une erreur est retournée.
    */
   override protected def checkConstraint( user:User )={
-    user.isValid && idByEmail( user.email ).isEmpty
+    if(!user.isValid)
+      Some("User does not respect fields format constraint")
+    else if(!idByEmail( user.email ).isEmpty)
+      Some("A user with same email as "+ user.email +" is registered")
+    else
+      None
   }
 
   override def handleMessage( any:Any )={
     any match {
       case PullDataByEmail( email ) =>
-        val user = idByEmail( email ).flatMap( id => load( id ) )
-        DataPulled[Int]( user )
+        DataPulled[Int]( for(id <- idByEmail( email );
+                             user <- load( id )) yield user)
       case _ => super.handleMessage( any )
     }
   }
 }
+

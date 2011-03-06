@@ -35,7 +35,7 @@ class RequestActor extends Actor{
           }
 
         case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
-        case DataStored( Left( message ) )	=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        case DataStored( Left( message ) )	=> println(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
         case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
         case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
@@ -66,7 +66,7 @@ class RequestActor extends Actor{
           case DataPulled(Some(user))  =>  {
             if(user.asInstanceOf[User].password == credentials.password) {
               val encoder = new CookieEncoder(true)
-              encoder.addCookie("session_key", "1")
+              encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.asInstanceOf[User].id,credentials.email)))
               val cookie = encoder.encode()
               sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
             } else
