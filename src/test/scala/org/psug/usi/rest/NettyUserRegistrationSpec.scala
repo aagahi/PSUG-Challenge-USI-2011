@@ -15,9 +15,13 @@ import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.netty._
 import org.psug.usi.domain.User
+import org.psug.usi.domain.AuthenticationToken
 import org.psug.usi.domain.Credentials
 import org.psug.usi.service.UserRepositoryService
 import org.psug.usi.store.ClearRepository
+
+import org.jboss.netty.handler.codec.http.Cookie
+import org.jboss.netty.handler.codec.http.CookieDecoder
 
 class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
 
@@ -91,6 +95,13 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
       response.getHeaders.get("Set-Cookie") must beNull
     }
 
+    "encodes user email and id in cookie" in {
+      registerUser(martinOdersky)
+      val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe"))
+      val cookie : Cookie = new CookieDecoder().decode(response.getHeaders.getFirst("Set-Cookie")).iterator.next
+      cookie.getName must be_==("session_key")
+      AuthenticationToken.decrypt(cookie.getValue) must be_==(AuthenticationToken(1, "m.odersky@scala-lang.org"))
+    }
   }
 
 }

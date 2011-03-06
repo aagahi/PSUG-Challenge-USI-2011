@@ -8,6 +8,14 @@ object User{
     def apply(firstName : String, lastName : String, email : String, password : String):User = User( 0, firstName, lastName, email, password )
 }
 
+object AuthenticationToken {
+  implicit def decrypt(value : String) : AuthenticationToken = AuthenticationToken(1, "m.odersky@scala-lang.org")
+}
+
+case class AuthenticationToken(id : Int, email : String) {
+  def encrypt : String = "toto"
+}
+
 case class Credentials(email: String, password: String)
 
 case class User( id:Int, firstName:String, lastName:String, email:String, password:String ) extends Data[Int]{
