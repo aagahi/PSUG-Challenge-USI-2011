@@ -59,13 +59,22 @@ class RequestActor extends Actor{
         val user = read[User](content)
         UserRepositoryService.remoteRef ! StoreData(user)
 
-      case ( HttpMethod.POST, Array("api","login") ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+      case ( HttpMethod.POST, Array("api","login") ) =>
+        val credentials = read[Credentials](content)
 
+/*         UserRepositoryService.remoteRef !? PullDataByEmail(credentials.email) match {
+          case DataPulled(Some(user)) => if(user.password == credentials.password)
+        }
+ */
+        val encoder = new CookieEncoder(true)
+        encoder.addCookie("session_key", "1")
+        val cookie = encoder.encode()
+        sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
     }
   }
 
 
-  private def sendResponse( value:Option[AnyRef], status:HttpResponseStatus ){
+  private def sendResponse( value:Option[AnyRef], status:HttpResponseStatus, headers : (String,String)* ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
 
     value.foreach{
@@ -74,6 +83,8 @@ class RequestActor extends Actor{
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8")
       response.setContent(ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8))
     }
+
+    headers.foreach { header => response.setHeader(header._1,header._2) }
 
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
@@ -86,9 +97,6 @@ class HttpRequestHandler extends SimpleChannelUpstreamHandler {
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
     new RequestActor() ! e
   }
-
-
-
 
   override def exceptionCaught( ctx:ChannelHandlerContext, e:ExceptionEvent ){
       e.getChannel.close

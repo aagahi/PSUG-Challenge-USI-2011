@@ -45,8 +45,8 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
      webResource("/api/user/").header("Content-Type","application/json").post(classOf[String], Serialization.write(martinOdersky))
   }
 
-  def userLogsIn(credentials: Credentials) : String = {
-     webResource("/api/login/").header("Content-Type","application/json").post(classOf[String], Serialization.write(credentials))
+  def userLogsIn(credentials: Credentials) : ClientResponse = {
+     webResource("/api/login/").header("Content-Type","application/json").post(classOf[ClientResponse], Serialization.write(credentials))
   }
 
   "user registration" should {
@@ -72,7 +72,10 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
 
     "succeed with returned session cookie if user provide right credentials" in {
       registerUser(martinOdersky)
-      userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe"))
+      val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe"))
+      response.getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
+      println(response.getHeaders)
+      response.getHeaders.get("Set-Cookie").size must be_==(0).not
     }
 
   }
