@@ -2,7 +2,7 @@
 
 ** Perf
 
- - 350ms par requête
+ - 350ms par requÃªte
 
 ** Fonctionnel
 
@@ -13,7 +13,7 @@
 *** DONE traitement du bonus dans le scoring du joueur
 *** DONE persistence + replication avec BDB
 
-*** TODO implementation login + generation cookie
+*** DONE implementation login + generation cookie
     :PROPERTIES:
     :WHO:      abailly
     :END:
@@ -22,10 +22,16 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
-*** TODO cablage HTTP login
+*** DONE cablage HTTP login
     :PROPERTIES:
     :WHO:      abailly
     :END:
+*** TODO verification authentification lors des echanges
+    :PROPERTIES:
+    :WHO:      abailly
+    :END:
+    - comment s'assurer que le token est valide ?
+    - il faudrait stocker une map de session côté serveur pour éviter que le client ne bricole un cookie...
 *** TODO initialisation partie : cablage HTTP
     :PROPERTIES:
     :WHO:      aagahi
@@ -39,7 +45,7 @@
     :WHO:      aagahi
     :END:
 *** TODO cablage HTTP ranking final
-    - plus de score à chaque question
+    - plus de score Ã  chaque question
     :PROPERTIES:
     :WHO:      abailly
     :END:
@@ -60,9 +66,9 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
-    - au moins 2 scorer en miroir pour etre résilient
-    - chaque résultat de réponse est diffusé sur au moins 2 noeuds
-    - scorer fonctionne en tâche de fond
+    - au moins 2 scorer en miroir pour etre rÃ©silient
+    - chaque rÃ©sultat de rÃ©ponse est diffusÃ© sur au moins 2 noeuds
+    - scorer fonctionne en tÃ¢che de fond
 *** TODO fournir une reponse d'un joueur + question
     :PROPERTIES:
     :WHO:      abailly
@@ -79,16 +85,16 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
-    - utiliser tableau trié des id de joueurs
+    - utiliser tableau triÃ© des id de joueurs
 **** TODO test de charge memoire pour 1M joueurs
 **** TODO test de perf pour 1M joueurs/maj au fil de l'eau
-**** TODO tester connexion/deconnexion d'un joueur relocalisé
+**** TODO tester connexion/deconnexion d'un joueur relocalisÃ©
 *** TODO test perf de netty
     :PROPERTIES:
     :WHO:      abailly
     :END:
 
-** Répartition
+** RÃ©partition
 
 *** TODO add roles to agents when deploying jar
     - netty
