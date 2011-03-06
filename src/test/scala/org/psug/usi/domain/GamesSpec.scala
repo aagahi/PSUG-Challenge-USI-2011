@@ -16,7 +16,8 @@ class GamesSpec extends SpecificationWithJUnit {
 
   def clearRepository = GameRepositoryService.remoteRef ! ClearRepository
 
-  "in-memory game repository" should { clearRepository.before
+  "in-memory game repository" should {
+    clearRepository.before
      
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil )
 
@@ -35,14 +36,14 @@ class GamesSpec extends SpecificationWithJUnit {
     }
   }
 
-
-  "game manager" should { clearRepository.before
+  "game manager" should {
+    clearRepository.before
 
     val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", false)::Nil, 1 )
-                                  :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil, 2 )
-                                  :: Nil,
-                     timeoutSec = 10,
-                     numPlayer = 1000 )
+                    :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil, 2 )
+                    :: Nil,
+                    timeoutSec = 10,
+                    numPlayer = 1000 )
 
     val users = for( i <- 0 until game.numPlayer ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
 

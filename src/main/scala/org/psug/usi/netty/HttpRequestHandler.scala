@@ -59,6 +59,8 @@ class RequestActor extends Actor{
         val user = read[User](content)
         UserRepositoryService.remoteRef ! StoreData(user)
 
+      case ( HttpMethod.POST, Array("api","login") ) => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+
     }
   }
 

@@ -110,16 +110,11 @@ trait BDB[T<:Data[Int]]
     _database
   }
 
-
-
-
-
   def close() {
     database.close()
     unregisterDatabase( database )
     _database = null
   }
-
 
   def removeDatabase() {
     close()
@@ -211,7 +206,6 @@ class BDBDataRepository[T<:Data[Int]]( override val databaseName:String ) extend
   }
 
   override protected def findByStoreKey(key : Int) = load( key )
-
 
   override protected def reset { currentId = 0;  removeDatabase }
 }
