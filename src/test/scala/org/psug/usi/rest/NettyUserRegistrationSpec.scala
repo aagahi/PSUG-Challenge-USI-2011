@@ -74,8 +74,14 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
       registerUser(martinOdersky)
       val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe"))
       response.getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
-      println(response.getHeaders)
       response.getHeaders.get("Set-Cookie").size must be_==(0).not
+    }
+
+    "fail if user does not provide right password" in {
+      registerUser(martinOdersky)
+      val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebab"))
+      response.getStatus must be_==(ClientResponse.Status.UNAUTHORIZED.getStatusCode)
+      response.getHeaders.get("Set-Cookie") must beNull
     }
 
   }

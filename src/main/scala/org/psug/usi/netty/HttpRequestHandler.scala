@@ -62,14 +62,17 @@ class RequestActor extends Actor{
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
 
-/*         UserRepositoryService.remoteRef !? PullDataByEmail(credentials.email) match {
-          case DataPulled(Some(user)) => if(user.password == credentials.password)
-        }
- */
-        val encoder = new CookieEncoder(true)
-        encoder.addCookie("session_key", "1")
-        val cookie = encoder.encode()
-        sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
+        (UserRepositoryService.remoteRef !? PullDataByEmail(credentials.email)) match {
+          case DataPulled(Some(user))  =>  {
+            if(user.asInstanceOf[User].password == credentials.password) {
+              val encoder = new CookieEncoder(true)
+              encoder.addCookie("session_key", "1")
+              val cookie = encoder.encode()
+              sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
+            } else
+              sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
+              }
+          }
     }
   }
 
