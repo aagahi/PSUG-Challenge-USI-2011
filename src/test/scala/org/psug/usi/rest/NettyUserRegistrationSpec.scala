@@ -84,6 +84,13 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
       response.getHeaders.get("Set-Cookie") must beNull
     }
 
+    "fail if user does not exists" in {
+      registerUser(martinOdersky)
+      val response = userLogsIn(Credentials("m.odersky@scala-lan.org", "0xcafebabe"))
+      response.getStatus must be_==(ClientResponse.Status.UNAUTHORIZED.getStatusCode)
+      response.getHeaders.get("Set-Cookie") must beNull
+    }
+
   }
 
 }

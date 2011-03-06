@@ -71,8 +71,10 @@ class RequestActor extends Actor{
               sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
             } else
               sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
-              }
           }
+          case DataPulled(None)       =>
+              sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
+        }
     }
   }
 
