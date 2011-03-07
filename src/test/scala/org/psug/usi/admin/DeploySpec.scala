@@ -14,6 +14,8 @@ import com.sun.jersey.api.client.Client
 import org.psug.usi.system._
 
 import org.psug.usi.Main
+import actors.remote._
+import org.psug.usi.store.DataPulled
 
 class DeploySpec extends SpecificationWithJUnit {
 
@@ -23,18 +25,30 @@ class DeploySpec extends SpecificationWithJUnit {
 
   def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
+  val context = new SpecContext {
+    val main = new Main
+    after(main.stop)
+  }
+
   "main launcher" should {
 
     "start as web server on given port given arguments 'web'" in {
-      val main = new Main
-      main.start("web","" + listenPort)
+      context.main.start("Web","" + listenPort)
       val result = webResource("/admin/status").header("Content-Type","application/json").get(classOf[String])
-      println(result)
       val status = read[Status](result)
       status.nodeType must be_==("Web")
       status.port must be_==(listenPort)
-      main.stop
     }
+
+/*
+    "start as service on given port with arguments 'service'"  in {
+       context.main.start("Service","" + listenPort)
+       val node = Node("localhost",listenPort)
+       val actor = RemoteActor.select( node , 'UserRepositoryService)
+       val response  = actor !? PullDataByEmail("")
+       response.asInstanceOf[DataPulled[Option[User]]] must be_==(DataPulled(None))
+    }
+*/
   }
 }
 

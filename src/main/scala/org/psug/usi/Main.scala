@@ -29,9 +29,14 @@ class Main {
 
   def start(args : String*) = {
     val port: Int = Integer.parseInt(args(1))
-    server = new WebServer(port)
-    server.start
-    println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + port)
+    args(0) match {
+      case "Web" =>
+        server = new WebServer(port)
+        server.start
+        println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + port)
+      case "Service" =>
+
+    }
   }
 
   def stop() = server.stop
