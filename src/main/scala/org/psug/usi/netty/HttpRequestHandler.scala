@@ -40,10 +40,18 @@ class RequestActor extends Actor{
         case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
         case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
+        case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", encodeUserAsCookie(user)))
+        case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
       }
     }
   }
 
+  private def encodeUserAsCookie(user : User) = {
+    val encoder = new CookieEncoder(true)
+    encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.email)))
+    encoder.encode()
+  }
+  
   private def handleRequest( request:HttpRequest ){
 
     val method = request.getMethod
@@ -61,20 +69,7 @@ class RequestActor extends Actor{
 
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
-
-        (UserRepositoryService.remoteRef !? PullDataByEmail(credentials.email)) match {
-          case DataPulled(Some(user))  =>  {
-            if(user.asInstanceOf[User].password == credentials.password) {
-              val encoder = new CookieEncoder(true)
-              encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.asInstanceOf[User].id,credentials.email)))
-              val cookie = encoder.encode()
-              sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", cookie))
-            } else
-              sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
-          }
-          case DataPulled(None)       =>
-              sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
-        }
+        UserRepositoryService.remoteRef ! AuthenticateUser(credentials)
     }
   }
 

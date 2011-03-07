@@ -41,6 +41,8 @@ case class User( id:Int, firstName:String, lastName:String, email:String, passwo
 }
 
 case class PullDataByEmail( email : String ) extends DataRepositoryMessage
+case class AuthenticateUser (credentials : Credentials) extends DataRepositoryMessage
+case class UserAuthenticated (user : Either[User,String]) extends DataRepositoryMessage
 
 class UserRepository extends BDBDataRepository[User]( "UserRepository" ) {
 
@@ -80,11 +82,25 @@ class UserRepository extends BDBDataRepository[User]( "UserRepository" ) {
       None
   }
 
+  def lookupUser(email : String) : DataPulled[Int] =
+    DataPulled[Int]( for(id   <- idByEmail( email );
+                    user <- load( id )) yield user)
+
   override def handleMessage( any:Any )={
     any match {
       case PullDataByEmail( email ) =>
-        DataPulled[Int]( for(id <- idByEmail( email );
-                             user <- load( id )) yield user)
+        lookupUser(email)
+      case AuthenticateUser(credentials) =>
+        lookupUser(credentials.email) match {
+          case DataPulled(Some(user))  =>  {
+            if(user.asInstanceOf[User].password == credentials.password) {
+              UserAuthenticated(Left(user.asInstanceOf[User]))
+            } else
+              UserAuthenticated(Right("invalid credentials for user " + credentials.email))
+          }
+          case DataPulled(None)       =>
+              UserAuthenticated(Right("invalid credentials for user " + credentials.email))
+        }
       case _ => super.handleMessage( any )
     }
   }

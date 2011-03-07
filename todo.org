@@ -26,6 +26,7 @@
     :PROPERTIES:
     :WHO:      abailly
     :END:
+*** TODO make authentication process asynchronous
 *** TODO verification authentification lors des echanges
     :PROPERTIES:
     :WHO:      abailly

@@ -23,10 +23,7 @@ case class DataPulled[K<:Any]( data:Option[Data[K]] ) extends DataRepositoryMess
 
 case object ClearRepository extends DataRepositoryMessage
 
-
 trait DataRepository[K<:Any,T<:Data[K]] {
-
-
 
   def handleMessage( any:Any ) = {
     any match{
@@ -36,8 +33,6 @@ trait DataRepository[K<:Any,T<:Data[K]] {
       case x => throw new Exception( "Unexpected message " + any )
     }
   }
-
-
 
   /**
    * Check the data abides by the constraint for this store.
@@ -64,7 +59,6 @@ trait DataRepository[K<:Any,T<:Data[K]] {
 }
 
 
-
 /**
  * Stores users in memory, using an actor to serialize access to underlying map.
  */
@@ -89,7 +83,6 @@ class InMemoryDataRepository[K<:Any,T<:Data[K]] extends DataRepository[K,T] {
   }
 
   override protected def findByStoreKey(key : K) = dataByKey.get(key)
-
 
   override protected def reset { currentId = 0;  dataByKey.clear }
 }

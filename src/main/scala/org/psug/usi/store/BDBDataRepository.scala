@@ -26,7 +26,6 @@ object BDBEnvironment {
 
   Runtime.getRuntime().addShutdownHook( new ShutdownHook )
   
-
   lazy val environment = {
     val envConfig = new EnvironmentConfig()
     envConfig.setAllowCreate( true )
