@@ -23,3 +23,17 @@ object Main {
 
 }
 
+class Main {
+
+  var server : WebServer = null
+
+  def start(args : String*) = {
+    val port: Int = Integer.parseInt(args(1))
+    server = new WebServer(port)
+    server.start
+    println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + port)
+  }
+
+  def stop() = server.stop
+
+}

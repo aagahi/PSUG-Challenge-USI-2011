@@ -10,6 +10,7 @@ import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
 import org.psug.usi.service.UserRepositoryService
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
+import org.psug.usi.system.Status
 
 /**
  * User: alag
@@ -70,6 +71,9 @@ class RequestActor extends Actor{
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
         UserRepositoryService.remoteRef ! AuthenticateUser(credentials)
+
+      case ( HttpMethod.GET, Array("admin","status") ) =>
+        sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
     }
   }
 

@@ -14,7 +14,6 @@ trait RemoteService extends Actor {
   val host = "localhost"
   val symbol = Symbol(getClass.getName)
 
-
   start
   registerAsRemoteActor
 
@@ -25,7 +24,5 @@ trait RemoteService extends Actor {
   }
   
   lazy val remoteRef = RemoteActor.select( Node( host, port ), symbol )
-
-
 
 }
