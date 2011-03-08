@@ -48,7 +48,7 @@ class DeploySpec extends SpecificationWithJUnit {
        val response  = actor !? PullDataByEmail("")
        response.asInstanceOf[DataPulled[Option[User]]] must be_==(DataPulled(None))
     }
-*/
+    */
   }
 }
 
