@@ -66,6 +66,14 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Twitter Stuff -->
+
+    <dependency>
+      <groupId>org.scribe</groupId>
+      <artifactId>scribe</artifactId>
+      <version>1.0.6</version>
+    </dependency>
+
     <!-- JAX-RS Stuff -->
     <dependency>
       <groupId>com.sun.jersey</groupId>
