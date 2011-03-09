@@ -1,7 +1,5 @@
 package org.psug.usi
 
-import com.sun.jersey.spi.container.servlet.ServletContainer
-
 import org.psug.usi.netty.WebServer
 import service.SimpleRepositoryServices
 

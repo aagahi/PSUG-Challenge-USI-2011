@@ -8,15 +8,12 @@ package org.psug.usi.domain
 
 import org.specs._
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.json.Serialization.read
 import com.sun.jersey.api.client.Client
 
 import org.psug.usi.system._
 
 import org.psug.usi.Main
-import actors.remote._
-import org.psug.usi.store.DataPulled
-
 class DeploySpec extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)

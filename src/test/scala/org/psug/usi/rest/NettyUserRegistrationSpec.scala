@@ -12,7 +12,7 @@ import org.specs._
 import com.sun.jersey.api.client._
 
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.json.Serialization.read
 import org.psug.usi.netty._
 import org.psug.usi.domain.User
 import org.psug.usi.domain.AuthenticationToken

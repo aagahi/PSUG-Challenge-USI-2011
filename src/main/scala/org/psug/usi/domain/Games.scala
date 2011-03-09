@@ -1,6 +1,6 @@
 package org.psug.usi.domain
 
-import org.psug.usi.store.{BDBDataRepository, InMemoryDataRepository, Data}
+import org.psug.usi.store.{BDBSimpleDataFactory, BDBDataRepository, Data}
 
 /**
  * User: alag
@@ -18,4 +18,9 @@ case class Question( question:String, answers:Seq[Answer], value:Int )
 case class Answer( anwser:String, status:Boolean )
 
 
-abstract class GameRepository extends BDBDataRepository[Game]( "GameRepository" )
+abstract class GameRepository extends BDBDataRepository[Int,Game]( "GameRepository",  new BDBSimpleDataFactory[Game] ){
+  
+  def incrementAndGetCurrentId:Int = { currentId += 1 ; currentId }
+  def currentIdResetValue = 0
+
+}
