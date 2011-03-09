@@ -1,7 +1,7 @@
 package org.psug.usi.service
 
 import actors.remote.{RemoteActor, Node}
-import actors.{AbstractActor, Actor}
+import actors.{DaemonActor, AbstractActor}
 
 /**
  * User: alag
@@ -21,13 +21,27 @@ trait DefaultServiceConfiguration extends ServiceConfiguration {
 }
 
 /**
+ * Request for status of the service.
+ */
+case object ServiceStatus
+
+/**
+ * Unconditional exit message.
+ * All services should exit() when receiving this message.
+ */
+case object Exit
+
+
+/**
  * A service is an actor that is registered for remote access.
  */
-trait Service extends Actor {
+trait Service extends DaemonActor {
   config : ServiceConfiguration =>
 
-  start
-  registerAsRemoteActor
+  def go = {
+    start
+    registerAsRemoteActor
+  }
 
   def registerAsRemoteActor {
     println( "Register Remote actor " + symbol + " host: " + host  + " port: " + port )

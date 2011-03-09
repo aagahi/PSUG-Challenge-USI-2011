@@ -11,14 +11,13 @@ import org.psug.usi.system.{NodeTypes, Status}
  * Time: 2:32 PM
  */
 
-case object ServiceStatus
-
 trait RepositoryService extends DefaultServiceConfiguration with Service {
 
   def act {
     loop {
       react {
         case ServiceStatus => reply(Status(NodeTypes.service, 6666, Some(port)))
+        case Exit          => println("service " + symbol + " exiting"); exit()
         case x =>
           handleMessage(x) match {
             case message: DataRepositoryMessage => reply(message)
@@ -62,6 +61,16 @@ trait GameRepositoryService extends GameRepository with RepositoryService with R
 trait RepositoryServices extends Services {
   val userRepositoryService: UserRepositoryService
   val gameRepositoryService: GameRepositoryService
+
+  def start = {
+    gameRepositoryService.go
+    userRepositoryService.go
+  }
+
+  def exit = {
+    gameRepositoryService ! Exit
+    userRepositoryService ! Exit
+  }
 }
 
 /**
@@ -74,6 +83,7 @@ object SimpleRepositoryServices extends RepositoryServices {
   override val gameRepositoryService = new GameRepositoryService {
     override lazy val env = SingleBDBEnvironment
   }
+
 }
 
 /**
@@ -87,4 +97,5 @@ object DefaultRepositoryServices extends RepositoryServices {
     override lazy val env = ReplicatedBDBEnvironment
   }
 }
+
 

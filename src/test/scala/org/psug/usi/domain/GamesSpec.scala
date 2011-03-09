@@ -11,11 +11,16 @@ import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
 import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
-import org.psug.usi.service.{UserAnswer, Register, GameManagerService, UserQuestion}
+import org.psug.usi.service._
 
 class GamesSpec extends SpecificationWithJUnit {
 
   def clearRepository = gameRepositoryService.remote ! ClearRepository
+
+  new SpecContext {
+    beforeSpec { SimpleRepositoryServices.start }
+    afterSpec { SimpleRepositoryServices.exit }
+  }
 
   "in-memory game repository" should {
     clearRepository.before
@@ -72,6 +77,8 @@ class GamesSpec extends SpecificationWithJUnit {
       }
 
       val gameManager = new GameManagerService( game )
+      gameManager.go
+
       // 1st question
       users.foreach( user => gameManager.remote.send( Register( user.id ), endpoint ) )
       while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
@@ -81,6 +88,7 @@ class GamesSpec extends SpecificationWithJUnit {
       currentQuestion += 1
       users.foreach( user => gameManager.remote.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
 
+      gameManager !! Exit
     }
 
   }

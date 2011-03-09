@@ -2,14 +2,20 @@ package org.psug.usi.domain
 
 import org.specs._
 import org.psug.usi.service.SimpleRepositoryServices._
+import org.psug.usi.service.SimpleRepositoryServices
 import org.psug.usi.store.{ClearRepository, DataPulled, DataStored, StoreData}
-
+import org.psug.usi.service.Exit
 
 class UsersSpec extends SpecificationWithJUnit {
 
-  def clearRepository = userRepositoryService.remote ! ClearRepository
-    
-  "in-memory user repository" should { clearRepository.before
+  new SpecContext {
+    beforeSpec(SimpleRepositoryServices.start)
+    afterSpec(SimpleRepositoryServices.exit)
+
+    before(userRepositoryService.remote ! ClearRepository)
+  }
+
+  "in-memory user repository" should {
 
     val martinOdersky = User("Martin", "Odersky","m.odersky@scala-lang.org","0xcafebabe")
 

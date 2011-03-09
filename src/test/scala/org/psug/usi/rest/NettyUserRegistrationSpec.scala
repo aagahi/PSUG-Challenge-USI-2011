@@ -40,8 +40,8 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
     val webServer : WebServer = new WebServer(listenPort,SimpleRepositoryServices)
 
     // start/stop web server on each Specification
-    beforeSpec(webServer.start)
-    afterSpec(webServer.stop)
+    beforeSpec { webServer.start; SimpleRepositoryServices.start  }
+    afterSpec { webServer.stop ; SimpleRepositoryServices.exit }
 
     // clear repository on each example
     before(userRepositoryService !!  ClearRepository)

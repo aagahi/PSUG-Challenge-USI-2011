@@ -18,7 +18,6 @@ case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
 case class UserQuestion( userId:Int, question:Option[Question], scoreSlice:Option[Array[UserScore]] = None )
 
 
-
 object GameManagerTimer {
   case class QuestionTimeout(questionIndex:Int, timoutSec:Int)
 }
@@ -62,6 +61,7 @@ class GameManagerService( val game:Game ) extends  DefaultServiceConfiguration w
         case Register( userId ) => register( userId )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout()
+        case Exit => println("service " + symbol +" exiting"); exit()
         case x => 
       }
     }
