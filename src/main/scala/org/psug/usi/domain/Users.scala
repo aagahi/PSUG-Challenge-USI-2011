@@ -44,7 +44,7 @@ case class PullDataByEmail( email : String ) extends DataRepositoryMessage
 case class AuthenticateUser (credentials : Credentials) extends DataRepositoryMessage
 case class UserAuthenticated (user : Either[User,String]) extends DataRepositoryMessage
 
-class UserRepository extends BDBDataRepository[User]( "UserRepository" ) {
+abstract class UserRepository extends BDBDataRepository[User]( "UserRepository" ) {
 
   override def store( id:Int, in:User ){
     val key = new DatabaseEntry()

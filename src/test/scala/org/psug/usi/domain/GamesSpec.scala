@@ -9,12 +9,13 @@ package org.psug.usi.domain
 import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
-import org.psug.usi.service._
+import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
+import org.psug.usi.service.{UserAnswer, Register, GameManagerService, UserQuestion}
 
 class GamesSpec extends SpecificationWithJUnit {
 
-  def clearRepository = GameRepositoryService.remoteRef ! ClearRepository
+  def clearRepository = gameRepositoryService.remoteRef ! ClearRepository
 
   "in-memory game repository" should {
     clearRepository.before
@@ -22,15 +23,15 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService.remoteRef !? StoreData(game)
       gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = GameRepositoryService.remoteRef !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = GameRepositoryService.remoteRef !? PullData(gameStored.asInstanceOf[Game].id)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService.remoteRef !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = gameRepositoryService.remoteRef !? PullData(gameStored.asInstanceOf[Game].id)
       gameFound.asInstanceOf[Game].questions.head.question must be_==( game.questions.head.question )
 
     }

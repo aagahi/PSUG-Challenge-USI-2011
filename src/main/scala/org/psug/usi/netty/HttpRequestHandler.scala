@@ -8,7 +8,7 @@ import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
-import org.psug.usi.service.UserRepositoryService
+import org.psug.usi.service.RepositoryServices
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.system.Status
 
@@ -17,8 +17,10 @@ import org.psug.usi.system.Status
  * Date: 2/22/11
  * Time: 1:07 AM
  */
-class RequestActor extends Actor{
-  
+class RequestActor(services : RepositoryServices) extends Actor{
+
+  import services._
+
   implicit val formats = Serialization.formats(NoTypeHints)
 
   var channel:Channel = null
@@ -62,15 +64,15 @@ class RequestActor extends Actor{
     ( method, queryStringDecoder.getPath.split('/').tail ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
-        UserRepositoryService.remoteRef ! PullData( userId.toInt )
+        userRepositoryService.remoteRef ! PullData( userId.toInt )
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val user = read[User](content)
-        UserRepositoryService.remoteRef ! StoreData(user)
+        userRepositoryService.remoteRef ! StoreData(user)
 
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
-        UserRepositoryService.remoteRef ! AuthenticateUser(credentials)
+        userRepositoryService.remoteRef ! AuthenticateUser(credentials)
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
@@ -96,10 +98,10 @@ class RequestActor extends Actor{
 }
 
 @ChannelHandler.Sharable
-class HttpRequestHandler extends SimpleChannelUpstreamHandler {
+class HttpRequestHandler(repositoryServices : RepositoryServices) extends SimpleChannelUpstreamHandler {
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
-    new RequestActor() ! e
+    new RequestActor(repositoryServices) ! e
   }
 
   override def exceptionCaught( ctx:ChannelHandlerContext, e:ExceptionEvent ){

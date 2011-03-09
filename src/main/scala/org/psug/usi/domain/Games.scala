@@ -18,4 +18,4 @@ case class Question( question:String, answers:Seq[Answer], value:Int )
 case class Answer( anwser:String, status:Boolean )
 
 
-class GameRepository extends BDBDataRepository[Game]( "GameRepository" )
+abstract class GameRepository extends BDBDataRepository[Game]( "GameRepository" )

@@ -3,6 +3,7 @@ package org.psug.usi
 import com.sun.jersey.spi.container.servlet.ServletContainer
 
 import org.psug.usi.netty.WebServer
+import service.SimpleRepositoryServices
 
 /**
  * 
@@ -36,7 +37,7 @@ class Main {
     val port: Int = Integer.parseInt(args(1))
     args(0) match {
       case "Web" =>
-        server = new WebServer(port)
+        server = new WebServer(port,SimpleRepositoryServices)
         server.start
         println("Started PSUG USI2011 Challenge web server at 0.0.0.0:" + port)
       case "Service" =>

@@ -1,5 +1,6 @@
 package org.psug.usi.service
 
+import org.psug.usi.store._
 import org.psug.usi.store.DataRepositoryMessage
 import org.psug.usi.domain.{GameRepository, UserRepository}
 
@@ -14,19 +15,41 @@ trait RepositoryService extends RemoteService {
   def act {
     loop {
       react {
-          case x =>
-            handleMessage( x ) match {
-              case message:DataRepositoryMessage => reply( message )
-              case _ =>
-            }
+        case x =>
+          handleMessage(x) match {
+            case message: DataRepositoryMessage => reply(message)
+            case _ =>
+          }
       }
     }
   }
 
-  def handleMessage( any:Any ):Any
+  def handleMessage(any: Any): Any
 }
 
+trait RepositoryServices {
+  val userRepositoryService: UserRepository with RepositoryService
+  val gameRepositoryService: GameRepository with RepositoryService
+}
 
-object UserRepositoryService extends UserRepository with RepositoryService
+object SimpleRepositoryServices extends RepositoryServices {
+  override val userRepositoryService = new UserRepository with RepositoryService {
+            override lazy val env = SingleBDBEnvironment
+    }
+  override val gameRepositoryService = new GameRepository with RepositoryService {
+            override lazy val env = SingleBDBEnvironment
+  }
+}
 
-object GameRepositoryService extends GameRepository with RepositoryService
+object DefaultRepositoryServices extends RepositoryServices {
+  override val userRepositoryService = UserRepositoryService
+  override val gameRepositoryService = GameRepositoryService
+}
+
+object UserRepositoryService extends UserRepository with RepositoryService {
+  override lazy val env = ReplicatedBDBEnvironment
+}
+
+object GameRepositoryService extends GameRepository with RepositoryService {
+  override lazy val env = ReplicatedBDBEnvironment
+}

@@ -8,6 +8,8 @@ import org.jboss.netty.channel._
 import org.jboss.netty.handler.codec.http.{HttpResponseEncoder, HttpRequestDecoder}
 import java.util.concurrent.Executors
 
+import org.psug.usi.service._
+
 
 /**
  * User: alag
@@ -25,7 +27,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080 )  {
+class WebServer( val listenPort:Int = 18080, val services : RepositoryServices = DefaultRepositoryServices) {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _
@@ -42,7 +44,7 @@ class WebServer( val listenPort:Int = 18080 )  {
     bootstrap.setOption("child.keepAlive", keepAlive )
     bootstrap.setOption( "backlog", backLog )
 
-    bootstrap.setPipelineFactory( new HttpServerPipelineFactory() )
+    bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services) )
     bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
   }
 
@@ -51,15 +53,13 @@ class WebServer( val listenPort:Int = 18080 )  {
   }
 }
 
-
-
-class HttpServerPipelineFactory extends ChannelPipelineFactory {
+class HttpServerPipelineFactory(services : RepositoryServices) extends ChannelPipelineFactory {
 
   def getPipeline() = {
     val pipeline = Channels.pipeline()
     pipeline.addLast("decoder", new HttpRequestDecoder());
     pipeline.addLast("encoder", new HttpResponseEncoder());
-    pipeline.addLast("handler", new HttpRequestHandler())
+    pipeline.addLast("handler", new HttpRequestHandler(services))
     pipeline
   }
 }
