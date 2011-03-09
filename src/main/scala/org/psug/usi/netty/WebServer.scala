@@ -27,7 +27,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : RepositoryServices = DefaultRepositoryServices) {
+class WebServer( val listenPort:Int = 18080, val services : Services = DefaultRepositoryServices) {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _
@@ -53,7 +53,7 @@ class WebServer( val listenPort:Int = 18080, val services : RepositoryServices =
   }
 }
 
-class HttpServerPipelineFactory(services : RepositoryServices) extends ChannelPipelineFactory {
+class HttpServerPipelineFactory(services : Services) extends ChannelPipelineFactory {
 
   def getPipeline() = {
     val pipeline = Channels.pipeline()

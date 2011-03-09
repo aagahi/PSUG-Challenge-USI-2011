@@ -1,4 +1,5 @@
 #+TITLE: Challenge USI
+#+SEQ_TODO: TODO(t) INPROGRESS(i) | DONE(d!) CANCELED(c@)
 
 ** Perf
 
@@ -95,9 +96,9 @@
     :WHO:      abailly
     :END:
 
-** RÃ©partition
+** Répartition
 
-*** TODO add roles to agents when deploying jar
+*** INPROGRESS add roles to agents when deploying jar
     - netty
     - replication BDB
     - game manager: 

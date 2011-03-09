@@ -15,7 +15,7 @@ import org.psug.usi.service.{UserAnswer, Register, GameManagerService, UserQuest
 
 class GamesSpec extends SpecificationWithJUnit {
 
-  def clearRepository = gameRepositoryService.remoteRef ! ClearRepository
+  def clearRepository = gameRepositoryService.remote ! ClearRepository
 
   "in-memory game repository" should {
     clearRepository.before
@@ -23,15 +23,15 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = gameRepositoryService.remoteRef !? StoreData(game)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService.remote !? StoreData(game)
       gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = gameRepositoryService.remoteRef !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = gameRepositoryService.remoteRef !? PullData(gameStored.asInstanceOf[Game].id)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService.remote !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = gameRepositoryService.remote !? PullData(gameStored.asInstanceOf[Game].id)
       gameFound.asInstanceOf[Game].questions.head.question must be_==( game.questions.head.question )
 
     }
@@ -73,13 +73,13 @@ class GamesSpec extends SpecificationWithJUnit {
 
       val gameManager = new GameManagerService( game )
       // 1st question
-      users.foreach( user => gameManager.remoteRef.send( Register( user.id ), endpoint ) )
+      users.foreach( user => gameManager.remote.send( Register( user.id ), endpoint ) )
       while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
 
       // 2nd question
       playerAckCount.set(0)
       currentQuestion += 1
-      users.foreach( user => gameManager.remoteRef.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
+      users.foreach( user => gameManager.remote.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
 
     }
 
