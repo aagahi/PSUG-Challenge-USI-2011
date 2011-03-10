@@ -22,7 +22,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
   def exitRepository = {
     repositories.gameRepositoryService.remote ! ClearRepository
-    repositories.exit
+    repositories.stop
   }
 
   "in-memory game repository" should {

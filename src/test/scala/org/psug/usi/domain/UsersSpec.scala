@@ -15,7 +15,7 @@ class UsersSpec extends SpecificationWithJUnit {
 
   def clearRepository =  {
     userRepositoryService.remote !? ClearRepository
-    exit
+    stop
   }
 
   "in-memory user repository" should {

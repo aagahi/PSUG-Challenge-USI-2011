@@ -16,7 +16,7 @@ trait RepositoryService extends DefaultServiceConfiguration with Service {
   def act {
     loop {
       react {
-        case ServiceStatus => reply(Status(NodeTypes.service, 6666, Some(port)))
+        case ServiceStatus => reply(Status(NodeTypes.service, port))
         case Exit          => println("service " + symbol + " exiting"); exit()
         case x =>
           handleMessage(x) match {
@@ -67,7 +67,7 @@ trait RepositoryServices extends Services {
     userRepositoryService.go
   }
 
-  def exit = {
+  def stop = {
     gameRepositoryService ! Exit
     userRepositoryService ! Exit
   }
@@ -76,11 +76,13 @@ trait RepositoryServices extends Services {
 /**
  * Repository services that use a single-instance BDB for storage.
  */
-class SimpleRepositoryServices extends RepositoryServices {
+class SimpleRepositoryServices(servicesPort : Int = 55555) extends RepositoryServices {
   override val userRepositoryService = new UserRepositoryService {
+    override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
   override val gameRepositoryService = new GameRepositoryService {
+    override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
 

@@ -26,22 +26,36 @@ object Main {
 
 class Main {
 
-  var server : WebServer = null
-  var services : Services = null
-
-  def start(args : String*) = {
-    val port: Int = Integer.parseInt(args(1))
-    args(0) match {
-      case "Web" =>
-        server = new WebServer(port,RemoteServices)
-        server.start
-        println("Started PSUG USI2011 Challenge web server at 0.0.0.0:" + port)
-      case "Service" =>
-        services = new SimpleRepositoryServices
-        println("Started PSUG USI2011 Challenge services at 0.0.0.0:" + port)
-    }
+  trait Agent  {
+    val name  : String
+    val port  : Int
+    def start : Unit
+    def stop  : Unit
   }
 
-  def stop() = server.stop
+  var agent : Agent = null
+
+  def start(args : String*) = {
+    val webport : Int = Integer.parseInt(args(1))
+    args(0) match {
+      case "Web" =>
+        agent = new WebServer(webport,RemoteServices) with Agent {
+          val name =  "Web"
+          val port = webport
+        }
+      case "Service" =>
+        agent = new SimpleRepositoryServices(webport) with Agent {
+          val name = "Services"
+          val port = webport
+        }
+    }
+    agent.start
+    println("Started PSUG USI2011 Challenge " + agent.name  +" agent  at 0.0.0.0:" + agent.port)
+  }
+
+  def stop() = {
+    agent.stop
+    println("Stopped PSUG USI2011 Challenge " + agent.name + " at 0.0.0.0:" + agent.port)
+  }
 
 }

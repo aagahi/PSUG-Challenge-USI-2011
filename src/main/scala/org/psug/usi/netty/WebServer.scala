@@ -32,7 +32,7 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
 
   var bootstrap : ServerBootstrap = _
   
-  def start = {
+  def start : Unit = {
     bootstrap = new ServerBootstrap(
       new NioServerSocketChannelFactory(
         Executors.newCachedThreadPool(),

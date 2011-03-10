@@ -23,7 +23,7 @@ class DeploySpec extends SpecificationWithJUnit {
   implicit val formats = Serialization.formats(NoTypeHints)
 
   val webPort: Int = 34567
-  val servicesPort: Int = 55555
+  val servicesPort: Int = 55554
 
   def webResource(path: String) = new Client().resource("http://localhost:" + webPort + path)
 
@@ -39,20 +39,18 @@ class DeploySpec extends SpecificationWithJUnit {
       val result = webResource("/admin/status").header("Content-Type", "application/json").get(classOf[String])
       val status = read[Status](result)
       status.nodeType must be_==("Web")
-      status.webPort must be_==(webPort)
+      status.port must be_==(webPort)
     }
 
-/*
     "start as service on given port with arguments 'service'" in {
-      context.main.start("Service", "" + webPort, "" + servicesPort)
-      val node = Node("localhost", webPort)
+      context.main.start("Service","" + servicesPort)
+      val node = Node("localhost", servicesPort)
       val actor = RemoteActor.select(node, 'UserRepositoryService)
-      val status : Status = (actor !? ServiceStatus).asInstanceOf[Status]
-      status.nodeType must be_==("Service")
-      status.webPort must be_==(webPort)
-      status.servicesPort must be_==(Some(servicesPort))
+      val status : Some[Status] = (actor !? (1000,ServiceStatus)).asInstanceOf[Some[Status]]
+      status.get.nodeType must be_==("Service")
+      status.get.port must be_==(servicesPort)
     }
-  */
+
   }
 }
 

@@ -41,7 +41,7 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
 
     // start/stop web server on each Specification
     beforeSpec { webServer.start; repositories.start  }
-    afterSpec { webServer.stop ; repositories.exit }
+    afterSpec { webServer.stop ; repositories.stop }
 
     // clear repository on each example
     before(repositories.userRepositoryService !? ClearRepository)

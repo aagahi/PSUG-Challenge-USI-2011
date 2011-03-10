@@ -16,8 +16,8 @@ trait ServiceConfiguration {
 }
 
 trait DefaultServiceConfiguration extends ServiceConfiguration {
-  override val port = 55555
-  override val host = "localhost"
+  override lazy val port = 55555
+  override lazy val host = "localhost"
 }
 
 /**
@@ -26,8 +26,8 @@ trait DefaultServiceConfiguration extends ServiceConfiguration {
 case object ServiceStatus
 
 /**
- * Unconditional exit message.
- * All services should exit() when receiving this message.
+ * Unconditional stop message.
+ * All services should stop() when receiving this message.
  */
 case object Exit
 
