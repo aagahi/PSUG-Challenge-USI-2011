@@ -72,7 +72,7 @@ class GamesSpec extends SpecificationWithJUnit {
         case Some( userQuestion:UserQuestion ) =>
           val UserQuestion( uid, Some( nextQuestion ), score, _ ) = userQuestion
 
-          val expectedScore = if( game.questions(currentQuestion).answers( uid%(game.questions(currentQuestion).answers.size) ).status  ) game.questions(currentQuestion).value else 0
+          val expectedScore = if( game.questions(currentQuestion).answers( uid%(game.questions(currentQuestion).answers.size) ).status ) game.questions(currentQuestion).value else 0
           score must be_== ( expectedScore )
 
           nextQuestion must be_==( game.questions( currentQuestion+1 ) )

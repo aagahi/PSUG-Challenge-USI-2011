@@ -88,7 +88,8 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
     playersHistory( userId ) = AnswerHistory(currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
 
     val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
-    scorer ! ScorerAnwserValue( userId, answerValue )
+    // TODO: should remove actor on scorer?
+    scorer !? ScorerAnwserValue( userId, answerValue )
 
     playerActors( userId ) = sender
     if( playerActors.size >= game.numPlayer ){
@@ -127,7 +128,8 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
   private def timeout(){
     for( userId <- players ){
       if( !playerActors.contains( userId ) ){
-        scorer ! ScorerAnwserValue( userId, 0 )
+        // TODO: should remove actor on scorer?
+        scorer !? ScorerAnwserValue( userId, 0 )
       }
     }
     proceedToNextQuestion()
