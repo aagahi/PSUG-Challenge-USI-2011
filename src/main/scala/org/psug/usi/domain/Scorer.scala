@@ -91,7 +91,7 @@ class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10 ) extends Actor
     }
   }
 
-  def userScore( userId:Int ) = scores(usersScoresIndex(userId)).score
+  def userScore( userId:Int ) = scores(usersScoresIndex(userId))
 
   def scoreSlice(userId: Int): Array[UserScore] =
     scores.slice( usersScoresIndex(userId) + sliceRange.start, usersScoresIndex(userId) + sliceRange.end )

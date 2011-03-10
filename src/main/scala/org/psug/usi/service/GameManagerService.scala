@@ -16,7 +16,7 @@ case class Register( userId:Int )
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
 
 // Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
-case class UserQuestion( userId:Int, question:Option[Question], score:Int, scoreSlice:Option[Array[UserScore]] = None )
+case class UserQuestion( userId:Int, question:Option[Question], answerStatus:Option[Boolean], score:Option[Int], scoreSlice:Option[Array[UserScore]] = None )
 
 
 
@@ -105,13 +105,20 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
 
     playerActors.foreach{
       case ( userId, playerActor ) =>
-        if( currentQuestionIndex < game.questions.size ){
+        val userScore = scorer.userScore( userId )
+
+        if( currentQuestionIndex == 0 ){
+          // 1st question
+          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), None, None, None )
+        }
+        else if( currentQuestionIndex < game.questions.size ){
           // still remain some question
-          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), scorer.userScore( userId ), None )
+          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), Some( userScore.bonus > 0 ), Some( userScore.score ), None )
         }
         else{
           // game ended -> send score slice & save player history
-          playerActor ! UserQuestion( userId, None, scorer.userScore( userId ), Some( scorer.scoreSlice( userId ) ) )
+
+          playerActor ! UserQuestion( userId, None, Some( userScore.bonus > 0 ), Some( userScore.score ), Some( scorer.scoreSlice( userId ) ) )
           // store data
           gameUserHistoryRepositoryService ! StoreData( GameUserHistory( GameUserKey( game.id, userId ), playersHistory.getOrElse( userId, Nil ) ) )
         }
