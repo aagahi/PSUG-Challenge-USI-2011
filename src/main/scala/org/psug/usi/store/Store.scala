@@ -22,6 +22,7 @@ case class PullData[K<:Any]( key:K ) extends DataRepositoryMessage
 case class DataPulled[K<:Any]( data:Option[Data[K]] ) extends DataRepositoryMessage
 
 case object ClearRepository extends DataRepositoryMessage
+case class RepositoryCleared(name : String) extends DataRepositoryMessage
 
 trait DataRepository[K<:Any,T<:Data[K]] {
 
@@ -55,7 +56,7 @@ trait DataRepository[K<:Any,T<:Data[K]] {
   /**
    * clear this repository's content.
    */
-  protected def reset : Unit
+  protected def reset : RepositoryCleared
 }
 
 
@@ -84,5 +85,5 @@ class InMemoryDataRepository[K<:Any,T<:Data[K]] extends DataRepository[K,T] {
 
   override protected def findByStoreKey(key : K) = dataByKey.get(key)
 
-  override protected def reset { currentId = 0;  dataByKey.clear }
+  override protected def reset : RepositoryCleared = { currentId = 0;  dataByKey.clear ; RepositoryCleared(getClass.getName)}
 }

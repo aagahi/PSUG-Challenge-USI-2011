@@ -27,7 +27,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : Services = DefaultRepositoryServices) {
+class WebServer( val listenPort:Int = 18080, val services : Services = new DefaultRepositoryServices) {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _

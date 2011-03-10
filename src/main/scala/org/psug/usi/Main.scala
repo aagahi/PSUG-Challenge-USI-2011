@@ -3,7 +3,7 @@ package org.psug.usi
 import com.sun.jersey.spi.container.servlet.ServletContainer
 
 import org.psug.usi.netty.WebServer
-import service.{Services, RemoteServices, SimpleRepositoryServices}
+import service.{Services,RemoteServices, SimpleRepositoryServices}
 
 /**
  * 
@@ -37,7 +37,7 @@ class Main {
         server.start
         println("Started PSUG USI2011 Challenge web server at 0.0.0.0:" + port)
       case "Service" =>
-        services = SimpleRepositoryServices
+        services = new SimpleRepositoryServices
         println("Started PSUG USI2011 Challenge services at 0.0.0.0:" + port)
     }
   }

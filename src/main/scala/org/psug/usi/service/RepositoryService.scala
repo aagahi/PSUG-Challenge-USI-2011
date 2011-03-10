@@ -76,7 +76,7 @@ trait RepositoryServices extends Services {
 /**
  * Repository services that use a single-instance BDB for storage.
  */
-object SimpleRepositoryServices extends RepositoryServices {
+class SimpleRepositoryServices extends RepositoryServices {
   override val userRepositoryService = new UserRepositoryService {
     override lazy val env = SingleBDBEnvironment
   }
@@ -89,7 +89,7 @@ object SimpleRepositoryServices extends RepositoryServices {
 /**
  * Repository services that use a replicated BDB environment for storage.
  */
-object DefaultRepositoryServices extends RepositoryServices {
+class DefaultRepositoryServices extends RepositoryServices {
   override val userRepositoryService = new UserRepositoryService {
     override lazy val env = ReplicatedBDBEnvironment
   }

@@ -9,22 +9,28 @@ package org.psug.usi.domain
 import actors.Actor._
 import org.specs._
 import java.util.concurrent.atomic.AtomicInteger
-import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
 import org.psug.usi.service._
 
 class GamesSpec extends SpecificationWithJUnit {
 
-  def clearRepository = gameRepositoryService.remote ! ClearRepository
+  val repositories = new SimpleRepositoryServices
 
-  new SpecContext {
-    beforeSpec { SimpleRepositoryServices.start }
-    afterSpec { SimpleRepositoryServices.exit }
+  def startRepository = {
+    repositories.start
+  }
+
+  def exitRepository = {
+    repositories.gameRepositoryService.remote ! ClearRepository
+    repositories.exit
   }
 
   "in-memory game repository" should {
-    clearRepository.before
-     
+    import repositories._
+
+    startRepository.before
+    exitRepository.after
+
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil )
 
     "assign unique id to user when registering" in {
@@ -43,7 +49,6 @@ class GamesSpec extends SpecificationWithJUnit {
   }
 
   "game manager" should {
-    clearRepository.before
 
     val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", false)::Nil, 1 )
                     :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil, 2 )
