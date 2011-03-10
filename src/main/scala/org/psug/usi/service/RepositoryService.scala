@@ -17,7 +17,7 @@ trait RepositoryService extends DefaultServiceConfiguration with Service {
     loop {
       react {
         case ServiceStatus => reply(Status(NodeTypes.service, port))
-        case Exit          => println("service " + symbol + " exiting"); exit()
+        case Exit => println("service " + symbol + " exiting"); exit()
         case x =>
           handleMessage(x) match {
             case message: DataRepositoryMessage => reply(message)
@@ -41,11 +41,14 @@ trait Services {
 /**
  * concrete instances of services viewed remotely.
  */
-object RemoteServices extends Services {
+class RemoteServices(servicesPort : Int = 55555) extends Services {
+
   override val userRepositoryService = new RemoteService with DefaultServiceConfiguration {
+    override lazy val port = servicesPort
     override lazy val symbol = 'UserRepositoryService
   }
   override val gameRepositoryService = new RemoteService with DefaultServiceConfiguration {
+    override lazy val port = servicesPort
     override lazy val symbol = 'GameRepositoryService
   }
 }
@@ -76,7 +79,7 @@ trait RepositoryServices extends Services {
 /**
  * Repository services that use a single-instance BDB for storage.
  */
-class SimpleRepositoryServices(servicesPort : Int = 55555) extends RepositoryServices {
+class SimpleRepositoryServices(servicesPort: Int = 55555) extends RepositoryServices {
   override val userRepositoryService = new UserRepositoryService {
     override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment

@@ -39,7 +39,8 @@ class Main {
     val webport : Int = Integer.parseInt(args(1))
     args(0) match {
       case "Web" =>
-        agent = new WebServer(webport,RemoteServices) with Agent {
+        val servicesPort : Int = Integer.parseInt(args(2))
+        agent = new WebServer(webport,new RemoteServices(servicesPort)) with Agent {
           val name =  "Web"
           val port = webport
         }
