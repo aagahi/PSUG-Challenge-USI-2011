@@ -3,6 +3,7 @@ package org.psug.usi.service
 import actors.{OutputChannel, Actor}
 import collection.mutable.HashMap
 import org.psug.usi.domain._
+import org.psug.usi.store.StoreData
 
 /**
  * User: alag
@@ -40,7 +41,7 @@ class GameManagerTimer extends Actor {
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService( val game:Game ) extends RemoteService {
+class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:GameUserHistoryRepository with RepositoryService ) extends RemoteService {
   import GameManagerTimer._
 
 
@@ -54,6 +55,7 @@ class GameManagerService( val game:Game ) extends RemoteService {
 
   var currentQuestionIndex = -1 // start -1 cause proceedToNextQuestion do a +=1 -> 1st question case
 
+  val playersHistory = new HashMap[Int,List[AnswerHistory]]
 
   def act {
     loop {
@@ -83,6 +85,8 @@ class GameManagerService( val game:Game ) extends RemoteService {
   def answer( userId:Int, answerIndex:Int ){
     val currentQuestion = game.questions(currentQuestionIndex)
 
+    playersHistory( userId ) = AnswerHistory(currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
+
     val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
     scorer ! ScorerAnwserValue( userId, answerValue )
 
@@ -98,9 +102,17 @@ class GameManagerService( val game:Game ) extends RemoteService {
 
     playerActors.foreach{
       case ( userId, playerActor ) =>
-        val nextQuestion = if( currentQuestionIndex < game.questions.size ) Some( game.questions(currentQuestionIndex) ) else None
-        val scoreSlice = if( currentQuestionIndex > 0 ) Some( scorer.scoreSlice( userId ) ) else None
-        playerActor ! UserQuestion( userId, nextQuestion, scoreSlice )
+        if( currentQuestionIndex < game.questions.size ){
+          // still remain some question
+          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), None )
+        }
+        else{
+          // game ended -> send score slice & save player history
+          playerActor ! UserQuestion( userId, None, Some( scorer.scoreSlice( userId ) ) )
+          // store data
+          gameUserHistoryRepositoryService ! StoreData( GameUserHistory( GameUserKey( game.id, userId ), playersHistory.getOrElse( userId, Nil ) ) )
+        }
+        
     }
     playerActors.clear
     

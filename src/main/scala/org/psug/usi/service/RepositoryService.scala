@@ -2,7 +2,7 @@ package org.psug.usi.service
 
 import org.psug.usi.store._
 import org.psug.usi.store.DataRepositoryMessage
-import org.psug.usi.domain.{GameRepository, UserRepository}
+import org.psug.usi.domain.{GameUserHistoryRepository, GameRepository, UserRepository}
 
 /**
  * User: alag
@@ -30,6 +30,7 @@ trait RepositoryService extends RemoteService {
 trait RepositoryServices {
   val userRepositoryService: UserRepository with RepositoryService
   val gameRepositoryService: GameRepository with RepositoryService
+  val gameUserHistoryService: GameUserHistoryRepository with RepositoryService
 }
 
 object SimpleRepositoryServices extends RepositoryServices {
@@ -39,11 +40,15 @@ object SimpleRepositoryServices extends RepositoryServices {
   override val gameRepositoryService = new GameRepository with RepositoryService {
             override lazy val env = SingleBDBEnvironment
   }
+  override val gameUserHistoryService = new GameUserHistoryRepository with RepositoryService {
+            override lazy val env = SingleBDBEnvironment
+  }
 }
 
 object DefaultRepositoryServices extends RepositoryServices {
   override val userRepositoryService = UserRepositoryService
   override val gameRepositoryService = GameRepositoryService
+  override val gameUserHistoryService = GameUserHistoryRepositoryService
 }
 
 object UserRepositoryService extends UserRepository with RepositoryService {
@@ -53,3 +58,8 @@ object UserRepositoryService extends UserRepository with RepositoryService {
 object GameRepositoryService extends GameRepository with RepositoryService {
   override lazy val env = ReplicatedBDBEnvironment
 }
+
+object GameUserHistoryRepositoryService extends GameUserHistoryRepository with RepositoryService {
+  override lazy val env = ReplicatedBDBEnvironment
+}
+

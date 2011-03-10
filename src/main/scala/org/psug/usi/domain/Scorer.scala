@@ -12,7 +12,7 @@ case class UserScore( userId:Int, score:Int, bonus:Int ) {
 }
 case class ScorerAnwserValue( userId:Int, answerValue:Int ) // 0 mean wrong answer
 
-class Scorer(val numUsers: Int, sliceRange:Range = -10 to 10 ) extends Actor {
+class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10 ) extends Actor {
 
   start
   

@@ -6,12 +6,11 @@ package org.psug.usi.domain
  * Time: 12:19 AM
  */
 
-import actors.Actor._
 import org.specs._
-import java.util.concurrent.atomic.AtomicInteger
 import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
 import org.psug.usi.service.{UserAnswer, Register, GameManagerService, UserQuestion}
+import actors.Futures
 
 class GamesSpec extends SpecificationWithJUnit {
 
@@ -40,46 +39,60 @@ class GamesSpec extends SpecificationWithJUnit {
   "game manager" should {
     clearRepository.before
 
-    val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", false)::Nil, 1 )
-                    :: Question( "Q2", Answer( "A21", false )::Answer("A22", false)::Nil, 2 )
+    val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", true)::Nil, 1 )
+                    :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
                     :: Nil,
                     timeoutSec = 10,
-                    numPlayer = 1000 )
+                    numPlayer = 100 )
 
     val users = for( i <- 0 until game.numPlayer ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
 
 
-    "wait for game numPlayer and send questions (and scoreSlice after 1st answer)" in {
+    "register all players, send question after each answer, send score slice and save user history after last response" in {
+
+
+      val gameManager = new GameManagerService( game, gameUserHistoryService )
+
       var currentQuestion = 0
 
-      val playerAckCount = new AtomicInteger(0)
-
-      // note we added self.loop & react because !? method used in prev test create un "instance" actor and endpoint loop might refer this this one
-      val endpoint = actor {
-
-        self.loop {
-          self.react {
-            case UserQuestion( userId, Some( question ), scoreSlice ) =>
-              question must be_==( game.questions(currentQuestion) )
-              if( currentQuestion > 0 ){
-                val Some( userScores ) = scoreSlice
-                userScores.find( _.userId == userId ) must notBe( None )
-              }
-              playerAckCount.incrementAndGet
-            case _ => fail("Unexpected message => must alway have a question")
-          }
-        }
+      // Register
+      val futuresRegister = users.map( user => gameManager.remoteRef !! Register( user.id ) )
+      Futures.awaitAll( 10000, futuresRegister.toSeq:_* ).foreach{
+        case Some( userQuestion:UserQuestion ) =>
+          val UserQuestion( uid, Some( nextQuestion ), _ ) = userQuestion
+          nextQuestion must be_==( game.questions(currentQuestion ) )
+        case _ => fail
       }
 
-      val gameManager = new GameManagerService( game )
-      // 1st question
-      users.foreach( user => gameManager.remoteRef.send( Register( user.id ), endpoint ) )
-      while( playerAckCount.get < game.numPlayer ) Thread.sleep(10)
 
-      // 2nd question
-      playerAckCount.set(0)
+      // Answer question 0
+      val futuresQ1 = users.map( user => gameManager.remoteRef !!  UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) )  )
+      Futures.awaitAll( 10000, futuresQ1.toSeq:_* ).foreach{
+        case Some( userQuestion:UserQuestion ) =>
+          val UserQuestion( uid, Some( nextQuestion ), _ ) = userQuestion
+          nextQuestion must be_==( game.questions( currentQuestion+1 ) )
+        case _ => fail
+      }
+
       currentQuestion += 1
-      users.foreach( user => gameManager.remoteRef.send( UserAnswer( user.id, currentQuestion, user.id%2 ), endpoint ) )
+
+      // Answer question 1
+      val futuresQ2 = users.map( user => gameManager.remoteRef !!  UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) )  )
+      Futures.awaitAll( 10000, futuresQ2.toSeq:_* ).foreach{
+        case Some( userQuestion:UserQuestion ) =>
+          val UserQuestion( uid, None, Some( scoreSlice ) ) = userQuestion
+          val minSliceSize = math.min( math.abs( gameManager.scorer.sliceRange.head ), gameManager.scorer.sliceRange.last )
+          scoreSlice.size must be_>=( minSliceSize )
+          scoreSlice.size must be_<( gameManager.scorer.sliceRange.size )
+        case _ => fail
+      }
+
+      users.foreach{
+        user =>
+        val DataPulled( Some( userHistory ) ) = gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
+        val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, user.id%(q.answers.size) ) }
+        userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
+      }
 
     }
 
