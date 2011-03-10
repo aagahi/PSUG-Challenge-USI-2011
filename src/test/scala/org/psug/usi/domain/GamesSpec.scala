@@ -59,7 +59,8 @@ class GamesSpec extends SpecificationWithJUnit {
       val futuresRegister = users.map( user => gameManager.remoteRef !! Register( user.id ) )
       Futures.awaitAll( 10000, futuresRegister.toSeq:_* ).foreach{
         case Some( userQuestion:UserQuestion ) =>
-          val UserQuestion( uid, Some( nextQuestion ), _ ) = userQuestion
+          val UserQuestion( uid, Some( nextQuestion ), score, _ ) = userQuestion
+          score must be_==( 0 )
           nextQuestion must be_==( game.questions(currentQuestion ) )
         case _ => fail
       }
@@ -69,7 +70,11 @@ class GamesSpec extends SpecificationWithJUnit {
       val futuresQ1 = users.map( user => gameManager.remoteRef !!  UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) )  )
       Futures.awaitAll( 10000, futuresQ1.toSeq:_* ).foreach{
         case Some( userQuestion:UserQuestion ) =>
-          val UserQuestion( uid, Some( nextQuestion ), _ ) = userQuestion
+          val UserQuestion( uid, Some( nextQuestion ), score, _ ) = userQuestion
+
+          val expectedScore = if( game.questions(currentQuestion).answers( uid%(game.questions(currentQuestion).answers.size) ).status  ) game.questions(currentQuestion).value else 0
+          score must be_== ( expectedScore )
+
           nextQuestion must be_==( game.questions( currentQuestion+1 ) )
         case _ => fail
       }
@@ -80,7 +85,12 @@ class GamesSpec extends SpecificationWithJUnit {
       val futuresQ2 = users.map( user => gameManager.remoteRef !!  UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) )  )
       Futures.awaitAll( 10000, futuresQ2.toSeq:_* ).foreach{
         case Some( userQuestion:UserQuestion ) =>
-          val UserQuestion( uid, None, Some( scoreSlice ) ) = userQuestion
+          val UserQuestion( uid, None, score, Some( scoreSlice ) ) = userQuestion
+
+          val expectedPrevScoreWithBonus = if( game.questions(currentQuestion).answers( uid%(game.questions(currentQuestion-1).answers.size) ).status  ) game.questions(currentQuestion-1).value+1 else 0
+          val expectedScore = if( game.questions(currentQuestion).answers( uid%(game.questions(currentQuestion).answers.size) ).status  ) game.questions(currentQuestion).value+expectedPrevScoreWithBonus else expectedPrevScoreWithBonus
+          score must be_== ( expectedScore )
+
           val minSliceSize = math.min( math.abs( gameManager.scorer.sliceRange.head ), gameManager.scorer.sliceRange.last )
           scoreSlice.size must be_>=( minSliceSize )
           scoreSlice.size must be_<( gameManager.scorer.sliceRange.size )

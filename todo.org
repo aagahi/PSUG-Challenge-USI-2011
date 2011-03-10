@@ -14,30 +14,26 @@
 *** DONE persistence + replication avec BDB
 *** DONE persister historique des réponses d'un utilisateur
 *** DONE tweet final (=> attend juste pour cabler dans le game manager - c'est l'affaire d'une ligne)
+*** DONE cablage HTTP login
+*** DONE make authentication process asynchronous
 
-pour la version de 15/03
+Pour la version de 15/03 ----------------------------------------------------------
 
 *** DONE implementation login + generation cookie
     :PROPERTIES:
     :WHO:      abailly
     :END:
-    - pb stockage acteur representant joueur
-
+    - pb stockage acteur representant joueur <= normalement ok tu peux verifier?
 
 *** TODO separation des couches
     :PROPERTIES:
     :WHO:      abailly
     :END:
-*** DONE cablage HTTP login
-    :PROPERTIES:
-    :WHO:      abailly
-    :END:
-*** DONE make authentication process asynchronous
 *** TODO verification authentification lors des echanges
     :PROPERTIES:
     :WHO:      abailly
     :END:
-    - comment s'assurer que le token est valide ?
+    - comment s'assurer que le token est valide ? <= on crypt/sign le cookie avec une cle symetrique stocke sur le serveur
     - il faudrait stocker une map de session côté serveur pour éviter que le client ne bricole un cookie...
 *** TODO initialisation partie : cablage HTTP
     :PROPERTIES:
@@ -52,7 +48,7 @@ pour la version de 15/03
     :WHO:      aagahi
     :END:
 *** TODO cablage HTTP ranking final
-    - plus de score Ã  chaque question
+    - plus de score a chaque question
     :PROPERTIES:
     :WHO:      abailly
     :END:
@@ -67,15 +63,15 @@ pour la version de 15/03
     :END:
 
 
-Pour la version 15/04
+Pour la version 15/04 ----------------------------------------------------------
 
 *** TODO resilience ? comment distribuer le scorer ?
     :PROPERTIES:
-    :WHO:      abailly
+    :WHO:      abailly/aagahi
     :END:
-    - au moins 2 scorer en miroir pour etre rÃ©silient
-    - chaque resultat de reponse est diffusÃ© sur au moins 2 noeuds
-    - scorer fonctionne en tÃ¢che de fond
+    - au moins 2 scorer en miroir pour etre resilient
+    - chaque resultat de reponse est diffuse sur au moins 2 noeuds
+    - scorer fonctionne en tache de fond
 *** TODO cablage HTTP audit
     :PROPERTIES:
     :WHO:      abailly
