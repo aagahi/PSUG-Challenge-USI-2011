@@ -2,7 +2,7 @@
 
 ** Perf
 
- - 350ms par requÃªte
+ - 350ms par requete
 
 ** Fonctionnel
 
@@ -12,12 +12,18 @@
 *** DONE core game management
 *** DONE traitement du bonus dans le scoring du joueur
 *** DONE persistence + replication avec BDB
+*** DONE persister historique des réponses d'un utilisateur
+*** DONE tweet final (=> attend juste pour cabler dans le game manager - c'est l'affaire d'une ligne)
+
+pour la version de 15/03
 
 *** DONE implementation login + generation cookie
     :PROPERTIES:
     :WHO:      abailly
     :END:
     - pb stockage acteur representant joueur
+
+
 *** TODO separation des couches
     :PROPERTIES:
     :WHO:      abailly
@@ -55,26 +61,22 @@
     :PROPERTIES:
     :WHO:
     :END:
-*** TODO tweet final
+*** TODO fournir une reponse d'un joueur + question
     :PROPERTIES:
-    :WHO:      aagahi
+    :WHO:      abailly
     :END:
-*** TODO persister historique des réponses d'un utilisateur
-    :PROPERTIES:
-    :WHO:      aagahi
-    :END:
+
+
+Pour la version 15/04
+
 *** TODO resilience ? comment distribuer le scorer ?
     :PROPERTIES:
     :WHO:      abailly
     :END:
     - au moins 2 scorer en miroir pour etre rÃ©silient
-    - chaque rÃ©sultat de rÃ©ponse est diffusÃ© sur au moins 2 noeuds
+    - chaque resultat de reponse est diffusÃ© sur au moins 2 noeuds
     - scorer fonctionne en tÃ¢che de fond
-*** TODO fournir une reponse d'un joueur + question
-    :PROPERTIES:
-    :WHO:      abailly
-    :END:
-*** TODO cablage HTTP audit 
+*** TODO cablage HTTP audit
     :PROPERTIES:
     :WHO:      abailly
     :END:
@@ -95,7 +97,7 @@
     :WHO:      abailly
     :END:
 
-** RÃ©partition
+** Repartition
 
 *** TODO add roles to agents when deploying jar
     - netty
