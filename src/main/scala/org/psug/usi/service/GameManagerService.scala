@@ -1,9 +1,9 @@
 package org.psug.usi.service
 
 import actors.{OutputChannel, Actor}
-import collection.mutable.HashMap
 import org.psug.usi.domain._
 import org.psug.usi.store.StoreData
+import collection.mutable.{ListBuffer, HashMap}
 
 /**
  * User: alag
@@ -13,18 +13,21 @@ import org.psug.usi.store.StoreData
 
 case class Register( userId:Int )
 
+case class QueryQuestion( userId:Int, questionIndex:Int )
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
 
 // Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
-case class UserQuestion( userId:Int, question:Option[Question], answerStatus:Option[Boolean], score:Option[Int], scoreSlice:Option[Array[UserScore]] = None )
+case class UserAnswerResponse( answerStatus:Boolean, score:Int )
+
+case class QuestionResponse( question:Question )
 
 
+object TimeoutType extends Enumeration { val LOGIN, SYNCRO, QUESTION  = Value }
 
-object GameManagerTimer {
-  case class QuestionTimeout(questionIndex:Int, timoutSec:Int)
-}
+
+case class QuestionTimeout( timeoutType:TimeoutType.Value, questionIndex:Int, timoutSec:Int)
+
 class GameManagerTimer extends Actor {
-  import GameManagerTimer._
 
   start
   def act {
@@ -42,18 +45,22 @@ class GameManagerTimer extends Actor {
  * A game manager: handle question/anwser and timeout
  */
 class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:GameUserHistoryRepository with RepositoryService ) extends RemoteService {
-  import GameManagerTimer._
 
 
-  val scorer = new Scorer(game.numPlayer)
+  val scorer = new Scorer(game.nbUsersThreshold)
   val timer = new GameManagerTimer
 
-  val players = new Array[Int]( game.numPlayer )
-  var playerIndex = 0
+  var currentQuestionIndex = 0
+  var registredPlayers = 0
 
-  val playerActors = new HashMap[Int,OutputChannel[Any]]
+  class QuestionPlayer{
+    var playerIndex = 0
+    val players = new Array[Int]( game.nbUsersThreshold )
+    val playerActors = new HashMap[Int,OutputChannel[Any]]
+  }
+  var currentQuestionPlayer = new QuestionPlayer
+  var nextQuestionPlayer = new QuestionPlayer
 
-  var currentQuestionIndex = -1 // start -1 cause proceedToNextQuestion do a +=1 -> 1st question case
 
   val playersHistory = new HashMap[Int,List[AnswerHistory]]
 
@@ -61,81 +68,101 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
     loop {
       react {
         case Register( userId ) => register( userId )
+        case QueryQuestion( userId, questionIndex ) => queryQuestion( userId, questionIndex )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
-        case QuestionTimeout( questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout()
+        case QuestionTimeout( timeoutType, questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout(timeoutType)
         case x => 
       }
     }
   }
 
 
-  /*
-   * Long polling stage -> all user register until the required game player is reach, proceedToNextQuestion is called
-   */
+
   private def register( userId:Int ){
-    players(playerIndex) = userId
-    playerIndex += 1
-    playerActors( userId ) =  sender
-    if( playerIndex >= game.numPlayer ) proceedToNextQuestion()
+    if( registredPlayers == 0 ){
+      // initialize the logintimeout timer for long polling
+      timer ! QuestionTimeout( TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec )
+    }
+    if( registredPlayers < game.nbUsersThreshold ){
+      registredPlayers += 1
+    }
   }
 
+
   /*
-   * A user answer the current question, when all player respond or timeout occurs proceedToNextQuestion is called
+   * A user query a question
    */
+  private def queryQuestion(  userId:Int, questionIndex:Int ){
+    val questionPlayer = if( questionIndex > currentQuestionIndex ) nextQuestionPlayer else currentQuestionPlayer
+    
+    if( questionPlayer.playerIndex == 0 && currentQuestionIndex > 0 && questionIndex == currentQuestionIndex ){
+    }
+
+    questionPlayer.players(questionPlayer.playerIndex) = userId
+    questionPlayer.playerIndex += 1
+    questionPlayer.playerActors( userId ) =  sender
+
+
+    if( currentQuestionPlayer.playerIndex >= registredPlayers ){
+      replyQuestion()
+    }
+    else if( nextQuestionPlayer.playerIndex >= registredPlayers ){
+      currentQuestionPlayer = nextQuestionPlayer
+      nextQuestionPlayer = new QuestionPlayer
+      currentQuestionIndex += 1
+      replyQuestion()
+    }
+  }
+
+
   def answer( userId:Int, answerIndex:Int ){
+
+    playersHistory( userId ) = AnswerHistory( currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
+
     val currentQuestion = game.questions(currentQuestionIndex)
 
-    playersHistory( userId ) = AnswerHistory(currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
-
     val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
-    scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) )
+    val userScore = scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) )
 
-    playerActors( userId ) = sender
-    if( playerActors.size >= game.numPlayer ){
-      proceedToNextQuestion()
+    sender ! UserAnswerResponse( userScore.bonus > 0, userScore.score )
+    if( currentQuestionIndex == game.nbQuestions ){
+      gameUserHistoryRepositoryService ! StoreData( GameUserHistory( GameUserKey( game.id, userId ), playersHistory.getOrElse( userId, Nil ) ) )
     }
 
   }
 
 
-  private def proceedToNextQuestion(){
-    currentQuestionIndex += 1
 
-    playerActors.foreach{
+  private def replyQuestion(){
+
+
+    currentQuestionPlayer.playerActors.foreach{
       case ( userId, playerActor ) =>
-        val userScore = scorer.userScore( userId )
-
-        if( currentQuestionIndex == 0 ){
-          // 1st question
-          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), None, None, None )
-        }
-        else if( currentQuestionIndex < game.questions.size ){
-          // still remain some question
-          playerActor ! UserQuestion( userId, Some( game.questions(currentQuestionIndex) ), Some( userScore.bonus > 0 ), Some( userScore.score ), None )
-        }
-        else{
-          // game ended -> send score slice & save player history
-
-          playerActor ! UserQuestion( userId, None, Some( userScore.bonus > 0 ), Some( userScore.score ), Some( scorer.scoreSlice( userId ) ) )
-          // store data
-          gameUserHistoryRepositoryService ! StoreData( GameUserHistory( GameUserKey( game.id, userId ), playersHistory.getOrElse( userId, Nil ) ) )
-        }
-        
+        playerActor ! QuestionResponse( game.questions(currentQuestionIndex)  )
     }
-    playerActors.clear
-    
-    timer ! QuestionTimeout( currentQuestionIndex, game.loginTimeoutSec )
+    currentQuestionPlayer.playerActors.clear
+    timer ! QuestionTimeout( TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec )
 
 
   }
 
 
-  private def timeout(){
-    for( userId <- players ){
-      if( !playerActors.contains( userId ) ){
-        scorer.scoreAnwser( ScorerAnwserValue( userId, 0 ) )
+  private def timeout(timeoutType:TimeoutType.Value){
+    if( timeoutType == TimeoutType.QUESTION ){
+      for( userId <- currentQuestionPlayer.players ){
+        if( !currentQuestionPlayer.playerActors.contains( userId ) ){
+          scorer.scoreAnwser( ScorerAnwserValue( userId, 0 ) )
+        }
       }
+
+      currentQuestionPlayer = nextQuestionPlayer
+      nextQuestionPlayer = new QuestionPlayer
+      currentQuestionIndex += 1
+      timer ! QuestionTimeout( TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec )
+
     }
-    proceedToNextQuestion()
+    else{ // LOGIN OR SYNCHRO
+      replyQuestion()
+    }
   }
 }
