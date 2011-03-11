@@ -12,9 +12,8 @@ case class UserScore( userId:Int, score:Int, bonus:Int ) {
 }
 case class ScorerAnwserValue( userId:Int, answerValue:Int ) // 0 mean wrong answer
 
-class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10 ) extends Actor {
+class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10 ) {
 
-  start
   
   /*
    * Sorted array of scores. This array is expected to be always sorted in increasing
@@ -79,16 +78,12 @@ class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10 ) extends Actor
     scores(i) = score
   }
 
-  def act {
-    loop {
-      react {
-        case ScorerAnwserValue( uid, answserValue ) =>
-          val userScore = scores(usersScoresIndex(uid))
-          val newScore = userScore.update( answserValue )
-          reassign(newScore)
-          reply( newScore )
-      }
-    }
+
+  def scoreAnwser( scorerAnwserValue:ScorerAnwserValue ) = {
+    val userScore = scores(usersScoresIndex(scorerAnwserValue.userId))
+    val newScore = userScore.update( scorerAnwserValue.answerValue )
+    reassign(newScore)
+    newScore
   }
 
   def userScore( userId:Int ) = scores(usersScoresIndex(userId))

@@ -88,8 +88,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
     playersHistory( userId ) = AnswerHistory(currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
 
     val answerValue = if( currentQuestion.answers( answerIndex ).status ) currentQuestion.value else 0
-    // TODO: should remove actor on scorer?
-    scorer !? ScorerAnwserValue( userId, answerValue )
+    scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) )
 
     playerActors( userId ) = sender
     if( playerActors.size >= game.numPlayer ){
@@ -98,7 +97,6 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
 
   }
 
-  // TODO: WARNING scorer is not used with message passing here => direct call for userScore & scoreSlice
 
   private def proceedToNextQuestion(){
     currentQuestionIndex += 1
@@ -135,8 +133,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
   private def timeout(){
     for( userId <- players ){
       if( !playerActors.contains( userId ) ){
-        // TODO: should remove actor on scorer?
-        scorer !? ScorerAnwserValue( userId, 0 )
+        scorer.scoreAnwser( ScorerAnwserValue( userId, 0 ) )
       }
     }
     proceedToNextQuestion()

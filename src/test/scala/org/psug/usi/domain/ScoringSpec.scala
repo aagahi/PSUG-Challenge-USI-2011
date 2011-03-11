@@ -7,7 +7,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
   implicit val defaultInterval = 100
 
   def score( scorer:Scorer, answerValue:Int, userId:Int = 0 ):UserScore = {
-    ( scorer !? ScorerAnwserValue( userId, answerValue ) ).asInstanceOf[UserScore]
+    ( scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) ) )
   }
 
   def isSorted(seq : Seq[UserScore]) : Boolean = {
