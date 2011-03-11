@@ -124,7 +124,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
     }
     playerActors.clear
     
-    timer ! QuestionTimeout( currentQuestionIndex, game.timeoutSec )
+    timer ! QuestionTimeout( currentQuestionIndex, game.loginTimeoutSec )
 
 
   }

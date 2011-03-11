@@ -11,10 +11,39 @@ import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
 import org.psug.usi.service.{UserAnswer, Register, GameManagerService, UserQuestion}
 import actors.Futures
+import scala.io.Source
 
 class GamesSpec extends SpecificationWithJUnit {
 
   def clearRepository = gameRepositoryService.remoteRef ! ClearRepository
+
+  "a game" should {
+    "be definable using xml string" in {
+      val game = Game( Source.fromFile( "./test-data/simplegamesession.xml" ).mkString )
+      game.loginTimeoutSec must be_==( 3 )
+      game.synchroTimeSec must be_==( 5 )
+      game.questionTimeFrameSec must be_==( 11 )
+      game.nbQuestions must be_==( 6 )
+      game.numPlayer must be_==( 7 )
+      game.flushUserTable must be_==( true )
+
+      game.questions.size must be_==( 6 )
+      0 to 4 foreach{ i => game.questions(i).value must be_==( 1 ) }
+      game.questions( 5 ).value must be_==( 5 )
+
+      game.questions.zipWithIndex.foreach{
+        case( question, questionIndex ) =>
+        question.question must be_==( "Q"+(questionIndex+1) )
+        question.answers.zipWithIndex.foreach{
+          case( answer, answserIndex ) =>
+          answer.anwser must be_==( "A"+(questionIndex+1)+(answserIndex+1) )
+          answer.status must be_==( questionIndex % 4 == answserIndex )  
+        }
+      }
+
+
+    }
+  }
 
   "in-memory game repository" should {
     clearRepository.before
@@ -42,7 +71,11 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", true)::Nil, 1 )
                     :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
                     :: Nil,
-                    timeoutSec = 10,
+                    loginTimeoutSec = 10,
+                    synchroTimeSec = 10,
+                    questionTimeFrameSec = 10,
+                    nbQuestions = 2,
+                    flushUserTable = false,
                     numPlayer = 100 )
 
     val users = for( i <- 0 until game.numPlayer ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )

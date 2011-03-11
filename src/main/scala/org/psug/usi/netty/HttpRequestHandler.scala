@@ -43,7 +43,7 @@ class RequestActor(services : RepositoryServices) extends Actor{
         case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
         case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
-        case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, ("Set-Cookie", encodeUserAsCookie(user)))
+        case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
         case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
       }
     }
@@ -73,6 +73,19 @@ class RequestActor(services : RepositoryServices) extends Actor{
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
         userRepositoryService.remoteRef ! AuthenticateUser(credentials)
+
+      case ( HttpMethod.POST, Array("api","game") ) =>
+        val createGame = read[CreateGame](content)
+        // TODO: should check authentication_key (same process as authentication)
+        if( createGame.authentication_key.length > 0 ){
+          gameRepositoryService.remoteRef ! StoreData( Game( createGame.parameters ))
+        }
+        else{
+          sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
+        }
+
+
+
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
