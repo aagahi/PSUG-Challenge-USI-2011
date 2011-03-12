@@ -53,10 +53,11 @@ class DefaultGameManagerTimer extends GameManagerTimer {
  * A game manager: handle question/anwser and timeout
  */
 class GameManagerService( val game:Game,
-                          val gameUserHistoryRepositoryService:GameUserHistoryRepository with RepositoryService,
+                          val gameUserHistoryRepositoryService:GameUserHistoryRepositoryService,
                           val timer:GameManagerTimer=new DefaultGameManagerTimer )
-  extends RemoteService {
+  extends  DefaultServiceConfiguration with Service with RemoteService{
 
+  override lazy val symbol = 'GameManagerService
 
   val scorer = new Scorer(game.nbUsersThreshold)
 
@@ -82,7 +83,8 @@ class GameManagerService( val game:Game,
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QueryScoreSlice( userId ) => queryScoreSlice( userId )
         case TimeoutMessage( timeoutType, questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout(timeoutType)
-        case x => 
+        case Exit => println("service " + symbol +" exiting"); exit()
+        case x =>
       }
     }
   }

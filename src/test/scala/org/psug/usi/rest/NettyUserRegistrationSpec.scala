@@ -17,7 +17,6 @@ import org.psug.usi.netty._
 import org.psug.usi.domain.User
 import org.psug.usi.domain.AuthenticationToken
 import org.psug.usi.domain.Credentials
-import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.service.SimpleRepositoryServices
 import org.psug.usi.store.ClearRepository
 
@@ -37,14 +36,15 @@ class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
   def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
   new SpecContext {
-    val webServer : WebServer = new WebServer(listenPort,SimpleRepositoryServices)
+    val repositories = new SimpleRepositoryServices
+    val webServer : WebServer = new WebServer(listenPort,repositories)
 
     // start/stop web server on each Specification
-    beforeSpec(webServer.start)
-    afterSpec(webServer.stop)
+    beforeSpec { webServer.start; repositories.start  }
+    afterSpec { webServer.stop ; repositories.stop }
 
     // clear repository on each example
-    before(userRepositoryService !!  ClearRepository)
+    before(repositories.userRepositoryService !? ClearRepository)
   }
 
   def registerUser(user : User) : String = {
