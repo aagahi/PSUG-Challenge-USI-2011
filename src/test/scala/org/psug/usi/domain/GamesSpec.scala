@@ -72,9 +72,9 @@ class GamesSpec extends SpecificationWithJUnit {
                     :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
                     :: Question( "Q3", Answer( "A31", false )::Answer("A32", true)::Nil, 3 )
                     :: Nil,
-                    loginTimeoutSec = 10,
-                    synchroTimeSec = 10,
-                    questionTimeFrameSec = 10,
+                    loginTimeoutSec = 5,
+                    synchroTimeSec = 5,
+                    questionTimeFrameSec = 5,
                     nbQuestions = 3,
                     flushUserTable = false,
                     nbUsersThreshold = 100 )
@@ -82,7 +82,7 @@ class GamesSpec extends SpecificationWithJUnit {
     val users = for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
 
 
-    "register all players, ask&get question, score each answer, save user history after last response, and get score slice (no timeout scenario)" in {
+    "register all players, provide question, score each answer, save user history after last response, and provide score slice (no timeout scenario)" in {
 
 
       val gameManager = new GameManagerService( game, gameUserHistoryService )
@@ -161,6 +161,52 @@ class GamesSpec extends SpecificationWithJUnit {
         val DataPulled( Some( userHistory ) ) = gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
         val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, user.id%(q.answers.size) ) }
         userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
+      }
+
+
+    }
+
+
+    "register all players, provide question, score each answer, save user history after last response, and provide score slice (timeout scenario)" in {
+
+      val gameManager = new GameManagerService( game, gameUserHistoryService )
+
+      var currentQuestion = 0
+
+      // Register
+      users.map( user => gameManager.remoteRef ! Register( user.id ) )
+
+
+      // 50% user ask for Q1 => we should get a Login timeout
+      val futuresQ1 = for( user <- users ; if( user.id%2 == 0 ) )
+        yield gameManager.remoteRef !! QueryQuestion( user.id, currentQuestion )
+      val futuresQ1Results = Futures.awaitAll( game.loginTimeoutSec*1000+1000, futuresQ1.toSeq:_* )
+      futuresQ1Results.size must be_==( users.size/2 )
+      futuresQ1Results.foreach{
+        case Some( QuestionResponse( nextQuestion ) )=>
+          nextQuestion must be_==( game.questions(currentQuestion ) )
+        case _ => fail
+      }
+
+
+      // 25% user answers to Q1
+      val answerQ1Users = for( user <- users ; if( user.id%4 == 0 ) ) yield {
+        val UserAnswerResponse( answerStatus, score ) = (gameManager.remoteRef !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+        val expectedScore = if( answerStatus ) game.questions(currentQuestion).value else 0
+        score must be_== ( expectedScore )
+        user
+      }
+
+
+      currentQuestion += 1
+
+      // 25% user ask for Q2 => we should get a question + synchro timeout
+      val futuresQ2 = answerQ1Users.map( user => gameManager.remoteRef !! QueryQuestion( user.id, currentQuestion ) )
+      val futuresQ2Results = Futures.awaitAll( (game.questionTimeFrameSec+game.synchroTimeSec+1)*1000, futuresQ2.toSeq:_* )
+      futuresQ2Results.foreach{
+        case Some( QuestionResponse( nextQuestion ) )=>
+          nextQuestion must be_==( game.questions( currentQuestion ) )
+        case _ => fail
       }
 
 
