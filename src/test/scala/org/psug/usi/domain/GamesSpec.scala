@@ -9,9 +9,46 @@ package org.psug.usi.domain
 import org.specs._
 import org.psug.usi.service.SimpleRepositoryServices._
 import org.psug.usi.store._
-import actors.Futures
 import scala.io.Source
 import org.psug.usi.service._
+import actors.{OutputChannel, Actor, Futures}
+
+case object FireLastMessage
+case object LastMessageFired
+case object PullAllMessages
+
+class TestGameManagerTimer extends GameManagerTimer {
+
+  private var messages:List[TimeoutMessage] = Nil
+
+  private var gameManagerActor:OutputChannel[Any] = null
+
+  override def handleQuestionTimeout( questionTimeout:TimeoutMessage ){
+    gameManagerActor = sender
+    messages = questionTimeout :: messages
+  }
+
+  override def handleOtherMessage( message:Any ){
+    message match {
+
+      case FireLastMessage =>
+        gameManagerActor ! messages.head
+        messages = messages.tail
+        sender ! LastMessageFired
+
+      case PullAllMessages =>
+        sender ! messages
+    }
+
+  }
+
+  def awaitOneOrMoreMessage = {
+    var m:List[TimeoutMessage] = Nil
+    while( m.size == 0 ) m = (this !? PullAllMessages ).asInstanceOf[List[TimeoutMessage]]
+    m
+  }
+
+}
 
 class GamesSpec extends SpecificationWithJUnit {
 
@@ -73,11 +110,11 @@ class GamesSpec extends SpecificationWithJUnit {
                     :: Question( "Q3", Answer( "A31", false )::Answer("A32", true)::Nil, 3 )
                     :: Nil,
                     loginTimeoutSec = 5,
-                    synchroTimeSec = 5,
-                    questionTimeFrameSec = 5,
+                    synchroTimeSec = 7,
+                    questionTimeFrameSec = 11,
                     nbQuestions = 3,
                     flushUserTable = false,
-                    nbUsersThreshold = 100 )
+                    nbUsersThreshold = 160 )
 
     val users = for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
 
@@ -169,18 +206,28 @@ class GamesSpec extends SpecificationWithJUnit {
 
     "register all players, provide question, score each answer, save user history after last response, and provide score slice (timeout scenario)" in {
 
-      val gameManager = new GameManagerService( game, gameUserHistoryService )
+      val timer = new TestGameManagerTimer
+      val gameManager = new GameManagerService( game, gameUserHistoryService, timer )
 
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManager.remoteRef ! Register( user.id ) )
+      users.map( user => gameManager ! Register( user.id ) )
+      var messages = timer.awaitOneOrMoreMessage
+      messages.size must be_==( 1 )
+      messages.head must be_==( TimeoutMessage( TimeoutType.LOGIN, currentQuestion, game.loginTimeoutSec ) )
 
 
       // 50% user ask for Q1 => we should get a Login timeout
       val futuresQ1 = for( user <- users ; if( user.id%2 == 0 ) )
-        yield gameManager.remoteRef !! QueryQuestion( user.id, currentQuestion )
-      val futuresQ1Results = Futures.awaitAll( game.loginTimeoutSec*1000+1000, futuresQ1.toSeq:_* )
+        yield gameManager !! QueryQuestion( user.id, currentQuestion )
+
+      futuresQ1.forall( ! _.isSet ) must beTrue
+
+      // fire login
+      timer !? FireLastMessage
+
+      val futuresQ1Results = Futures.awaitAll( 10000, futuresQ1.toSeq:_* )
       futuresQ1Results.size must be_==( users.size/2 )
       futuresQ1Results.foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
@@ -188,21 +235,43 @@ class GamesSpec extends SpecificationWithJUnit {
         case _ => fail
       }
 
+      messages = timer.awaitOneOrMoreMessage
+      messages.size must be_==( 1 )
+      messages.head must be_==( TimeoutMessage( TimeoutType.QUESTION, currentQuestion, game.questionTimeFrameSec ) )
+
 
       // 25% user answers to Q1
       val answerQ1Users = for( user <- users ; if( user.id%4 == 0 ) ) yield {
-        val UserAnswerResponse( answerStatus, score ) = (gameManager.remoteRef !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+        val UserAnswerResponse( answerStatus, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
         val expectedScore = if( answerStatus ) game.questions(currentQuestion).value else 0
         score must be_== ( expectedScore )
         user
       }
 
+      // fire end question
+      timer !? FireLastMessage
 
       currentQuestion += 1
 
+      messages = timer.awaitOneOrMoreMessage
+      messages.size must be_==( 1 )
+      messages.head must be_==( TimeoutMessage( TimeoutType.SYNCRO, currentQuestion, game.synchroTimeSec ) )
+
+
+
       // 25% user ask for Q2 => we should get a question + synchro timeout
-      val futuresQ2 = answerQ1Users.map( user => gameManager.remoteRef !! QueryQuestion( user.id, currentQuestion ) )
-      val futuresQ2Results = Futures.awaitAll( (game.questionTimeFrameSec+game.synchroTimeSec+1)*1000, futuresQ2.toSeq:_* )
+      val futuresQ2 = answerQ1Users.map( user => gameManager !! QueryQuestion( user.id, currentQuestion ) )
+
+      // fire end syncho
+      timer !? FireLastMessage
+
+
+      messages = timer.awaitOneOrMoreMessage
+      messages.size must be_==( 1 )
+      messages.head must be_==( TimeoutMessage( TimeoutType.QUESTION, currentQuestion, game.questionTimeFrameSec ) )
+
+
+      val futuresQ2Results = Futures.awaitAll( 10000, futuresQ2.toSeq:_* )
       futuresQ2Results.foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )

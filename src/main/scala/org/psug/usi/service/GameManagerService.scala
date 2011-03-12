@@ -24,31 +24,41 @@ case class QuestionResponse( question:Question )
 
 object TimeoutType extends Enumeration { val LOGIN, SYNCRO, QUESTION  = Value }
 
+case class TimeoutMessage( timeoutType:TimeoutType.Value, questionIndex:Int, timoutSec:Int)
 
-case class QuestionTimeout( timeoutType:TimeoutType.Value, questionIndex:Int, timoutSec:Int)
 
-class GameManagerTimer extends Actor {
-
+trait GameManagerTimer extends Actor {
   start
   def act {
     loop {
       react {
-        case questionTimeout:QuestionTimeout =>
-          Thread.sleep(questionTimeout.timoutSec*1000)
-          sender ! questionTimeout
+        case questionTimeout:TimeoutMessage => handleQuestionTimeout( questionTimeout )
+        case x => handleOtherMessage( x )
       }
     }
+  }
+  def handleQuestionTimeout( questionTimeout:TimeoutMessage )
+  def handleOtherMessage( message:Any ){}
+}
+
+
+class DefaultGameManagerTimer extends GameManagerTimer {
+  def handleQuestionTimeout( questionTimeout:TimeoutMessage ){
+    Thread.sleep(questionTimeout.timoutSec*1000)
+    sender ! questionTimeout
   }
 }
 
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:GameUserHistoryRepository with RepositoryService ) extends RemoteService {
+class GameManagerService( val game:Game,
+                          val gameUserHistoryRepositoryService:GameUserHistoryRepository with RepositoryService,
+                          val timer:GameManagerTimer=new DefaultGameManagerTimer )
+  extends RemoteService {
 
 
   val scorer = new Scorer(game.nbUsersThreshold)
-  val timer = new GameManagerTimer
 
   var currentQuestionIndex = 0
   var registredPlayers = 0
@@ -71,7 +81,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
         case QueryQuestion( userId, questionIndex ) => queryQuestion( userId, questionIndex )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QueryScoreSlice( userId ) => queryScoreSlice( userId )
-        case QuestionTimeout( timeoutType, questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout(timeoutType)
+        case TimeoutMessage( timeoutType, questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout(timeoutType)
         case x => 
       }
     }
@@ -82,7 +92,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
   private def register( userId:Int ){
     if( registredPlayers == 0 ){
       // initialize the logintimeout timer for long polling
-      timer ! QuestionTimeout( TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec )
+      timer ! TimeoutMessage( TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec )
     }
     if( registredPlayers < game.nbUsersThreshold ){
       registredPlayers += 1
@@ -106,7 +116,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
       currentQuestionIndex += 1
       replyQuestion()
     }
-    else if( currentQuestionPlayer.playerIndex >= registredPlayers ){
+    else if( questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= registredPlayers ){
       replyQuestion()
     }
   }
@@ -134,19 +144,19 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
 
   private def replyQuestion(){
 
-
     currentQuestionPlayer.playerActors.foreach{
       case ( userId, playerActor ) =>
         playerActor ! QuestionResponse( game.questions(currentQuestionIndex)  )
     }
     currentQuestionPlayer.playerActors.clear
-    timer ! QuestionTimeout( TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec )
+    timer ! TimeoutMessage( TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec )
 
 
   }
 
 
   private def timeout(timeoutType:TimeoutType.Value){
+
     if( timeoutType == TimeoutType.QUESTION ){
       for( userId <- currentQuestionPlayer.players ){
         if( !currentQuestionPlayer.playerActors.contains( userId ) ){
@@ -157,7 +167,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
-      timer ! QuestionTimeout( TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec )
+      timer ! TimeoutMessage( TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec )
 
     }
     else{ // LOGIN OR SYNCHRO
