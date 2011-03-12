@@ -1,4 +1,5 @@
 #+TITLE: Challenge USI
+#+SEQ_TODO: TODO(t) INPROGRESS(i) | DONE(d!) CANCELED(c@)
 
 ** Perf
 
@@ -24,8 +25,8 @@ Pour la version de 15/03 -------------------------------------------------------
     :WHO:      abailly
     :END:
     - pb stockage acteur representant joueur <= normalement ok tu peux verifier?
-
-*** TODO separation des couches
+*** DONE separation des couches
+    - State "DONE"       [2011-03-12 sam. 14:33]
     :PROPERTIES:
     :WHO:      abailly
     :END:
@@ -93,9 +94,9 @@ Pour la version 15/04 ----------------------------------------------------------
     :WHO:      abailly
     :END:
 
-** Repartition
+** Répartition
 
-*** TODO add roles to agents when deploying jar
+*** INPROGRESS add roles to agents when deploying jar
     - netty
     - replication BDB
     - game manager: 

@@ -82,7 +82,7 @@ case class BDBConfiguration(
                              nodeName: String = "Node1",
                              replicaHostName: String = "localhost:5501",
                              replicaHelperHostName: String = "localhost:5501",
-                             envHome: File = new File("./bdb")
+                             envHome: File = new File("./target/bdb")
                              )
 
 trait SingleInstanceEnvironment extends BDBEnvironment {
@@ -253,8 +253,9 @@ abstract class BDBDataRepository[K<:Any,T<:Data[K]](override val databaseName: S
 
   override def findByStoreKey(key:K) = load(key)
 
-  override protected def reset {
+  override protected def reset : RepositoryCleared = {
     currentId = currentIdResetValue
     removeDatabase
+    RepositoryCleared(databaseName)
   }
 }
