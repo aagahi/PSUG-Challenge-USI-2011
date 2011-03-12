@@ -54,14 +54,14 @@ object Game{
 
     val questions = ( xml \ "questions" \\ "question").zipWithIndex.map {
       case ( xmlQuestion, index )  =>
-      val goodChoice =  ( xmlQuestion \ "@goodchoice" ).text.toInt
-      val answers = ( xmlQuestion \\ "choice" ).zipWithIndex.map {
-        case ( xmlAnwer, index ) => Answer( xmlAnwer.text, index == goodChoice )
-      }
+        val goodChoice =  ( xmlQuestion \ "@goodchoice" ).text.toInt
+        val answers = ( xmlQuestion \\ "choice" ).zipWithIndex.map {
+          case ( xmlAnwer, index ) => Answer( xmlAnwer.text, index == goodChoice )
+        }
 
-      var questionValue = ((index)/5)*5
-      if( questionValue == 0 ) questionValue = 1
-      Question( ( xmlQuestion \ "label" ).text, answers, questionValue )
+        var questionValue = ((index)/5)*5
+        if( questionValue == 0 ) questionValue = 1
+        Question( ( xmlQuestion \ "label" ).text, answers, questionValue )
 
     }
 

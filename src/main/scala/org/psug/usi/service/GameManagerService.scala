@@ -12,13 +12,13 @@ import collection.mutable.{ListBuffer, HashMap}
  */
 
 case class Register( userId:Int )
-
 case class QueryQuestion( userId:Int, questionIndex:Int )
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
+case class QueryScoreSlice( userId:Int )
+
 
 // Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
 case class UserAnswerResponse( answerStatus:Boolean, score:Int )
-
 case class QuestionResponse( question:Question )
 
 
@@ -70,6 +70,7 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
         case Register( userId ) => register( userId )
         case QueryQuestion( userId, questionIndex ) => queryQuestion( userId, questionIndex )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
+        case QueryScoreSlice( userId ) => queryScoreSlice( userId )
         case QuestionTimeout( timeoutType, questionIndex, timeoutSec ) if( questionIndex == currentQuestionIndex ) => timeout(timeoutType)
         case x => 
       }
@@ -94,28 +95,24 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
    */
   private def queryQuestion(  userId:Int, questionIndex:Int ){
     val questionPlayer = if( questionIndex > currentQuestionIndex ) nextQuestionPlayer else currentQuestionPlayer
-    
-    if( questionPlayer.playerIndex == 0 && currentQuestionIndex > 0 && questionIndex == currentQuestionIndex ){
-    }
 
     questionPlayer.players(questionPlayer.playerIndex) = userId
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors( userId ) =  sender
 
-
-    if( currentQuestionPlayer.playerIndex >= registredPlayers ){
-      replyQuestion()
-    }
-    else if( nextQuestionPlayer.playerIndex >= registredPlayers ){
+    if( nextQuestionPlayer.playerIndex >= registredPlayers ){
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
       replyQuestion()
     }
+    else if( currentQuestionPlayer.playerIndex >= registredPlayers ){
+      replyQuestion()
+    }
   }
 
 
-  def answer( userId:Int, answerIndex:Int ){
+  private def answer( userId:Int, answerIndex:Int ){
 
     playersHistory( userId ) = AnswerHistory( currentQuestionIndex, answerIndex ) :: playersHistory.getOrElse( userId, Nil )
 
@@ -125,13 +122,15 @@ class GameManagerService( val game:Game, val gameUserHistoryRepositoryService:Ga
     val userScore = scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) )
 
     sender ! UserAnswerResponse( userScore.bonus > 0, userScore.score )
-    if( currentQuestionIndex == game.nbQuestions ){
+    if( currentQuestionIndex == game.nbQuestions-1 ){
       gameUserHistoryRepositoryService ! StoreData( GameUserHistory( GameUserKey( game.id, userId ), playersHistory.getOrElse( userId, Nil ) ) )
     }
 
   }
 
-
+  private def queryScoreSlice( userId:Int ){
+    sender ! scorer.scoreSlice( userId )
+  }
 
   private def replyQuestion(){
 
