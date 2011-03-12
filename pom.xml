@@ -8,13 +8,22 @@
   <packaging>jar</packaging>
   <description>PSUG : Challenge USI Solution</description>
 
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <scala.version>2.8.1</scala.version>
+  </properties>
+
+  
   <dependencies>
 
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-      <version>2.8.0</version>
+      <version>${scala.version}</version>
     </dependency>
+
+
 
     <dependency>
       <groupId>commons-math</groupId>
@@ -23,10 +32,11 @@
     </dependency>
 
 
+    <!-- Lift JSON  -->
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json_2.8.0</artifactId>
-      <version>2.1</version>
+      <version>2.2</version>
     </dependency>
 
 
@@ -43,36 +53,15 @@
       <artifactId>je</artifactId>
       <version>4.1.7</version>
     </dependency>
-    
-    <!-- Test stuff -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.7</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.scala-tools.testing</groupId>
-      <artifactId>specs_2.8.0</artifactId>
-      <version>1.6.5</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <version>1.8.0</version>
-      <scope>test</scope>
-    </dependency>
 
     <!-- Twitter Stuff -->
-
     <dependency>
       <groupId>org.scribe</groupId>
       <artifactId>scribe</artifactId>
       <version>1.0.6</version>
     </dependency>
+
+
 
     <!-- JAX-RS Stuff -->
     <dependency>
@@ -112,6 +101,33 @@
       <version>6.1.9</version>
     </dependency>
 
+
+
+
+    <!-- Test stuff -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.7</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.scala-tools.testing</groupId>
+      <artifactId>specs_2.8.0</artifactId>
+      <version>1.6.5</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.8.0</version>
+      <scope>test</scope>
+    </dependency>
+
+
+
   </dependencies>
 
   <build>
@@ -120,8 +136,8 @@
 
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-	<version>2.3.2</version>
-	<configuration>
+        <version>2.3.2</version>
+        <configuration>
           <source>1.6</source>
           <target>1.6</target>
         </configuration>
@@ -162,10 +178,10 @@
 
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-	<version>2.7.1</version>
+        <version>2.7.1</version>
         <configuration>
-	  <forkMode>pertest</forkMode>
-	  <includes>
+          <forkMode>pertest</forkMode>
+          <includes>
             <include>**/*Test.java</include>
             <include>**/*Spec.java</include>
           </includes>
@@ -185,6 +201,13 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <scalaVersion>${scala.version}</scalaVersion>
+          <args>
+            <args>-encoding</args>
+            <args>UTF8</args>
+          </args>
+        </configuration>
       </plugin>
 
     </plugins>
@@ -215,7 +238,7 @@
           <id>repository.jboss.org</id>
           <url>https://repository.jboss.org/nexus/content/groups/public</url>
           <snapshots>
-          <enabled>false</enabled>
+            <enabled>false</enabled>
           </snapshots>
         </repository>
 
