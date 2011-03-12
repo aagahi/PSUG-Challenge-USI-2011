@@ -12,6 +12,8 @@ import collection.mutable.{ListBuffer, HashMap}
  */
 
 case class Register( userId:Int )
+case object QueryStats
+case class GameManagerStats( registredPlayer:Int, currentQuestionPlayersCount:Int )
 case class QueryQuestion( userId:Int, questionIndex:Int )
 case class UserAnswer( userId:Int, questionIndex:Int, answerIndex:Int )
 case class QueryScoreSlice( userId:Int )
@@ -79,6 +81,7 @@ class GameManagerService( val game:Game,
     loop {
       react {
         case Register( userId ) => register( userId )
+        case QueryStats => sender ! GameManagerStats( registredPlayers, currentQuestionPlayer.playerIndex )
         case QueryQuestion( userId, questionIndex ) => queryQuestion( userId, questionIndex )
         case UserAnswer( userId, questionIndex, answerIndex ) if( questionIndex == currentQuestionIndex ) => answer( userId, answerIndex )
         case QueryScoreSlice( userId ) => queryScoreSlice( userId )

@@ -241,6 +241,10 @@ class GamesSpec extends SpecificationWithJUnit {
       val futuresQ1 = for( user <- users ; if( user.id%2 == 0 ) )
         yield gameManager !! QueryQuestion( user.id, currentQuestion )
 
+
+      // not sure about it, but it seems that future msg passing is not deterministic so we wait for gamemanager to be in proper state
+      while( ( gameManager !? QueryStats ) != ( GameManagerStats( users.size, users.size/2 ) ) ) Thread.sleep(10)
+
       futuresQ1.forall( ! _.isSet ) must beTrue
 
       // fire login
@@ -280,6 +284,11 @@ class GamesSpec extends SpecificationWithJUnit {
 
       // 25% user ask for Q2 => we should get a question + synchro timeout
       val futuresQ2 = answerQ1Users.map( user => gameManager !! QueryQuestion( user.id, currentQuestion ) )
+
+      // not sure about it, but it seems that future msg passing is not deterministic so we wait for gamemanager to be in proper state
+      while( ( gameManager !? QueryStats ) != ( GameManagerStats( users.size, answerQ1Users.size ) ) ) Thread.sleep(10)
+      
+      futuresQ2.forall( ! _.isSet ) must beTrue
 
       // fire end syncho
       timer !? FireLastMessage

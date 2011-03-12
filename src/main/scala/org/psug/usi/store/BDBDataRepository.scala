@@ -185,7 +185,12 @@ trait BDB[K<:Any,T<:Data[K]]{
 
   def removeDatabase() {
     close()
-    env.environment.removeDatabase(null, databaseName)
+    try{
+      env.environment.removeDatabase(null, databaseName)
+    }
+    catch {
+      case _ => println( "Warning: error on removing database " + databaseName )
+    }
   }
 
   def save(in:T) {
