@@ -66,8 +66,8 @@ trait GameRepositoryService extends GameRepository with RepositoryService with R
   override lazy val symbol = 'GameRepositoryService
 }
 
-trait GameUserHistoryRepositoryService extends GameRepository with RepositoryService with RemoteService {
-  override lazy val symbol = 'GameRepositoryService
+trait GameUserHistoryRepositoryService extends GameUserHistoryRepository with RepositoryService with RemoteService {
+  override lazy val symbol = 'GameUserHistoryRepositoryService
 }
 
 trait RepositoryServices extends Services {

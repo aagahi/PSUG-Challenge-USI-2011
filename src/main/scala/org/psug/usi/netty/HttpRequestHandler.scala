@@ -84,9 +84,6 @@ class RequestActor(services : Services) extends Actor{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
         }
 
-
-
-
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
     }
