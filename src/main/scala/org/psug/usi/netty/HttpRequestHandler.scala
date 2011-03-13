@@ -17,10 +17,12 @@ import org.psug.usi.service.{Services, RepositoryServices}
  * Date: 2/22/11
  * Time: 1:07 AM
  */
+
+
 class RequestActor(services : Services) extends Actor{
 
   import services._
-
+  import org.psug.usi.Main._
   implicit val formats = Serialization.formats(NoTypeHints)
 
   var channel:Channel = null
@@ -76,16 +78,12 @@ class RequestActor(services : Services) extends Actor{
 
       case ( HttpMethod.POST, Array("api","game") ) =>
         val createGame = read[CreateGame](content)
-        // TODO: should check authentication_key (same process as authentication)
-        if( createGame.authentication_key.length > 0 ){
+        if( createGame.authentication_key == WEB_AUTHICATION_KEY ){
           gameRepositoryService.remote ! StoreData( Game( createGame.parameters ))
         }
         else{
-          sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
+          sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
-
-
-
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)

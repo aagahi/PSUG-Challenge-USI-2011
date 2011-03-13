@@ -10,6 +10,7 @@ import service.{Services,RemoteServices, SimpleRepositoryServices}
  */
 object Main {
 
+  val WEB_AUTHICATION_KEY = "dummy"
   val DEFAULT_PORT = "8082"
 
   def main(args : Array[String]) = {

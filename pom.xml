@@ -185,6 +185,9 @@
             <include>**/*Test.java</include>
             <include>**/*Spec.java</include>
           </includes>
+	  <excludes>
+	  <exclude>**/GamesSpec.*</exclude>
+	  </excludes>
         </configuration>
       </plugin>
 
