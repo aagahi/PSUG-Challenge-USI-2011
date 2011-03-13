@@ -77,7 +77,7 @@ class RequestActor(services : Services) extends Actor{
         userRepositoryService.remote ! AuthenticateUser(credentials)
 
       case ( HttpMethod.POST, Array("api","game") ) =>
-        val createGame = read[CreateGame](content)
+        val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == WEB_AUTHICATION_KEY ){
           gameRepositoryService.remote ! StoreData( Game( createGame.parameters ))
         }

@@ -1,4 +1,4 @@
-import org.psug.usi.domain.{Game, CreateGame}
+import org.psug.usi.domain.{Game, RegisterGame}
 import org.psug.usi.store.{PullData, DataPulled, ClearRepository}
 import org.specs._
 
@@ -31,7 +31,7 @@ class GameRegistrationSpec extends SpecificationWithJUnit {
   }
 
 
-  def registerGame(gameRegistration : CreateGame ):ClientResponse = {
+  def registerGame(gameRegistration : RegisterGame ):ClientResponse = {
      webResource("/api/game/").header("Content-Type","application/json").post(classOf[ClientResponse], Serialization.write(gameRegistration))
   }
 
@@ -44,13 +44,13 @@ class GameRegistrationSpec extends SpecificationWithJUnit {
 
       val authToken = ""
 
-      val response = registerGame( CreateGame( authToken, parameters ) )
+      val response = registerGame( RegisterGame( authToken, parameters ) )
       response.getStatus must be_==(ClientResponse.Status.UNAUTHORIZED.getStatusCode)
     }
     "store game if approprite authtoken is provided" in {
       val parameters = Source.fromFile( "./test-data/simplegamesession.xml" ).mkString
       val authToken = WEB_AUTHICATION_KEY
-      val response = registerGame( CreateGame( authToken, parameters ) )
+      val response = registerGame( RegisterGame( authToken, parameters ) )
       response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
 
 

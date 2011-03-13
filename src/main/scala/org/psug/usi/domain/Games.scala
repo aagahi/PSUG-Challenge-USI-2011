@@ -12,7 +12,7 @@ import xml.XML
  * Time: 11:09 PM
  */
 
-case class CreateGame( authentication_key:String, parameters:String )
+case class RegisterGame( authentication_key:String, parameters:String )
 
 /*
  </usi:gamesession>
