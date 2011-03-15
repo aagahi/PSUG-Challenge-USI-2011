@@ -31,6 +31,20 @@
       <version>1.2</version>
     </dependency>
 
+    <!-- Akka  -->
+    <dependency>
+      <groupId>se.scalablesolutions.akka</groupId>
+      <artifactId>akka-actor</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>se.scalablesolutions.akka</groupId>
+      <artifactId>akka-remote</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+      
 
     <!-- Lift JSON  -->
     <dependency>
@@ -247,6 +261,12 @@
           <name>Oracle Released Java Packages</name>
           <url>http://download.oracle.com/maven</url>
           <layout>default</layout>
+        </repository>
+
+        <repository>
+          <id>Akka</id>
+          <name>Akka Maven2 Repository</name>
+          <url>http://akka.io/repository/ </url>
         </repository>
 
       </repositories>
