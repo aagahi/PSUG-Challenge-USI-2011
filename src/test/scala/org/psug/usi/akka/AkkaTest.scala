@@ -38,12 +38,6 @@ class RemoteReceiver( id:String, host:String, port:Int) extends AkkaActorWrapper
   override val actorRef:ActorRef = remote.actorFor( id, host, port )
 }
 
-class SimpleReciever extends Receiver  {
-  def receive = {
-    case "OK" => sender ! "K0"
-    case _ =>
-  }
-}
 
 
 
@@ -73,8 +67,14 @@ class AkkaTest  {
 
     
 
-    val simpleReceiver = new SimpleReciever
-    simpleReceiver.actorRef.start()
+    val simpleReceiver = new Receiver {
+      def receive = {
+        case "OK" => sender ! "K0"
+        case _ =>
+      }
+    }
+
+    simpleReceiver.start()
     assertEquals( "K0",  (simpleReceiver !? "OK") )
 
 
