@@ -140,10 +140,10 @@ class GamesSpec extends SpecificationWithJUnit {
 
     "register all players, provide question, score each answer, save user history after last response, and provide score slice (no timeout scenario)" in {
 
-      val gameManager = new GameManagerService( game, repositories.gameUserHistoryService )
-      gameManager.registerAsRemoteActor
-      gameManager.start
-      
+      val gameManager = new GameManagerService( repositories.gameUserHistoryService )
+      gameManager.go
+      gameManager ! InitGame(game)
+
       var currentQuestion = 0
 
       // Register
@@ -225,9 +225,10 @@ class GamesSpec extends SpecificationWithJUnit {
     "register all players, provide question, score each answer, save user history after last response, and provide score slice (timeout scenario)" in {
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManagerService( game, gameUserHistoryService, timer )
-      gameManager.start
-      
+      val gameManager = new GameManagerService( gameUserHistoryService, timer )
+      gameManager.go
+      gameManager ! InitGame (game)
+
       var currentQuestion = 0
 
       // Register

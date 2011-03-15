@@ -10,7 +10,7 @@ import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.system.Status
-import org.psug.usi.service.{Services, RepositoryServices}
+import org.psug.usi.service.{InitGame, Services, RepositoryServices}
 
 /**
  * User: alag
@@ -79,7 +79,9 @@ class RequestActor(services : Services) extends Actor{
       case ( HttpMethod.POST, Array("api","game") ) =>
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == WEB_AUTHICATION_KEY ){
-          gameRepositoryService.remote ! StoreData( Game( createGame.parameters ))
+          val game: Game = Game(createGame.parameters)
+          gameRepositoryService.remote ! StoreData( game)
+          gameManagerService.remote ! InitGame (game)
         }
         else{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED )

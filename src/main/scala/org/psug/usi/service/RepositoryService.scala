@@ -37,6 +37,7 @@ trait Services {
   val userRepositoryService: RemoteService
   val gameRepositoryService: RemoteService
   val gameUserHistoryService: RemoteService
+  val gameManagerService : RemoteService
 }
 
 /**
@@ -56,6 +57,10 @@ class RemoteServices(servicesPort: Int = 55555) extends Services {
     override lazy val port = servicesPort
     override lazy val symbol = 'GameUserHistoryRepositoryService
   }
+  override val gameManagerService = new RemoteService with DefaultServiceConfiguration {
+    override lazy val port = servicesPort
+    override lazy val symbol = 'GameService
+  }
 }
 
 trait UserRepositoryService extends UserRepository with RepositoryService with RemoteService {
@@ -74,17 +79,16 @@ trait RepositoryServices extends Services {
   val userRepositoryService: UserRepositoryService
   val gameRepositoryService: GameRepositoryService
   val gameUserHistoryService: GameUserHistoryRepositoryService
+  lazy val gameManagerService : GameManagerService  = new GameManagerService(gameUserHistoryService)
+
+  val services : List[Service] = List(userRepositoryService,gameUserHistoryService,gameRepositoryService,gameManagerService)
 
   def start = {
-    gameRepositoryService.go
-    userRepositoryService.go
-    gameUserHistoryService.go
+    services.foreach(_.go)
   }
 
   def stop = {
-    gameRepositoryService ! Exit
-    userRepositoryService ! Exit
-    gameUserHistoryService ! Exit
+    services.foreach(_ ! Exit)
   }
 }
 
@@ -92,15 +96,15 @@ trait RepositoryServices extends Services {
  * Repository services that use a single-instance BDB for storage.
  */
 class SimpleRepositoryServices(servicesPort: Int = 55555) extends RepositoryServices {
-  override val userRepositoryService = new UserRepositoryService {
+  override lazy val userRepositoryService = new UserRepositoryService {
     override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
-  override val gameRepositoryService = new GameRepositoryService {
+  override lazy val gameRepositoryService = new GameRepositoryService {
     override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
-  override val gameUserHistoryService = new GameUserHistoryRepositoryService {
+  override lazy val gameUserHistoryService = new GameUserHistoryRepositoryService {
     override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
@@ -110,13 +114,13 @@ class SimpleRepositoryServices(servicesPort: Int = 55555) extends RepositoryServ
  * Repository services that use a replicated BDB environment for storage.
  */
 class DefaultRepositoryServices extends RepositoryServices {
-  override val userRepositoryService = new UserRepositoryService {
+  override lazy val userRepositoryService = new UserRepositoryService {
     override lazy val env = ReplicatedBDBEnvironment
   }
-  override val gameRepositoryService = new GameRepositoryService {
+  override lazy val gameRepositoryService = new GameRepositoryService {
     override lazy val env = ReplicatedBDBEnvironment
   }
-  override val gameUserHistoryService = new GameUserHistoryRepositoryService {
+  override lazy val gameUserHistoryService = new GameUserHistoryRepositoryService {
     override lazy val env = ReplicatedBDBEnvironment
   }
 }
