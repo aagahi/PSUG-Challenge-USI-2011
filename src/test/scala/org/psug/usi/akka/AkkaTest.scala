@@ -2,10 +2,11 @@ package org.psug.usi.akka
 
 import org.junit.Assert._
 import org.junit.Test
-import akka.actor.Actor
 import akka.actor.Actor._
 import akka.routing.{ LoadBalancer, CyclicIterator }
 import akka.remoteinterface._
+import scala.PartialFunction
+import akka.actor.{ActorRef, Actor}
 
 /**
  * User: alag
@@ -13,15 +14,44 @@ import akka.remoteinterface._
  * Time: 5:24 PM
  */
 
+trait AkkaActorWrapper {
+  val actorRef:ActorRef
+  def !( msg:Any ) = actorRef ! msg
+  def !?( msg:Any ) = ( actorRef !! (msg, 10000000) ).get
+  def !?( msec: Long, msg: Any ) = actorRef !!( msg, msec )
+  def !!( msg:Any ) = ( actorRef !!! msg )
+  def sender = actorRef.channel
+  def start() = actorRef.start
+}
 
-class SimpleAkkaActor extends Actor {
+trait Receiver {
+  def receive:PartialFunction[Any,Unit]
+}
+
+class RemoteReceiver( id:String, host:String, port:Int) extends AkkaActorWrapper {
+  override val actorRef:ActorRef = remote.actorFor("Simple", "localhost", 2552 )
+}
+
+class SimpleReciever extends Receiver with AkkaActorWrapper {
+  override val actorRef:ActorRef = actorOf( new ReceiverAkkaActor( this ) )
+
+
   def receive = {
-    case "OK" =>
-      println( "----------------" + self.sender  + " / " + self.channel )
-      self.channel ! "K0"
+    case "OK" => sender ! "K0"
     case _ =>
   }
+
 }
+
+class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
+  def receive = reciever.receive
+}
+
+
+
+
+
+
 
 class AkkaTest  {
 
@@ -40,17 +70,23 @@ class AkkaTest  {
     }).start
 
     remote.addListener( listener )
-
     remote.start()
-    remote.register("SimpleAkkaActor", actorOf[SimpleAkkaActor])
+
+    
+
+    val simpleReceiver = new SimpleReciever
+    simpleReceiver.actorRef.start()
+    assertEquals( "K0",  (simpleReceiver !? "OK") )
 
 
-    val simpleActor = remote.actorFor("SimpleAkkaActor", "localhost", 2552)
+    remote.register( "Simple", simpleReceiver.actorRef )
 
 
-    assertEquals( Some( "K0" ),  (simpleActor !! "OK") )
+    val remoteReceiver = new RemoteReceiver("Simple", "localhost", 2552)
+    assertEquals( "K0",  (remoteReceiver !? "OK") )
 
 
+    
     remote.shutdown
     remote.removeListener(listener)
 
