@@ -24,28 +24,27 @@ trait AkkaActorWrapper {
   def start() = actorRef.start
 }
 
-trait Receiver {
+class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
+  def receive = reciever.receive
+}
+
+abstract class Receiver extends AkkaActorWrapper {
+  override val actorRef:ActorRef = actorOf( new ReceiverAkkaActor( this ) )
   def receive:PartialFunction[Any,Unit]
 }
 
+
 class RemoteReceiver( id:String, host:String, port:Int) extends AkkaActorWrapper {
-  override val actorRef:ActorRef = remote.actorFor("Simple", "localhost", 2552 )
+  override val actorRef:ActorRef = remote.actorFor( id, host, port )
 }
 
-class SimpleReciever extends Receiver with AkkaActorWrapper {
-  override val actorRef:ActorRef = actorOf( new ReceiverAkkaActor( this ) )
-
-
+class SimpleReciever extends Receiver  {
   def receive = {
     case "OK" => sender ! "K0"
     case _ =>
   }
-
 }
 
-class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
-  def receive = reciever.receive
-}
 
 
 
