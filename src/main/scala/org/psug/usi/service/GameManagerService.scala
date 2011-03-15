@@ -11,7 +11,7 @@ import collection.mutable.{ListBuffer, HashMap}
  * Time: 11:32 PM
  */
 
-case class StartGame(game: Game)
+case class InitGame(game: Game)
 
 case class Register(userId: Int)
 
@@ -69,12 +69,9 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
   override lazy val symbol = 'GameManagerService
 
-  lazy val scorer = new Scorer(game.nbUsersThreshold)
 
   var game: Game = _
-
-  var currentQuestionIndex = 0
-  var registredPlayers = 0
+  var scorer:Scorer = _
 
   class QuestionPlayer {
     var playerIndex = 0
@@ -82,6 +79,9 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     val playerActors = new HashMap[Int, OutputChannel[Any]]
   }
 
+
+  var currentQuestionIndex = 0
+  var registredPlayers = 0
   var currentQuestionPlayer : QuestionPlayer = null
   var nextQuestionPlayer : QuestionPlayer = null
 
@@ -90,7 +90,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
   def act {
     loop {
       react {
-        case StartGame(game) => initGame(game)
+        case InitGame(game) => initGame(game)
         case Register(userId) => register(userId)
         case QueryStats => sender ! GameManagerStats(registredPlayers, currentQuestionPlayer.playerIndex)
         case QueryQuestion(userId, questionIndex) => queryQuestion(userId, questionIndex)
@@ -105,6 +105,9 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
   private def initGame(game: Game): Unit = {
     this.game = game
+    scorer = new Scorer(game.nbUsersThreshold)
+    currentQuestionIndex = 0
+    registredPlayers = 0
     currentQuestionPlayer = new QuestionPlayer
     nextQuestionPlayer = new QuestionPlayer
   }

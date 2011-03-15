@@ -142,7 +142,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
       val gameManager = new GameManagerService( repositories.gameUserHistoryService )
       gameManager.go
-      gameManager ! StartGame(game)
+      gameManager ! InitGame(game)
 
       var currentQuestion = 0
 
@@ -227,7 +227,7 @@ class GamesSpec extends SpecificationWithJUnit {
       val timer = new TestGameManagerTimer
       val gameManager = new GameManagerService( gameUserHistoryService, timer )
       gameManager.go
-      gameManager ! StartGame (game)
+      gameManager ! InitGame (game)
 
       var currentQuestion = 0
 
