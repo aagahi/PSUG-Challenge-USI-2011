@@ -3,7 +3,7 @@ package org.psug.usi.service
 import org.psug.usi.store._
 import org.psug.usi.store.DataRepositoryMessage
 import org.psug.usi.domain.{GameUserHistoryRepository, GameRepository, UserRepository}
-import org.psug.usi.system.{NodeTypes, Status}
+import org.psug.usi.netty.Status
 
 /**
  * User: alag
@@ -16,7 +16,7 @@ trait RepositoryService extends DefaultServiceConfiguration with Service {
   def act {
     loop {
       react {
-        case ServiceStatus => reply(Status(NodeTypes.service, port))
+        case ServiceStatus => reply(Status( "Service", port))
         case Exit => println("service " + symbol + " exiting"); exit()
         case x =>
           handleMessage(x) match {

@@ -23,7 +23,7 @@ import org.psug.usi.store.ClearRepository
 import org.jboss.netty.handler.codec.http.Cookie
 import org.jboss.netty.handler.codec.http.CookieDecoder
 
-class NettyUserRegistrationSpec  extends SpecificationWithJUnit {
+class UserRegistrationSpec  extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)
 

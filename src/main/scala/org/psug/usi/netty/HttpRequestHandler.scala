@@ -9,7 +9,6 @@ import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
-import org.psug.usi.system.Status
 import org.psug.usi.service.{InitGame, Services, RepositoryServices}
 
 /**
@@ -18,6 +17,7 @@ import org.psug.usi.service.{InitGame, Services, RepositoryServices}
  * Time: 1:07 AM
  */
 
+case class Status( nodeType:String, port:Int )
 
 class RequestActor(services : Services) extends Actor{
 
