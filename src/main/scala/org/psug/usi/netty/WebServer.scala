@@ -33,6 +33,11 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
   var bootstrap : ServerBootstrap = _
   
   def start : Unit = {
+    // IPv4 stack still better than IPv6
+    val props = System.getProperties()
+    props.setProperty( "java.net.preferIPv4Stack","true" )
+    System.setProperties(props)
+
     bootstrap = new ServerBootstrap(
       new NioServerSocketChannelFactory(
         Executors.newCachedThreadPool(),

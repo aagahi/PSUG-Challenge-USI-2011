@@ -9,7 +9,7 @@ import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import actors.Actor
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
-import org.psug.usi.service.{InitGame, Services, RepositoryServices}
+import org.psug.usi.service.{InitGame, Services}
 
 /**
  * User: alag

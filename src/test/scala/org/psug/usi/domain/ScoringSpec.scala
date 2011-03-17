@@ -6,69 +6,102 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
 
   implicit val defaultInterval = 100
 
-  def score( scorer:Scorer, answerValue:Int, userId:Int = 0 ):UserScore = {
-    ( scorer.scoreAnwser( ScorerAnwserValue( userId, answerValue ) ) )
-  }
 
   def isSorted(seq : Seq[UserScore]) : Boolean = {
-    seq.foldLeft( 0, true )( ( r:(Int,Boolean), s:UserScore) => ( s.score, r._2 & (s.score >= r._1) ) )._2
+
+    seq.foldLeft( UserScore( User(0, "","","","" ), Int.MaxValue ), true ){
+      ( r:(UserScore,Boolean), s:UserScore) =>
+        if( s.score == r._1.score ) ( s, r._2 & ( (s.user compare r._1.user ) < 0 ) )
+        else (s, r._2 & (s.score < r._1.score) )
+    }._2
   }
 
   "scoring agent" should {
     
-    "record correct answer update scoreSlice as (ansserValue + bonus) for a single user" in {
+    "record correct answer update score on multiple responses for a single user" in {
       val scorer = new Scorer(1)
-      val userId = 0
+      val user = User( 0, "0","","","" )
 
-      score( scorer, 1, userId ) must be_==(UserScore(0,1,1))
-      score( scorer, 5, userId ) must be_==(UserScore(0,1+5+1,2))
-      score( scorer, 0, userId ) must be_==(UserScore(0,1+5+1,0))
-      score( scorer, 1, userId ) must be_==(UserScore(0,1+5+1+1,1))
-      score( scorer, 3, userId ) must be_==(UserScore(0,1+5+1+1+3+1,2))
-
-
-      scorer.scoreSlice(userId)(0) must be_==(UserScore(0,1+5+1+1+3+1,2))
+      scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) ) must be_==( UserScore( user,1) )
+      scorer.scoreAnwser( ScorerAnwserValue( user, 5 ) ) must be_==(UserScore( user, 5+1 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user, 0 ) ) must be_==(UserScore( user, 5+1+0 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user, 5 ) ) must be_==(UserScore( user, 5+1+0+5 ) )
     }
 
-    "update position of user and send scoreSlice of users before and after" in {
-      val scorer = new Scorer(3)
-      val userId = 1
+    "users with same score must be sorted by firstname/lastname/email" in {
+      val scorer = new Scorer(2)
+      val user1 = User( 0, "A","A","B", "" )
+      val user2 = User( 1, "A","A","C", "" )
+      val user3 = User( 2, "A","A","D", "" )
+      val user4 = User( 3, "A","B","E", "" )
+      val user5 = User( 4, "B","B","F", "" )
+      val user6 = User( 5, "A","A","A", "" )
 
-      score( scorer, 1, userId ) must be_==( UserScore(1,1,1) )
-      scorer.scoreSlice(userId)(2) must be_==(UserScore(1,1,1))
+
+      scorer.scoreAnwser( ScorerAnwserValue( user6, 0 ) ) must be_==( UserScore( user6, 0 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user5, 1 ) ) must be_==( UserScore( user5, 1 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user3, 1 ) ) must be_==( UserScore( user3, 1 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user4, 1 ) ) must be_==( UserScore( user4, 1 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user1, 1 ) ) must be_==( UserScore( user1, 1 ) )
+      scorer.scoreAnwser( ScorerAnwserValue( user2, 1 ) ) must be_==( UserScore( user2, 1 ) )
+
+      val expectedSortedList = UserScore( user1, 1 ) :: UserScore( user2, 1 ) :: UserScore( user3, 1 ) :: UserScore( user4, 1 ) :: UserScore( user5, 1 ) :: UserScore( user6, 0 )  :: Nil
+      isSorted( expectedSortedList ) must be_==( true )
+
+      scorer.scoreSlice(user1) must be_==( expectedSortedList )
+      scorer.scoreSlice(user2) must be_==( expectedSortedList )
+      scorer.scoreSlice(user3) must be_==( expectedSortedList )
+      scorer.scoreSlice(user4) must be_==( expectedSortedList )
+      scorer.scoreSlice(user5) must be_==( expectedSortedList )
+      scorer.scoreSlice(user6) must be_==( expectedSortedList )
+
     }
-    
-    "send scoreSlice of all users within a specific given interval" in {
-      val numberOfPlayers = 1000
-      val scorer = new Scorer(numberOfPlayers, -50 to 50)
-
-      scorer.scoreSlice(900).length must be_==(50 * 2)
-      scorer.scoreSlice(999).length must be_==(50 + 1)
-      scorer.scoreSlice(0).length must be_==(50)
-    }
-    
-    "scorer always store scores in a sorted array" in {
-      val numberOfPlayers = 1000
-      val scorer = new Scorer(numberOfPlayers)
-      simulateAnswers( 10, 0.4, scorer, 1 until numberOfPlayers )
-      isSorted(scorer.scores) must be_==(true)
-    }
 
 
-    "compute scoreSlice for a very large number of users" in {
+    "compute accurate user score for large number of player" in {
       val numberOfPlayers = 4000
       val scorer = new Scorer(numberOfPlayers)
 
-      for(i <- 0 until numberOfPlayers ){
-        if(i % 1000 == 0) score( scorer, 1, i )
-        if(i % 10 == 0) score( scorer, 1, i )
-        if(i % 4  == 0) score( scorer, 1, i )
-        if(i % 2  == 0) score( scorer, 1, i )
+      val users  = 1 until numberOfPlayers map( i=> User( i, i.toString, "", "", "" ) )
+      val numResponse = 10
+      1 to numResponse foreach{
+        i =>
+        for( user <- users ){
+          if( user.id % 2  == 0 ) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
+          else scorer.scoreAnwser( ScorerAnwserValue( user, 0 ) )
+        }
       }
 
-      val sc = scorer.scoreSlice(1000)
-      sc(10) must be_==(UserScore(1000,4+(0+1+2+3),4))
+      for( user <- users ){
+        val score = scorer.userScore( user )
+        if( user.id % 2  == 0 ) score must be( numResponse )
+        else score must be( 0 )
+      }
+
     }
+
+
+    "produce sorted scoreSlice for a very large number of player" in {
+      val numberOfPlayers = 4000
+      val scorer = new Scorer(numberOfPlayers)
+
+      val users  = 1 until numberOfPlayers map( i=> User( i, (i%8).toString, (i%16).toString, i.toString, "" ) )
+      for( user <- users ){
+        if( user.id % 1000 == 0) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
+        else if( user.id % 10 == 0) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
+        else if( user.id % 4  == 0) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
+        else if( user.id % 2  == 0) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
+        else scorer.scoreAnwser( ScorerAnwserValue( user, 0 ) )
+      }
+
+
+      for( user <- users ){
+        val slice = scorer.scoreSlice(user)
+        isSorted( slice ) must beTrue
+      }
+
+    }
+
   }
 
 }
