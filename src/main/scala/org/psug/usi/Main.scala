@@ -1,7 +1,7 @@
 package org.psug.usi
 
 import org.psug.usi.netty.WebServer
-import service.{Services,RemoteServices, SimpleRepositoryServices}
+import service.{RemoteServices, SimpleRepositoryServices}
 
 /**
  * 

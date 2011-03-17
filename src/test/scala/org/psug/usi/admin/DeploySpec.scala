@@ -9,7 +9,7 @@ package org.psug.usi.domain
 import org.specs._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{read, write}
-import org.psug.usi.system._
+import org.psug.usi.netty.Status
 
 import org.psug.usi.Main
 import actors.Actor._
