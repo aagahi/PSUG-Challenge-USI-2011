@@ -9,7 +9,7 @@ package org.psug.usi.domain
 import org.specs._
 import org.psug.usi.store._
 import org.psug.usi.service._
-import actors.{OutputChannel, Actor, Futures}
+import actors.{OutputChannel, Futures}
 import scala.io.Source
 
 
@@ -138,7 +138,7 @@ class GamesSpec extends SpecificationWithJUnit {
     val users = for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
 
 
-    "register all players, provide question, score each answer, save user history after last response, and provide score slice (no timeout scenario)" in {
+    "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
       val gameManager = new GameManagerService( repositories.gameUserHistoryService )
       gameManager.go
@@ -147,7 +147,7 @@ class GamesSpec extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManager.remote ! Register( user.id ) )
+      users.map( user => gameManager.remote ! Register( user ) )
 
       // Ask for Q1
       val futuresQ1 = users.map( user => gameManager.remote !! QueryQuestion( user.id, currentQuestion ) )
@@ -201,10 +201,10 @@ class GamesSpec extends SpecificationWithJUnit {
           score must be_== ( expectedScore )
       }
 
-      // Get score slices
+      // Get userScore slices
       users.foreach{
         user =>
-          val scoreSlice = (gameManager.remote !? QueryScoreSlice( user.id ) ).asInstanceOf[Array[UserScore]]
+          val scoreSlice = (gameManager.remote !? QueryScoreSlice( user.id ) ).asInstanceOf[List[UserScore]]
           val minSliceSize = math.min( math.abs( gameManager.scorer.sliceRange.head ), gameManager.scorer.sliceRange.last )
           scoreSlice.size must be_>=( minSliceSize )
           scoreSlice.size must be_<( gameManager.scorer.sliceRange.size )
@@ -222,7 +222,7 @@ class GamesSpec extends SpecificationWithJUnit {
     }
 
 
-    "register all players, provide question, score each answer, save user history after last response, and provide score slice (timeout scenario)" in {
+    "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (timeout scenario)" in {
 
       val timer = new TestGameManagerTimer
       val gameManager = new GameManagerService( gameUserHistoryService, timer )
@@ -232,7 +232,7 @@ class GamesSpec extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManager ! Register( user.id ) )
+      users.map( user => gameManager ! Register( user ) )
       var messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
       messages.head must be_==( TimeoutMessage( TimeoutType.LOGIN, currentQuestion, game.loginTimeoutSec ) )

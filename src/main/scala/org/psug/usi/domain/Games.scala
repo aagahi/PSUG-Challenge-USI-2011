@@ -102,9 +102,10 @@ abstract class GameRepository extends BDBDataRepository[Int,Game]( "GameReposito
 
 
 
-
+case class UserAnswerHistory( user:User, var answerBonus:Int, var answersHistory:List[AnswerHistory] )
 
 case class AnswerHistory( questionIndex:Int, answerIndex:Int )
+
 case class GameUserKey( gameId:Int, userId:Int )
   case class GameUserHistory( gameUser:GameUserKey, anwsers:List[AnswerHistory]) extends Data[GameUserKey]{
     def storeKey:GameUserKey = gameUser

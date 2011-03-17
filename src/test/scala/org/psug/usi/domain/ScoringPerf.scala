@@ -24,10 +24,10 @@ trait PerfUtilities {
       System.nanoTime - start
   }
   
-  def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, scorer:Scorer, userIds:Iterable[Int]) = {
+  def simulateAnswers(numQuestions : Int, correctAnswerProbability: Double, scorer:Scorer, users:Iterable[User]) = {
     for(j <- 1 to numQuestions) 
-      for( userId <- userIds )
-	      if(random.nextDouble < correctAnswerProbability) scorer.scoreAnwser( ScorerAnwserValue( userId, 1 ) )
+      for( user <- users )
+	      if(random.nextDouble < correctAnswerProbability) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
   }
 }
 
@@ -59,13 +59,14 @@ class ScoringPerf extends PerfUtilities{
   def runWithNumberOfUsers(num : Int) :(Double,Double)= {
     val scorer = new Scorer(num)
 
-    val values = for(j <- 1 to 30) yield time( singleTest(num, scorer, 0 until num ) )
+    val users  = 0 until num map( i=> User(i, i.toString, "", "", "" ) )
+    val values = for(j <- 1 to 30) yield time( singleTest(num, scorer, users ) )
     (mean(values), stddev(values))
   }
 
-  def singleTest( num:Int, scorer:Scorer, userIds:Iterable[Int] ) : Unit = {
+  def singleTest( num:Int, scorer:Scorer, users:Iterable[User] ) : Unit = {
     for(j <- 1 to 10)
-  	  for( userId <- userIds)
-	    if(random.nextDouble < 0.5) scorer.scoreAnwser( ScorerAnwserValue( userId, 1 ) )
+  	  for( user <- users)
+	    if(random.nextDouble < 0.5) scorer.scoreAnwser( ScorerAnwserValue( user, 1 ) )
   }
 }

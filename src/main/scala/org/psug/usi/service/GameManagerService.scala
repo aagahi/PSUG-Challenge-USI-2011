@@ -3,7 +3,7 @@ package org.psug.usi.service
 import actors.{OutputChannel, Actor}
 import org.psug.usi.domain._
 import org.psug.usi.store.StoreData
-import collection.mutable.{ListBuffer, HashMap}
+import collection.mutable.HashMap
 
 /**
  * User: alag
@@ -13,7 +13,7 @@ import collection.mutable.{ListBuffer, HashMap}
 
 case class InitGame(game: Game)
 
-case class Register(userId: Int)
+case class Register(user: User)
 
 case object QueryStats
 
@@ -81,18 +81,18 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
 
   var currentQuestionIndex = 0
-  var registredPlayers = 0
+
   var currentQuestionPlayer : QuestionPlayer = null
   var nextQuestionPlayer : QuestionPlayer = null
 
-  val playersHistory = new HashMap[Int, List[AnswerHistory]]
+  val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
 
   def act {
     loop {
       react {
         case InitGame(game) => initGame(game)
-        case Register(userId) => register(userId)
-        case QueryStats => sender ! GameManagerStats(registredPlayers, currentQuestionPlayer.playerIndex)
+        case Register(user) => register(user)
+        case QueryStats => sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
         case QueryQuestion(userId, questionIndex) => queryQuestion(userId, questionIndex)
         case UserAnswer(userId, questionIndex, answerIndex) if (questionIndex == currentQuestionIndex) => answer(userId, answerIndex)
         case QueryScoreSlice(userId) => queryScoreSlice(userId)
@@ -107,18 +107,19 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     this.game = game
     scorer = new Scorer(game.nbUsersThreshold)
     currentQuestionIndex = 0
-    registredPlayers = 0
+    registredPlayersHistory.clear()
     currentQuestionPlayer = new QuestionPlayer
     nextQuestionPlayer = new QuestionPlayer
   }
 
-  private def register(userId: Int) {
-    if (registredPlayers == 0) {
+  private def register(user:User) {
+
+    if (registredPlayersHistory.size == 0) {
       // initialize the logintimeout timer for long polling
       timer ! TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec)
     }
-    if (registredPlayers < game.nbUsersThreshold) {
-      registredPlayers += 1
+    if (registredPlayersHistory.size < game.nbUsersThreshold) {
+      registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
     }
   }
 
@@ -132,35 +133,45 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors(userId) = sender
 
-    if (nextQuestionPlayer.playerIndex >= registredPlayers) {
+    if (nextQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
       replyQuestion()
     }
-    else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= registredPlayers) {
+    else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
       replyQuestion()
     }
   }
 
   private def answer(userId: Int, answerIndex: Int) {
 
-    playersHistory(userId) = AnswerHistory(currentQuestionIndex, answerIndex) :: playersHistory.getOrElse(userId, Nil)
+    val userAnswerHistory = registredPlayersHistory( userId )
+
+    userAnswerHistory.answersHistory = AnswerHistory(currentQuestionIndex, answerIndex) :: userAnswerHistory.answersHistory
 
     val currentQuestion = game.questions(currentQuestionIndex)
 
-    val answerValue = if (currentQuestion.answers(answerIndex).status) currentQuestion.value else 0
-    val userScore = scorer.scoreAnwser(ScorerAnwserValue(userId, answerValue))
+    val answerValue = if (currentQuestion.answers(answerIndex).status){
+        val bonus = userAnswerHistory.answerBonus
+        userAnswerHistory.answerBonus = bonus + 1
+        currentQuestion.value + bonus
+      } else {
+        userAnswerHistory.answerBonus = 0
+        0
+      }
+    val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
-    sender ! UserAnswerResponse(userScore.bonus > 0, userScore.score)
+    sender ! UserAnswerResponse( answerValue > 0, userScore.score)
+    
     if (currentQuestionIndex == game.nbQuestions - 1) {
-      gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), playersHistory.getOrElse(userId, Nil)))
+      gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
     }
 
   }
 
   private def queryScoreSlice(userId: Int) {
-    sender ! scorer.scoreSlice(userId)
+    sender ! scorer.scoreSlice( registredPlayersHistory(userId).user )
   }
 
   private def replyQuestion() {
@@ -179,8 +190,9 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
     if (timeoutType == TimeoutType.QUESTION) {
       for (userId <- currentQuestionPlayer.players) {
-        if (!currentQuestionPlayer.playerActors.contains(userId)) {
-          scorer.scoreAnwser(ScorerAnwserValue(userId, 0))
+        if (!currentQuestionPlayer.playerActors.contains( userId ) ) {
+          val userAnswerHistory = registredPlayersHistory( userId )
+          userAnswerHistory.answerBonus = 0
         }
       }
 
