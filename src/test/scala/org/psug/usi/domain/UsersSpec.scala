@@ -9,8 +9,9 @@ class UsersSpec extends SpecificationWithJUnit {
   val repositories = new SimpleRepositoryServices
   import repositories._
 
-  def startRepository = {
+  def startRepository : Unit = {
     start
+    userRepositoryService.remote !? ClearRepository
   }
 
   def clearRepository =  {
