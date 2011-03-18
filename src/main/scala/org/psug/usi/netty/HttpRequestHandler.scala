@@ -7,9 +7,10 @@ import org.jboss.netty.channel._
 import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
-import actors.Actor
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{InitGame, Services}
+import org.psug.usi.akka.Receiver
+
 
 /**
  * User: alag
@@ -19,7 +20,7 @@ import org.psug.usi.service.{InitGame, Services}
 
 case class Status( nodeType:String, port:Int )
 
-class RequestActor(services : Services) extends Actor{
+class RequestActor(services : Services) extends Receiver {
 
   import services._
   import org.psug.usi.Main._
@@ -27,28 +28,24 @@ class RequestActor(services : Services) extends Actor{
 
   var channel:Channel = null
 
-  start
-  def act {
-    loop {
-      react {
-        case event:MessageEvent =>
-          channel = event.getChannel
-          event.getMessage match
-          {
-            case request:HttpRequest => handleRequest( request )
-            case _ => println( "Unknown message" )
-          }
 
-        case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
-        case DataStored( Left( message ) )	=> println(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-
-        case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
-        case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-
-        case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
-        case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
+  def receive = {
+    case event:MessageEvent =>
+      channel = event.getChannel
+      event.getMessage match
+      {
+        case request:HttpRequest => handleRequest( request )
+        case _ => println( "Unknown message" )
       }
-    }
+
+    case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
+    case DataStored( Left( message ) )	=> println(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+
+    case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
+    case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+
+    case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
+    case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
   }
 
   private def encodeUserAsCookie(user : User) = {
@@ -114,7 +111,7 @@ class RequestActor(services : Services) extends Actor{
 class HttpRequestHandler(services : Services) extends SimpleChannelUpstreamHandler {
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
-    new RequestActor(services) ! e
+    ( new RequestActor(services) ).start() ! e
   }
 
   override def exceptionCaught( ctx:ChannelHandlerContext, e:ExceptionEvent ){

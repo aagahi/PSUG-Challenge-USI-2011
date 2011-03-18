@@ -1,9 +1,10 @@
 package org.psug.usi.service
 
-import actors.{OutputChannel, Actor}
 import org.psug.usi.domain._
 import org.psug.usi.store.StoreData
 import collection.mutable.HashMap
+import org.psug.usi.akka.Receiver
+import akka.actor.Channel
 
 /**
  * User: alag
@@ -36,16 +37,12 @@ object TimeoutType extends Enumeration {
 
 case class TimeoutMessage(timeoutType: TimeoutType.Value, questionIndex: Int, timoutSec: Int)
 
-trait GameManagerTimer extends Actor {
+trait GameManagerTimer extends Receiver {
   start
 
-  def act {
-    loop {
-      react {
-        case questionTimeout: TimeoutMessage => handleQuestionTimeout(questionTimeout)
-        case x => handleOtherMessage(x)
-      }
-    }
+  def receive = {
+    case questionTimeout: TimeoutMessage => handleQuestionTimeout(questionTimeout)
+    case x => handleOtherMessage(x)
   }
 
   def handleQuestionTimeout(questionTimeout: TimeoutMessage)
@@ -67,7 +64,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
                          var timer: GameManagerTimer = new DefaultGameManagerTimer)
   extends DefaultServiceConfiguration with Service with RemoteService {
 
-  override lazy val symbol = 'GameManagerService
+  override lazy val name = "GameManagerService"
 
 
   var game: Game = _
@@ -76,7 +73,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
   class QuestionPlayer {
     var playerIndex = 0
     val players = new Array[Int](game.nbUsersThreshold)
-    val playerActors = new HashMap[Int, OutputChannel[Any]]
+    val playerActors = new HashMap[Int, Channel[Any]]
   }
 
 
@@ -87,20 +84,16 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
 
-  def act {
-    loop {
-      react {
-        case InitGame(game) => initGame(game)
-        case Register(user) => register(user)
-        case QueryStats => sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
-        case QueryQuestion(userId, questionIndex) => queryQuestion(userId, questionIndex)
-        case UserAnswer(userId, questionIndex, answerIndex) if (questionIndex == currentQuestionIndex) => answer(userId, answerIndex)
-        case QueryScoreSlice(userId) => queryScoreSlice(userId)
-        case TimeoutMessage(timeoutType, questionIndex, timeoutSec) if (questionIndex == currentQuestionIndex) => timeout(timeoutType)
-        case Exit => println("service " + symbol + " exiting"); exit()
-        case x =>
-      }
-    }
+  def receive = {
+    case InitGame(game) => initGame(game)
+    case Register(user) => register(user)
+    case QueryStats => sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
+    case QueryQuestion(userId, questionIndex) => queryQuestion(userId, questionIndex)
+    case UserAnswer(userId, questionIndex, answerIndex) if (questionIndex == currentQuestionIndex) => answer(userId, answerIndex)
+    case QueryScoreSlice(userId) => queryScoreSlice(userId)
+    case TimeoutMessage(timeoutType, questionIndex, timeoutSec) if (questionIndex == currentQuestionIndex) => timeout(timeoutType)
+    case StopReceiver => println("service " + name + " exiting"); exit()
+    case x =>
   }
 
   private def initGame(game: Game): Unit = {

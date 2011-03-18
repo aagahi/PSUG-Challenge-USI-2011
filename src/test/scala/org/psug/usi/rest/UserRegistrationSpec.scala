@@ -22,7 +22,6 @@ import org.psug.usi.store.ClearRepository
 
 import org.jboss.netty.handler.codec.http.Cookie
 import org.jboss.netty.handler.codec.http.CookieDecoder
-
 class UserRegistrationSpec  extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -44,7 +43,13 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
     afterSpec { webServer.stop ; repositories.stop }
 
     // clear repository on each example
-    before(repositories.userRepositoryService !? ClearRepository)
+
+
+    before {
+      repositories.userRepositoryService !? ClearRepository
+    }
+
+
   }
 
   def registerUser(user : User) : String = {
@@ -70,12 +75,13 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
       val user = read[User]( webResource("/api/user/1").get(classOf[String]) )
       user must be_==(expectedUser)
     }
-    
-    "fail if user with same email exists" in {     
+
+    "fail if user with same email exists" in {
       registerUser(martinOdersky)
       registerUser(myriamOdersky) must throwA[UniformInterfaceException]
     }
   }
+
 
   "user login" should {
     shareVariables()

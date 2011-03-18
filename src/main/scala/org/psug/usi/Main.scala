@@ -8,6 +8,14 @@ import service.{RemoteServices, SimpleRepositoryServices}
  * @author abailly@oqube.com
  * @version $Rev$
  */
+
+/**
+ * Aslo check resource/akka.conf for akka server configuration
+ * We can start manual the akka remote actor server using
+ * remote.start("localhost", 2552)
+ * see http://doc.akka.io/remote-actors-scala
+ */
+
 object Main {
 
   val WEB_AUTHICATION_KEY = "dummy"

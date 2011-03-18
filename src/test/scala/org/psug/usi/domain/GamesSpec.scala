@@ -9,12 +9,10 @@ package org.psug.usi.domain
 import org.specs._
 import org.psug.usi.store._
 import org.psug.usi.service._
-import actors.{OutputChannel, Futures}
 import scala.io.Source
-
-
-
-
+import akka.actor.Channel
+import akka.dispatch.Futures
+import akka.dispatch.Future
 
 
 case object FireLastMessage
@@ -25,7 +23,7 @@ class TestGameManagerTimer extends GameManagerTimer {
 
   private var messages:List[TimeoutMessage] = Nil
 
-  private var gameManagerActor:OutputChannel[Any] = null
+  private var gameManagerActor:Channel[Any] = null
 
   override def handleQuestionTimeout( questionTimeout:TimeoutMessage ){
     gameManagerActor = sender
@@ -63,7 +61,7 @@ class GamesSpec extends SpecificationWithJUnit {
   }
 
   def exitRepository = {
-    repositories.gameRepositoryService.remote ! ClearRepository
+    repositories.gameRepositoryService.remote !? ClearRepository
     repositories.stop
   }
 
@@ -118,6 +116,7 @@ class GamesSpec extends SpecificationWithJUnit {
     }
   }
 
+
   "game manager" should {
     import repositories._
 
@@ -135,14 +134,14 @@ class GamesSpec extends SpecificationWithJUnit {
                     flushUserTable = false,
                     nbUsersThreshold = 160 )
 
-    val users = for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )
+    val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )).toList
 
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
       val gameManager = new GameManagerService( repositories.gameUserHistoryService )
       gameManager.go
-      gameManager ! InitGame(game)
+      gameManager !? InitGame(game)
 
       var currentQuestion = 0
 
@@ -150,8 +149,9 @@ class GamesSpec extends SpecificationWithJUnit {
       users.map( user => gameManager.remote ! Register( user ) )
 
       // Ask for Q1
-      val futuresQ1 = users.map( user => gameManager.remote !! QueryQuestion( user.id, currentQuestion ) )
-      Futures.awaitAll( 5000, futuresQ1.toSeq:_* ).foreach{
+      val futuresQ1 = users.map( user => (gameManager.remote !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
+      Futures.awaitAll( futuresQ1 )
+      futuresQ1.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
           nextQuestion must be_==( game.questions(currentQuestion ) )
         case _ => fail
@@ -167,8 +167,9 @@ class GamesSpec extends SpecificationWithJUnit {
 
       currentQuestion += 1
       // Ask for Q2
-      val futuresQ2 = users.map( user => gameManager.remote !! QueryQuestion( user.id, currentQuestion ) )
-      Futures.awaitAll( 5000, futuresQ2.toSeq:_* ).foreach{
+      val futuresQ2 = users.map( user => ( gameManager.remote !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
+      Futures.awaitAll( futuresQ2 )
+      futuresQ2.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
@@ -186,8 +187,9 @@ class GamesSpec extends SpecificationWithJUnit {
 
       currentQuestion += 1
       // Ask for Q3
-      val futuresQ3 = users.map( user => gameManager.remote !! QueryQuestion( user.id, currentQuestion ) )
-      Futures.awaitAll( 5000, futuresQ3.toSeq:_* ).foreach{
+      val futuresQ3 = users.map( user => ( gameManager.remote !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
+      Futures.awaitAll( futuresQ3 )
+      futuresQ3.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
@@ -218,7 +220,7 @@ class GamesSpec extends SpecificationWithJUnit {
         userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
       }
 
-      gameManager ! Exit
+      gameManager ! StopReceiver
     }
 
 
@@ -240,18 +242,19 @@ class GamesSpec extends SpecificationWithJUnit {
 
       // 50% user ask for Q1 => we should get a Login timeout
       val futuresQ1 = for( user <- users ; if( user.id%2 == 0 ) )
-        yield gameManager !! QueryQuestion( user.id, currentQuestion )
+        yield (gameManager !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]]
 
 
       // not sure about it, but it seems that future msg passing is not deterministic so we wait for gamemanager to be in proper state
       while( ( gameManager !? QueryStats ) != ( GameManagerStats( users.size, users.size/2 ) ) ) Thread.sleep(10)
 
-      futuresQ1.forall( ! _.isSet ) must beTrue
+      futuresQ1.forall( ! _.isCompleted ) must beTrue
 
       // fire login
       timer !? FireLastMessage
 
-      val futuresQ1Results = Futures.awaitAll( 5000, futuresQ1.toSeq:_* )
+      Futures.awaitAll( futuresQ1 )
+      val futuresQ1Results = futuresQ1.map( _.result )
       futuresQ1Results.size must be_==( users.size/2 )
       futuresQ1Results.foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
@@ -284,12 +287,12 @@ class GamesSpec extends SpecificationWithJUnit {
 
 
       // 25% user ask for Q2 => we should get a question + synchro timeout
-      val futuresQ2 = answerQ1Users.map( user => gameManager !! QueryQuestion( user.id, currentQuestion ) )
+      val futuresQ2 = answerQ1Users.map( user => (gameManager !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
 
       // not sure about it, but it seems that future msg passing is not deterministic so we wait for gamemanager to be in proper state
       while( ( gameManager !? QueryStats ) != ( GameManagerStats( users.size, answerQ1Users.size ) ) ) Thread.sleep(10)
       
-      futuresQ2.forall( ! _.isSet ) must beTrue
+      futuresQ2.forall( ! _.isCompleted ) must beTrue
 
       // fire end syncho
       timer !? FireLastMessage
@@ -300,14 +303,14 @@ class GamesSpec extends SpecificationWithJUnit {
       messages.head must be_==( TimeoutMessage( TimeoutType.QUESTION, currentQuestion, game.questionTimeFrameSec ) )
 
 
-      val futuresQ2Results = Futures.awaitAll( 5000, futuresQ2.toSeq:_* )
-      futuresQ2Results.foreach{
+      Futures.awaitAll( futuresQ2 )
+      futuresQ2.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
       }
 
-      gameManager ! Exit
+      gameManager ! StopReceiver
 
     }
 

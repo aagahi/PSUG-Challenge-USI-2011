@@ -4,6 +4,8 @@ import org.psug.usi.store._
 import org.psug.usi.store.DataRepositoryMessage
 import org.psug.usi.domain.{GameUserHistoryRepository, GameRepository, UserRepository}
 import org.psug.usi.netty.Status
+import akka.actor.Actor._
+
 
 /**
  * User: alag
@@ -13,18 +15,14 @@ import org.psug.usi.netty.Status
 
 trait RepositoryService extends DefaultServiceConfiguration with Service {
 
-  def act {
-    loop {
-      react {
-        case ServiceStatus => reply(Status( "Service", port))
-        case Exit => println("service " + symbol + " exiting"); exit()
-        case x =>
-          handleMessage(x) match {
-            case message: DataRepositoryMessage => reply(message)
-            case _ =>
-          }
+  def receive = {
+    case ServiceStatus => reply(Status( "Service", port))
+    case StopReceiver => println("service " + name + " exiting"); stop()
+    case x =>
+      handleMessage(x) match {
+        case message: DataRepositoryMessage => reply(message)
+        case _ =>
       }
-    }
   }
 
   def handleMessage(any: Any): Any
@@ -43,36 +41,36 @@ trait Services {
 /**
  * concrete instances of services viewed remotely.
  */
-class RemoteServices(servicesPort: Int = 55555) extends Services {
+class RemoteServices(servicesPort: Int = 2552) extends Services {
 
   override val userRepositoryService = new RemoteService with DefaultServiceConfiguration {
     override lazy val port = servicesPort
-    override lazy val symbol = 'UserRepositoryService
+    override lazy val name = "UserRepositoryService"
   }
   override val gameRepositoryService = new RemoteService with DefaultServiceConfiguration {
     override lazy val port = servicesPort
-    override lazy val symbol = 'GameRepositoryService
+    override lazy val name = "GameRepositoryService"
   }
   override val gameUserHistoryService = new RemoteService with DefaultServiceConfiguration {
     override lazy val port = servicesPort
-    override lazy val symbol = 'GameUserHistoryRepositoryService
+    override lazy val name = "GameUserHistoryRepositoryService"
   }
   override val gameManagerService = new RemoteService with DefaultServiceConfiguration {
     override lazy val port = servicesPort
-    override lazy val symbol = 'GameService
+    override lazy val name = "GameService"
   }
 }
 
 trait UserRepositoryService extends UserRepository with RepositoryService with RemoteService {
-  override lazy val symbol = 'UserRepositoryService
+  override lazy val name = "UserRepositoryService"
 }
 
 trait GameRepositoryService extends GameRepository with RepositoryService with RemoteService {
-  override lazy val symbol = 'GameRepositoryService
+  override lazy val name = "GameRepositoryService"
 }
 
 trait GameUserHistoryRepositoryService extends GameUserHistoryRepository with RepositoryService with RemoteService {
-  override lazy val symbol = 'GameUserHistoryRepositoryService
+  override lazy val name = "GameUserHistoryRepositoryService"
 }
 
 trait RepositoryServices extends Services {
@@ -84,18 +82,21 @@ trait RepositoryServices extends Services {
   val services : List[Service] = List(userRepositoryService,gameUserHistoryService,gameRepositoryService,gameManagerService)
 
   def start = {
+    remote.start()
     services.foreach(_.go)
   }
 
   def stop = {
-    services.foreach(_ ! Exit)
+
+    services.foreach(_.stop )
+    remote.shutdown
   }
 }
 
 /**
  * Repository services that use a single-instance BDB for storage.
  */
-class SimpleRepositoryServices(servicesPort: Int = 55555) extends RepositoryServices {
+class SimpleRepositoryServices(servicesPort: Int = 2552) extends RepositoryServices {
   override lazy val userRepositoryService = new UserRepositoryService {
     override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment

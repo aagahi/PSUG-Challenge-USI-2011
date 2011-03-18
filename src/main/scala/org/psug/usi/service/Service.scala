@@ -1,7 +1,6 @@
 package org.psug.usi.service
 
-import actors.remote.{RemoteActor, Node}
-import actors.{DaemonActor, AbstractActor}
+import org.psug.usi.akka.{RemoteReceiver, Receiver}
 
 /**
  * User: alag
@@ -12,11 +11,13 @@ import actors.{DaemonActor, AbstractActor}
 trait ServiceConfiguration {
   val port :  Int
   val host  : String
-  val symbol : Symbol
+  val name : String
 }
 
+
+// Aslo check resource/akka.conf for akka server configuration
 trait DefaultServiceConfiguration extends ServiceConfiguration {
-  override lazy val port = 55555
+  override lazy val port = 2552
   override lazy val host = "localhost"
 }
 
@@ -29,13 +30,13 @@ case object ServiceStatus
  * Unconditional stop message.
  * All services should stop() when receiving this message.
  */
-case object Exit
+case object StopReceiver
 
 
 /**
  * A service is an actor that is registered for remote access.
  */
-trait Service extends DaemonActor {
+trait Service extends Receiver {
   config : ServiceConfiguration =>
 
   def go = {
@@ -44,9 +45,13 @@ trait Service extends DaemonActor {
   }
 
   def registerAsRemoteActor {
-    println( "Register Remote actor " + symbol + " host: " + host  + " port: " + port )
-    RemoteActor.alive( port )
-    RemoteActor.register( symbol, this )
+    println( "Register Remote actor " + name )
+    register( name )
+  }
+
+  override def stop(){
+    unregister()
+    super.stop()
   }
 }
 
@@ -56,6 +61,6 @@ trait Service extends DaemonActor {
 trait RemoteService {
   self : ServiceConfiguration =>
 
-  lazy val remote: AbstractActor = RemoteActor.select( Node( host, port ), symbol )
+  lazy val remote = new RemoteReceiver( name, host, port );
 
 }

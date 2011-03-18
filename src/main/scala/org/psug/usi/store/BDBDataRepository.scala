@@ -4,6 +4,8 @@ import com.sleepycat.je._
 import com.sleepycat.bind.tuple.IntegerBinding
 import java.io._
 import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfig}
+import collection.JavaConversions._
+import collection.mutable.HashMap
 
 /**
  * User: alag
@@ -19,12 +21,11 @@ import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfi
 trait BDBEnvironment {
    self : BDBConfiguration =>
 
+  val databases = new HashMap[String,BDBManagement]()
   /**
    * Provide a specific Environment instance given a generic configuration.
    */
   def configure(envConfig: EnvironmentConfig): Environment
-
-  var openDatabases = Set[Database]()
 
   Runtime.getRuntime().addShutdownHook(new ShutdownHook)
 
@@ -49,16 +50,13 @@ trait BDBEnvironment {
     configure(envConfig)
   }
 
-  def registerDatabase(database: Database) {
-    openDatabases += database
-  }
-
-  def unregisterDatabase(database: Database) {
-    openDatabases -= database
-  }
 
   def shutdown() {
-    openDatabases.foreach(_.close)
+    environment.getDatabaseNames().foreach{
+      dbName =>
+      databases.get( dbName ).foreach{ db => println( "Closing db: " + db.databaseName ); db.close() }
+    }
+
     environment.sync()
     environment.cleanLog()
     environment.close()
@@ -67,7 +65,7 @@ trait BDBEnvironment {
   class ShutdownHook extends Thread {
     override def run() {
       println("Shutting down databases")
-      shutdown
+      //shutdown
     }
   }
 
@@ -149,20 +147,19 @@ class BDBSimpleDataFactory[T<:Data[Int]] extends BDBDataFactory[Int,T]{
   }
 }
 
+
 /**
  * A single instance of a database operating in a given environment.
  * This trait needs to be given a proper BDBEnvironment when instantiated.
  */
-trait BDB[K<:Any,T<:Data[K]]{
-
+trait BDBManagement {
   val env : BDBEnvironment with BDBConfiguration
 
-  val databaseName: String
-  val dataFactory:BDBDataFactory[K,T]
 
+  val databaseName: String
   lazy val dbFolder = new File(env.envHome, databaseName)
 
-  private var _database: Database = null
+  protected  var _database: Database = null
 
   def database = {
     if (_database == null) {
@@ -172,18 +169,19 @@ trait BDB[K<:Any,T<:Data[K]]{
       dbConfig.setTransactional(true)
       dbConfig.setDeferredWrite(false)
       _database = env.environment.openDatabase(null, databaseName, dbConfig);
-      env.registerDatabase(_database)
+      env.databases( databaseName ) = this
     }
     _database
   }
 
   def close() {
-    database.close()
-    env.unregisterDatabase(database)
+    if( _database != null ) _database.close()
     _database = null
   }
 
+
   def removeDatabase() {
+    println( "Remove db: " + databaseName )
     close()
     try{
       env.environment.removeDatabase(null, databaseName)
@@ -193,6 +191,14 @@ trait BDB[K<:Any,T<:Data[K]]{
     }
   }
 
+}
+trait BDB[K<:Any,T<:Data[K]] extends BDBManagement {
+
+  val dataFactory:BDBDataFactory[K,T]
+
+
+
+  
   def save(in:T) {
     val tx = env.environment.beginTransaction(null, null)
     database.put(null, dataFactory.keyToEntry(in.storeKey), dataFactory.valueToEntry(in) )

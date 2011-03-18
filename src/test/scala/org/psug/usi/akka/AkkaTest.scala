@@ -2,45 +2,15 @@ package org.psug.usi.akka
 
 import org.junit.Assert._
 import org.junit.Test
+import akka.actor.Actor
 import akka.actor.Actor._
-import akka.routing.{ LoadBalancer, CyclicIterator }
 import akka.remoteinterface._
-import scala.PartialFunction
-import akka.actor.{ActorRef, Actor}
 
 /**
  * User: alag
  * Date: 3/14/11
  * Time: 5:24 PM
  */
-
-trait AkkaActorWrapper {
-  val actorRef:ActorRef
-  def !( msg:Any ) = actorRef ! msg
-  def !?( msg:Any ) = ( actorRef !! (msg, 10000000) ).get
-  def !?( msec: Long, msg: Any ) = actorRef !!( msg, msec )
-  def !!( msg:Any ) = ( actorRef !!! msg )
-  def sender = actorRef.channel
-  def start() = actorRef.start
-}
-
-class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
-  def receive = reciever.receive
-}
-
-abstract class Receiver extends AkkaActorWrapper {
-  override val actorRef:ActorRef = actorOf( new ReceiverAkkaActor( this ) )
-  def receive:PartialFunction[Any,Unit]
-}
-
-
-class RemoteReceiver( id:String, host:String, port:Int) extends AkkaActorWrapper {
-  override val actorRef:ActorRef = remote.actorFor( id, host, port )
-}
-
-
-
-
 
 
 
@@ -69,7 +39,7 @@ class AkkaTest  {
 
     val simpleReceiver = new Receiver {
       def receive = {
-        case "OK" => sender ! "K0"
+        case "OK" => reply( "K0" )
         case _ =>
       }
     }
@@ -78,12 +48,14 @@ class AkkaTest  {
     assertEquals( "K0",  (simpleReceiver !? "OK") )
 
 
-    remote.register( "Simple", simpleReceiver.actorRef )
-
+    simpleReceiver.register( "Simple" )
 
     val remoteReceiver = new RemoteReceiver("Simple", "localhost", 2552)
-    assertEquals( "K0",  (remoteReceiver !? "OK") )
+    assertEquals( "K0",  remoteReceiver !? "OK" )
 
+    val future = remoteReceiver !! "OK"
+    future.awaitBlocking
+    assertEquals( "K0", future.result.get )
 
     
     remote.shutdown
