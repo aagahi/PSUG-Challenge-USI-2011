@@ -52,6 +52,10 @@ class TestGameManagerTimer extends GameManagerTimer {
 
 }
 
+import org.junit.runner.RunWith
+import org.specs.runner.JUnitSuiteRunner
+
+@RunWith(classOf[JUnitSuiteRunner])
 class GamesSpec extends SpecificationWithJUnit {
 
   val repositories = new SimpleRepositoryServices
@@ -229,7 +233,7 @@ class GamesSpec extends SpecificationWithJUnit {
       val timer = new TestGameManagerTimer
       val gameManager = new GameManagerService( gameUserHistoryService, timer )
       gameManager.go
-      gameManager ! InitGame (game)
+      gameManager !? InitGame (game)
 
       var currentQuestion = 0
 

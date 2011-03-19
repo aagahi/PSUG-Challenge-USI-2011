@@ -1,0 +1,53 @@
+Fichier contenant des précisions sur les spécifications
+=======================================================
+
+Poser des questions aux orgas
+-----------------------------
+
+- GitHub
+
+https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/
+
+Attention, Github est assez mal fichu: on ne peut pas voir toutes les questions posées. Ne pas
+hésiter à jouer avec les tabs Open/Unread/Closed, voir à mettre directement les numéros
+d'issue  directement dans l'URL
+
+- Sourceforge
+https://sites.google.com/a/octo.com/challengeusi2011/blog/ouverturede2projetsusi2011sursourceforgenet
+En gros il faut se creer un compte sur SF et leur demander d'être ajouté
+
+
+
+Loadbalancing
+-------------
+
+https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/2
+Puis:
+https://sourceforge.net/p/usi2011/usi2011-cloud/tickets/1/
+
+The server is the entry point into the cluster (New in 1.2.0: if several servers are defined, a 
+round robin algorithm is used to choose the server).
+
+
+Format des /api/score etranges
+------------------------------
+
+https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/7
+Le format par tableaux est confirmé. 
+
+
+Haute-dispo & persistance des données
+-------------------------------------
+
+- au cours du test, un VM au hasard sera éteinte, puis remontée (à valider, je pense)
+- en fin de partie, l'ensemble des vm seront éteintes, puis remontées
+
+https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/8
+
+Quizz successifs
+----------------
+
+Pour les perfs, un seul quizz sera lancé:
+https://github.com/octo-technology/USI2011_BillionUserChallenge/issues/14
+
+Ca ne dit rien sur les tests fonctionnels. 

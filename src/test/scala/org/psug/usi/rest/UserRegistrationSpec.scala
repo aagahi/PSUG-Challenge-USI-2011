@@ -22,6 +22,11 @@ import org.psug.usi.store.ClearRepository
 
 import org.jboss.netty.handler.codec.http.Cookie
 import org.jboss.netty.handler.codec.http.CookieDecoder
+
+import org.junit.runner.RunWith
+import org.specs.runner.JUnitSuiteRunner
+
+@RunWith(classOf[JUnitSuiteRunner])
 class UserRegistrationSpec  extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)

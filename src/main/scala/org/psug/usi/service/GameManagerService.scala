@@ -13,6 +13,10 @@ import akka.actor.Channel
  */
 
 case class InitGame(game: Game)
+//reply for game init
+sealed trait InitGameReply
+case object InitGameSuccess extends InitGameReply
+case object ErrorAlreadyStarted extends InitGameReply
 
 case class Register(user: User)
 
@@ -25,6 +29,12 @@ case class QueryQuestion(userId: Int, questionIndex: Int)
 case class UserAnswer(userId: Int, questionIndex: Int, answerIndex: Int)
 
 case class QueryScoreSlice(userId: Int)
+case class QueryScoreSliceAudit(userEmail: String)
+//answer to QueryScoreSlice may be "don't ask" if the game is not finished
+trait ScoreSliceAnswer
+case object ScoreSliceUnawailable extends ScoreSliceAnswer
+case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
+
 
 // Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
 case class UserAnswerResponse(answerStatus: Boolean, score: Int)
@@ -57,16 +67,40 @@ class DefaultGameManagerTimer extends GameManagerTimer {
   }
 }
 
+
+/**
+ * https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels
+ * A game can be:
+ * - not defined (started but not initialized)
+ * - started and initialized (waiting for user login)
+ * - started and waiting for answer X
+ * - finished and processing score
+ * - finished and awaiting for score queries
+ */
+trait GameState
+case object Uninitialized extends GameState
+//init done, and no user requested /api/login yet
+case object Initialized extends GameState 
+case object WaitingRegistrationAndQ1 extends GameState
+//could be a couple of ProcessingQueryQuestion(i) / ProcessingReplyQuestion(i)
+//in place of GameManagerService.currentQuestionIndex
+case object InGame extends GameState 
+//case class ProcessingQueryQuestion(number:Int) extends GameState
+//case class ProcessingReplyQuestion(number:Int) extends GameState
+case object EndGame extends GameState
+
 /**
  * A game manager: handle question/anwser and timeout
  */
 class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
                          var timer: GameManagerTimer = new DefaultGameManagerTimer)
   extends DefaultServiceConfiguration with Service with RemoteService {
+  
 
   override lazy val name = "GameManagerService"
 
 
+  var gameState : GameState = Uninitialized
   var game: Game = _
   var scorer:Scorer = _
 
@@ -83,43 +117,94 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
   var nextQuestionPlayer : QuestionPlayer = null
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
+  val playerIdByEmail = new HashMap[String,Int]
+  
 
   def receive = {
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
-    case QueryStats => sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
-    case QueryQuestion(userId, questionIndex) => queryQuestion(userId, questionIndex)
-    case UserAnswer(userId, questionIndex, answerIndex) if (questionIndex == currentQuestionIndex) => answer(userId, answerIndex)
+    case QueryStats => 
+      sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
+    case QueryQuestion(userId, questionIndex) 
+      if(registredPlayersHistory.isDefinedAt(userId)) 
+      => queryQuestion(userId, questionIndex)
+    case UserAnswer(userId, questionIndex, answerIndex) 
+      if (registredPlayersHistory.isDefinedAt(userId) && questionIndex == currentQuestionIndex)
+      => answer(userId, answerIndex)
+    case TimeoutMessage(timeoutType, questionIndex, timeoutSec) 
+      if (questionIndex == currentQuestionIndex) 
+      => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
-    case TimeoutMessage(timeoutType, questionIndex, timeoutSec) if (questionIndex == currentQuestionIndex) => timeout(timeoutType)
+    case QueryScoreSliceAudit(userEmail) => queryScoreSlice(playerIdByEmail(userEmail))
     case StopReceiver => println("service " + name + " exiting"); exit()
-    case x =>
+    case x => //TODO : reply an error message ?
   }
 
+  /**
+   * Initialize a game if it is not already initialized.
+   */
   private def initGame(game: Game): Unit = {
-    this.game = game
-    scorer = new Scorer(game.nbUsersThreshold)
-    currentQuestionIndex = 0
-    registredPlayersHistory.clear()
-    currentQuestionPlayer = new QuestionPlayer
-    nextQuestionPlayer = new QuestionPlayer
+    gameState match {
+      case Uninitialized => 
+        this.game = game
+        scorer = new Scorer(game.nbUsersThreshold)
+        currentQuestionIndex = 0
+        registredPlayersHistory.clear()
+        playerIdByEmail.clear()
+        currentQuestionPlayer = new QuestionPlayer
+        nextQuestionPlayer = new QuestionPlayer
+        gameState = Initialized
+        sender ! InitGameSuccess
+      case _ => sender ! ErrorAlreadyStarted
+    }
   }
 
+  /**
+   * Register an user for the game (user login). 
+   * A game has a max number of user, and a timer is started after
+   * the first query for login. 
+   * After login and login ack, user must ask the first question.
+   * When the timer is expired or the number of user is reached 
+   * and they all asked for the first question
+   * (first one met), the game reply with the Question 1.
+   */
   private def register(user:User) {
-
-    if (registredPlayersHistory.size == 0) {
-      // initialize the logintimeout timer for long polling
-      timer ! TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec)
+    def tryToAddUser {
+      if (registredPlayersHistory.size < game.nbUsersThreshold) {
+       if(!registredPlayersHistory.isDefinedAt(user.id)) {
+         registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
+         playerIdByEmail(user.email) = user.id
+       } else { // user is already registered
+         //nothing ? 
+       }
+      } else {
+        println("TODO: error message: max number of user logged-in for that game")
+      }
     }
-    if (registredPlayersHistory.size < game.nbUsersThreshold) {
-      registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
+    
+    gameState match {
+      case Initialized =>
+        // initialize the logintimeout timer for long polling
+        timer ! TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec)
+        this.gameState = WaitingRegistrationAndQ1
+        //add that user
+        tryToAddUser
+      case WaitingRegistrationAndQ1 =>
+        tryToAddUser
+      case _ => 
+        println("TODO: error message: Error: cannot add user with email %s. Registration are closed". format(user.email))
     }
   }
 
-  /*
-  * A user query a question
-  */
+  /**
+   * A user query a question. If the question number is the currently processed, 
+   * we wait for all user to query that question and then reply to all of them.
+   */
   private def queryQuestion(userId: Int, questionIndex: Int) {
+    //TODO: why not check that the user is in that game ?
+    
+    //TODO: I don't see a case in the spec where a user is allowed to
+    //query for a question that is not currentQuestionIndex
     val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
     questionPlayer.players(questionPlayer.playerIndex) = userId
@@ -129,6 +214,8 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     if (nextQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
+      //TODO: I thing that there is always a SynchroTime, even if all users asked for the question
+      //before QuestionTimeFrame expiration - see "sequences-d-appels", les question, cas 1
       currentQuestionIndex += 1
       replyQuestion()
     }
@@ -137,6 +224,10 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     }
   }
 
+  /**
+   * A registered user for that game answer for the current
+   * question
+   */
   private def answer(userId: Int, answerIndex: Int) {
 
     val userAnswerHistory = registredPlayersHistory( userId )
@@ -163,10 +254,30 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
   }
 
+  /**
+   * Query for the ranking of the given user.
+   * Can be done only when EndGame state is reached 
+   * (last question answered and SynchroTime expired)
+   * 
+   * Return Some(List(scores)) if score are available
+   * or None if it is not the time to ask
+   */
   private def queryScoreSlice(userId: Int) {
-    sender ! scorer.scoreSlice( registredPlayersHistory(userId).user )
+    gameState match {
+      case EndGame => sender ! ScoreSlice(scorer.scoreSlice( registredPlayersHistory(userId).user ))
+      case _ => 
+        //TODO: error
+        println("Error: ask for the score or ranking on a non finished game")
+        sender ! ScoreSliceUnawailable
+    }
   }
 
+  /**
+   * Send the text of the current question to all users who asked for.
+   * User who didn't asked for the Question N at that time won't be able
+   * to answer it
+   * @return
+   */
   private def replyQuestion() {
 
     currentQuestionPlayer.playerActors.foreach {
@@ -179,6 +290,12 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
   }
 
+  /**
+   * Handle a timeout:
+   * - after the login time (not all user requested question 1)
+   * - after a synchro time (between questions)
+   * - after a question (time elapsed for sending answer)
+   */
   private def timeout(timeoutType: TimeoutType.Value) {
 
     if (timeoutType == TimeoutType.QUESTION) {
@@ -193,11 +310,18 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
       timer ! TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec)
-
     }
     else {
+      if(timeoutType == TimeoutType.LOGIN) {
+        gameState = InGame
+      }
       // LOGIN OR SYNCHRO
-      replyQuestion()
+      //if last question, does nothing and just hope that score and ranking are available ;)
+      if(currentQuestionIndex == game.nbQuestions - 1) {
+        gameState = EndGame
+      } else {
+        replyQuestion()
+      }
     }
   }
 }

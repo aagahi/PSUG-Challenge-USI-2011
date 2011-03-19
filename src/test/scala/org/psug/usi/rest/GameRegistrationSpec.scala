@@ -1,3 +1,5 @@
+package org.psug.usi.rest
+
 import org.psug.usi.domain.{Game, RegisterGame}
 import org.psug.usi.store.{PullData, DataPulled, ClearRepository}
 import org.specs._
@@ -11,6 +13,10 @@ import scala.io.Source
 
 import org.psug.usi.Main._
 
+import org.junit.runner.RunWith
+import org.specs.runner.JUnitSuiteRunner
+
+@RunWith(classOf[JUnitSuiteRunner])
 class GameRegistrationSpec extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)

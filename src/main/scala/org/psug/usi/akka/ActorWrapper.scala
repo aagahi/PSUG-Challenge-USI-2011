@@ -17,7 +17,10 @@ trait ActorWrapper {
 
   def ! ( msg:Any )( implicit senderActor:Option[ActorRef] =None ) = actorRef.!( msg )( senderActor )
 
-  def !? ( msg:Any )(implicit senderActor: Option[ActorRef] =None) =  (actorRef.!!( msg, 30*1000 )( senderActor )).get
+  def !? ( msg:Any )(implicit senderActor: Option[ActorRef] =None) =  (actorRef.!!( msg, 30*1000 )( senderActor )) match {
+    case Some(x) => x
+    case None => throw new RuntimeException("Sending message to actor '%s' timeout. Message: '%s'".format(actorRef.id, msg))
+  }
   
   def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg )( senderActor )
 
