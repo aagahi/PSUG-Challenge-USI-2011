@@ -71,6 +71,11 @@ object usi {
     
     collectOutput(java,out)
     reap(java)
+
+    println("Type <ENTER> to exit")
+    while(System.in.read() == -1)
+      wait(500)
+    java.destroy
     java.waitFor
   }
 }

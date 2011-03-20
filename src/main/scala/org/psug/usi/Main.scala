@@ -27,6 +27,9 @@ object Main {
     val server = new WebServer(Integer.parseInt(port))
     
     println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + port)
+    while(System.in.read() == -1)
+      wait(500)
+    server.stop
   }
 
 }
