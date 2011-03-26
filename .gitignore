@@ -72,7 +72,6 @@ obj/
 files/	
 *.Registrar
 # these are normally the result of processing doc
-*.html
 *.pdf
 *.toc
 *.tex

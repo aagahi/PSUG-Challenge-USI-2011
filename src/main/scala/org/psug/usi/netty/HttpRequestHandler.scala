@@ -10,7 +10,7 @@ import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{InitGame, Services}
 import org.psug.usi.akka.Receiver
-
+import io.{Codec, Source}
 
 /**
  * User: alag
@@ -62,6 +62,12 @@ class RequestActor(services : Services) extends Receiver {
 
     ( method, queryStringDecoder.getPath.split('/').tail ) match {
 
+      case ( HttpMethod.GET, Array("web" ) )  =>
+        sendPage( "index.html" )
+        
+      case ( HttpMethod.GET, Array("web", page ) )  =>
+        sendPage( page )
+
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
         userRepositoryService.remote ! PullData( userId.toInt )
 
@@ -89,6 +95,15 @@ class RequestActor(services : Services) extends Receiver {
     }
   }
 
+  private def sendPage( page:String ){
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
+    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=utf-8")
+    val content = Source.fromFile( "./web/"+page )(Codec.UTF8).mkString
+    response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+    val future = channel.write(response)
+    future.addListener(ChannelFutureListener.CLOSE)
+  }
+
 
   private def sendResponse( value:Option[AnyRef], status:HttpResponseStatus, headers : (String,String)* ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
@@ -96,7 +111,7 @@ class RequestActor(services : Services) extends Receiver {
     value.foreach{
       data =>
       val str = write( data )
-      response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=UTF-8")
+      response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=utf-8")
       response.setContent(ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8))
     }
 
