@@ -8,20 +8,11 @@ import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
-import org.psug.usi.service.{
-  InitGame, Services, QueryScoreSliceAudit, 
-  ScoreSliceUnawailable, ScoreSlice
-}
+import org.psug.usi.service.{InitGame, Services}
 import org.psug.usi.akka.Receiver
 import io.{Codec, Source}
 
 /**
- * This file is the main REST connection handler. It is the gardian of the
- * REST API exposed to client.
- * Each API URL has to have an handler in the <code>handleRequest</code>
- * method.
- * 
- * 
  * User: alag
  * Date: 2/22/11
  * Time: 1:07 AM
@@ -55,9 +46,6 @@ class RequestActor(services : Services) extends Receiver {
 
     case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
     case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
-    
-    case ScoreSliceUnawailable => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-    case ScoreSlice(ranking) => sendResponse( Some( ranking ), HttpResponseStatus.OK )
   }
 
   private def encodeUserAsCookie(user : User) = {
@@ -66,36 +54,13 @@ class RequestActor(services : Services) extends Receiver {
     encoder.encode()
   }
   
-  /**
-   * Actually handle a URL.
-   * The full REST API is defined in 
-   * https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz
-   * 
-   * /api/user POST : user creation
-   *   
-   * /api/game POST : game creation
-   * /api/login POST : user login
-   * /api/question/N GET : get question N
-   * /api/answer/N POST : answer to question N
-   * /api/ranking GET : get the user ranking. Need a logged user
-   * /api/score?user_mail=MAIL&authentication_key=AUTH GET (admin mode) : get user score
-   * /api/audit?user_mail=MAIL&authentication_key=AUTH GET (admin mode) : get user answers
-   * /api/audit/n?user_mail=MAIL&authentication_key=AUTH GET (admin mode) : get user answer n
-   * 
-   */
   private def handleRequest( request:HttpRequest ){
 
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
     val content = request.getContent().toString(CharsetUtil.UTF_8)
-
-    ( method, queryStringDecoder.getPath.split('/').tail ) match {
-
-      case ( HttpMethod.GET, Array("web" ) )  =>
-        sendPage( "index.html" )
-        
-      case ( HttpMethod.GET, Array("web", page ) )  =>
-        sendPage( page )
+    val path=if (queryStringDecoder.getPath=="/") Array("web") else queryStringDecoder.getPath.split('/').tail ;
+    ( method, path ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
         userRepositoryService.remote ! PullData( userId.toInt )
@@ -118,26 +83,22 @@ class RequestActor(services : Services) extends Receiver {
         else{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
-        
-      case ( HttpMethod.GET, Array("api","score") )  =>
-        //TODO: manage errors, missing arguments, etc
-        val authentication_key = queryStringDecoder.getParameters.get("authentication_key").get(0)
-        if( authentication_key == WEB_AUTHICATION_KEY ){
-          val user_mail = queryStringDecoder.getParameters.get("user_mail").get(0)
-          gameManagerService.remote ! QueryScoreSliceAudit(user_mail)
-        } else {
-          sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
-        }
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
+
+      case ( HttpMethod.GET, Array("web" ) )  =>
+        sendPage( "/web/index.html" )
+
+      case ( HttpMethod.GET, Array("web", _* ) )  =>
+        sendPage( queryStringDecoder.getPath )
     }
   }
 
-  private def sendPage( page:String ){
+  private def sendPage( path:String ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
     response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=utf-8")
-    val content = Source.fromFile( "./web/"+page )(Codec.UTF8).mkString
+    val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
     response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)

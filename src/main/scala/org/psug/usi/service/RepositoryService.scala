@@ -116,13 +116,13 @@ class SimpleRepositoryServices(servicesPort: Int = 2552) extends RepositoryServi
  */
 class DefaultRepositoryServices extends RepositoryServices {
   override lazy val userRepositoryService = new UserRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
+    override lazy val env = SingleBDBEnvironment
   }
   override lazy val gameRepositoryService = new GameRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
+    override lazy val env = SingleBDBEnvironment
   }
   override lazy val gameUserHistoryService = new GameUserHistoryRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
+    override lazy val env = SingleBDBEnvironment
   }
 }
 

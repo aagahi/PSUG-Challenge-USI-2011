@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Création d'un utilisateur</title>
+    <script type="text/javascript" src="../js/jquery-1.5.1.min.js" ></script>
+    <script type="text/javascript" src="../js/json2.js" ></script>
+    <style type="text/css">
+        #user_form label { display:inline-block; width:150px; }
+        #user_form input[type="submit"]{ background-color:orange ;
+            width:70px;
+            border-radius: 3em 	; -moz-border-radius : 3em ; -webkit-border-radius:3em}
+        #usi_debug { width:80em; height:20em; overflow:auto; }
+        #new_user_panel {display:none;}
+    </style>
+</head>
+<body>
+    <h2>Enregistrez-vous pour le quizz de l'année</h2>
+    <form action="create_user.html" id="user_form">
+        <label for="firstname">Prénom : </label>
+        <input type="text" name="firstname" id="firstname" placeholder="prénom" required="true">
+        <br>
+        <label for="lastname">Nom : </label>
+        <input name="lastname" id="lastname" placeholder="nom" required="true">
+        <br>
+        <label for="mail">Email : </label>
+        <input type="email" name="mail" id="mail" placeholder="email" required="true">
+        <br>
+        <label for="password">Mot de passe : </label>
+        <input type="password" name="password" id="password" placeholder="mot de passe" required="true">
+         <br>
+        <input type="submit" name="submit" value="valider">
+    </form>
+    <div id="new_user_panel">
+        <input type="button" id="new_user" value="Créer un nouvel utilisateur">
+    </div>
+    <div id="usi_debug"></div>
+    <script type="text/javascript">
+        $(document).ready(function (){
+            var $dbg=$("#usi_debug");
+            var usi_log=function(msg){
+                $dbg.html($dbg.html()+result);
+            };
+
+            $("#user_form").submit(function (event){
+                event.preventDefault();
+                var randomnumber=Math.floor(Math.random()*999999999999)
+                var datas={ "id":randomnumber,
+                            "firstname": $("#firstname").attr("value"),
+                            "lastname": $("#lastname").attr("value"),
+                            "mail": $("#mail").attr("value"),
+                            "password": $("#password").attr("value")};
+                console.log(JSON.stringify(datas));
+
+                $.post('/api/user', JSON.stringify(datas), function(result){
+                    $("#new_user_panel").show();
+                    usi_log("Resultat de la requête ajax:"+result);
+                }, "json");
+
+
+                return false;
+            });
+            $("#new_user").click(function (){
+                $("form input[type='text']").each (function(){ this.attr("value", ""); });
+                $("form input[type='password']").each (function(){ this.attr("value", ""); });
+                $("#new_user_panel").hide();
+                $("#firstname").focus();
+            });
+        });
+    </script>
+</body>
+</html>
