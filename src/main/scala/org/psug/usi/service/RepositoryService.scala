@@ -5,6 +5,7 @@ import org.psug.usi.store.DataRepositoryMessage
 import org.psug.usi.domain.{GameUserHistoryRepository, GameRepository, UserRepository}
 import org.psug.usi.netty.Status
 import akka.actor.Actor._
+import akka.util.Logging
 
 
 /**
@@ -13,11 +14,11 @@ import akka.actor.Actor._
  * Time: 2:32 PM
  */
 
-trait RepositoryService extends DefaultServiceConfiguration with Service {
+trait RepositoryService extends DefaultServiceConfiguration with Service with Logging {
 
   def receive = {
     case ServiceStatus => reply(Status( "Service", port))
-    case StopReceiver => println("service " + name + " exiting"); stop()
+    case StopReceiver => log.info("service " + name + " exiting"); stop()
     case x =>
       handleMessage(x) match {
         case message: DataRepositoryMessage => reply(message)

@@ -9,6 +9,7 @@ import org.jboss.netty.handler.codec.http.{HttpResponseEncoder, HttpRequestDecod
 import java.util.concurrent.Executors
 
 import org.psug.usi.service._
+import akka.util.Logging
 
 
 /**
@@ -27,7 +28,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : Services = new DefaultRepositoryServices) {
+class WebServer( val listenPort:Int = 18080, val services : Services = new DefaultRepositoryServices) extends Logging {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _
@@ -52,7 +53,7 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
     bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services) )
     bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
 
-    println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + listenPort)
+    log.info("Started PSUG USI2011 Challenge server at 0.0.0.0:" + listenPort)
   }
 
   def stop = {

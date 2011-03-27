@@ -6,6 +6,7 @@ import java.io._
 import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfig}
 import collection.JavaConversions._
 import collection.mutable.HashMap
+import akka.util.Logging
 
 /**
  * User: alag
@@ -18,7 +19,7 @@ import collection.mutable.HashMap
  * An environment is a configured set of databases accessible through BDB API and residing within a given directory
  * structure on file-system. An environment may be a standalone instance of replicated.
  */
-trait BDBEnvironment {
+trait BDBEnvironment extends Logging {
    self : BDBConfiguration =>
 
   val databases = new HashMap[String,BDBManagement]()
@@ -45,7 +46,7 @@ trait BDBEnvironment {
 
     envConfig.setDurability(durability)
 
-    println("Starting " + getClass + " environment on " + replicaHostName + " contacting helper " + replicaHelperHostName)
+    log.info("Starting " + getClass + " environment on " + replicaHostName + " contacting helper " + replicaHelperHostName)
 
     configure(envConfig)
   }
@@ -54,7 +55,7 @@ trait BDBEnvironment {
   def shutdown() {
     environment.getDatabaseNames().foreach{
       dbName =>
-      databases.get( dbName ).foreach{ db => println( "Closing db: " + db.databaseName ); db.close() }
+      databases.get( dbName ).foreach{ db => log.info( "Closing db: " + db.databaseName ); db.close() }
     }
 
     environment.sync()
@@ -64,7 +65,7 @@ trait BDBEnvironment {
 
   class ShutdownHook extends Thread {
     override def run() {
-      println("Shutting down databases")
+      log.info("Shutting down databases")
       //shutdown
     }
   }
@@ -152,7 +153,7 @@ class BDBSimpleDataFactory[T<:Data[Int]] extends BDBDataFactory[Int,T]{
  * A single instance of a database operating in a given environment.
  * This trait needs to be given a proper BDBEnvironment when instantiated.
  */
-trait BDBManagement {
+trait BDBManagement extends Logging {
   val env : BDBEnvironment with BDBConfiguration
 
 
@@ -181,13 +182,13 @@ trait BDBManagement {
 
 
   def removeDatabase() {
-    println( "Remove db: " + databaseName )
+    log.debug( "Remove db: " + databaseName )
     close()
     try{
       env.environment.removeDatabase(null, databaseName)
     }
     catch {
-      case _ => println( "Warning: error on removing database " + databaseName )
+      case _ => log.warn( "Error on removing database " + databaseName )
     }
   }
 

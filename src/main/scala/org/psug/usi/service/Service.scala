@@ -1,6 +1,7 @@
 package org.psug.usi.service
 
 import org.psug.usi.akka.{RemoteReceiver, Receiver}
+import akka.util.Logging
 
 /**
  * User: alag
@@ -36,7 +37,7 @@ case object StopReceiver
 /**
  * A service is an actor that is registered for remote access.
  */
-trait Service extends Receiver {
+trait Service extends Receiver with Logging {
   config : ServiceConfiguration =>
 
   def go = {
@@ -45,7 +46,7 @@ trait Service extends Receiver {
   }
 
   def registerAsRemoteActor {
-    println( "Register Remote actor " + name )
+    log.info( "Register Remote actor " + name )
     register( name )
   }
 
