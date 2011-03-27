@@ -10,7 +10,7 @@ import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{
   InitGame, Services, QueryScoreSliceAudit, 
-  ScoreSliceUnawailable, ScoreSlice
+  ScoreSliceUnavailable, ScoreSlice
 }
 import org.psug.usi.akka.Receiver
 import io.{Codec, Source}
@@ -57,7 +57,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
     case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
     case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
     
-    case ScoreSliceUnawailable => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+    case ScoreSliceUnavailable => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
     case ScoreSlice(ranking) => sendResponse( Some( ranking ), HttpResponseStatus.OK )
   }
 
