@@ -34,7 +34,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
                  , nbUsersThreshold = 160 
                  )
 
-  val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )).toList
+  val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i )).toList
 
   val gameManager = new GameManagerService( repositories.gameUserHistoryService )  
   
@@ -79,7 +79,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     }
     
 
-    "fail if the authentication key is OK but no user email is provided" in {
+    "fail if the authentication key is OK but no user mail is provided" in {
       
     }
       

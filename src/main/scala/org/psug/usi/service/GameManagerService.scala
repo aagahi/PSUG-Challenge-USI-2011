@@ -173,7 +173,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (registredPlayersHistory.size < game.nbUsersThreshold) {
        if(!registredPlayersHistory.isDefinedAt(user.id)) {
          registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
-         playerIdByEmail(user.email) = user.id
+         playerIdByEmail(user.mail) = user.id
        } else { // user is already registered
          //nothing ? 
        }
@@ -192,7 +192,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       case WaitingRegistrationAndQ1 =>
         tryToAddUser
       case _ => 
-        println("TODO: error message: Error: cannot add user with email %s. Registration are closed". format(user.email))
+        println("TODO: error message: Error: cannot add user with mail %s. Registration are closed". format(user.mail))
     }
   }
 

@@ -59,10 +59,10 @@ class Scorer(val numUsers: Int, val sliceRange:Range = -10 to 10, val topSize:In
     val listScore = ListScores(new Array(s), new Array(s), new Array(s), new Array(s))
     var i = 0
     scores.foreach { case UserScore(user,score) =>
-      listScore.mail(i) = user.email
+      listScore.mail(i) = user.mail
       listScore.scores(i) = score
-      listScore.firstname(i) = user.firstName
-      listScore.lastname(i) = user.lastName
+      listScore.firstname(i) = user.firstname
+      listScore.lastname(i) = user.lastname
       i += 1
     }
     listScore

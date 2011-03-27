@@ -50,7 +50,7 @@ class RequestActor(services : Services) extends Receiver {
 
   private def encodeUserAsCookie(user : User) = {
     val encoder = new CookieEncoder(true)
-    encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.email)))
+    encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.mail)))
     encoder.encode()
   }
   
