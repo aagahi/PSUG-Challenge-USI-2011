@@ -314,11 +314,16 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
    * @return
    */
   private def endGame(){
-    for (userId <- currentQuestionPlayer.players) {
-      val userAnswerHistory = registredPlayersHistory( userId )
-      gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+    gameState match {
+      case InGame =>
+        for (userId <- currentQuestionPlayer.players) {
+          val userAnswerHistory = registredPlayersHistory( userId )
+          gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+        }
+        gameState = EndGame
+      case _ =>
+        log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
     }
-    gameState = EndGame
   }
 
 
@@ -348,10 +353,12 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         gameState = InGame
       }
       // LOGIN OR SYNCHRO
-      //if last question, does nothing and just hope that score and ranking are available ;)
-      if(currentQuestionIndex == game.nbQuestions - 1) endGame()
-      else replyQuestion()
-      
+      //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
+      if( gameState == InGame ){
+        if(currentQuestionIndex == game.nbQuestions - 1) endGame()
+        else replyQuestion()
+      }
+
     }
   }
 }
