@@ -43,7 +43,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     val queryParams = new MultivaluedMapImpl()
     queryParams.add("user_mail", userEmail)
     queryParams.add("authentication_key", key)
-    webResource("/api/ranking").queryParams(queryParams).get(classOf[ClientResponse])
+    webResource("/api/score").queryParams(queryParams).get(classOf[ClientResponse])
   } 
   
   "Admin auditing score for one user" should {
@@ -60,18 +60,10 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     }
  
     "Succed if the auth key is OK, a game was played, and the queried user played that game" in {
-      println("°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°")
-      
       playGame(gameManager,game,users)      
-      
-      println("ppppppppppppppppppppppppppppppppppppppppp")
-
       val response = queryRanking(WEB_AUTHICATION_KEY, "email0")
-      println("============================================")
       response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
-
-      println("*** Get response: " + response.getEntity(classOf[String]))
-      
+      //TODO: check result
     }
 
     "fail on POST" in {
@@ -116,7 +108,6 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       // Register
       users.map( user => gameManager.remote ! Register( user ) )
 
-     println("+++++++++++++++++++++++++++++++++++++++++dd++")
      try {
      //ask/answer question
       (0 until game.questions.size) foreach { currentQuestion =>
@@ -143,10 +134,11 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       }
      } catch {
        case e:Exception => 
-         println(e.getStackTrace)
+         println(e.getMessage)
+         //TODO: why does it not appear in tests ?
          fail(e.getMessage)
+         throw e
      }
-      println("+++++++++++++++++++++++++++++++++++++++++dd++")
       // Get userScore slices
       users.foreach{
         user =>
@@ -157,8 +149,6 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
           }
       }
       
-      println("+++++++++++++++++++++++++++++++++++++++++++")
-
       // Check history
       users.foreach{
         user =>
