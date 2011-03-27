@@ -138,7 +138,7 @@ class GamesSpec extends SpecificationWithJUnit {
                     flushUserTable = false,
                     nbUsersThreshold = 160 )
 
-    val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstName"+i, "lastName"+i, "email"+i, "password"+i )).toList
+    val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i )).toList
 
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {

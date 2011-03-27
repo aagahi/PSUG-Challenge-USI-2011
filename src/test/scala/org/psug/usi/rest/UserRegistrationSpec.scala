@@ -81,7 +81,7 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
       user must be_==(expectedUser)
     }
 
-    "fail if user with same email exists" in {
+    "fail if user with same mail exists" in {
       registerUser(martinOdersky)
       registerUser(myriamOdersky) must throwA[UniformInterfaceException]
     }
@@ -112,7 +112,7 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
       response.getHeaders.get("Set-Cookie") must beNull
     }
 
-    "encodes user email and id in cookie" in {
+    "encodes user mail and id in cookie" in {
       import AuthenticationToken._
       
       registerUser(martinOdersky)

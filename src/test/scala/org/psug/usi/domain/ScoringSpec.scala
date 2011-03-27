@@ -56,7 +56,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities{
       scorer.scoreAnwser( ScorerAnwserValue( user, 5 ) ) must be_==(UserScore( user, 5+1+0+5 ) )
     }
 
-    "users with same score must be sorted by firstname/lastname/email" in {
+    "users with same score must be sorted by firstname/lastname/mail" in {
       val scorer = new Scorer(2, topSize = 5)
       val user1 = User( 0, "A","A","B", "" )
       val user2 = User( 1, "A","A","C", "" )
