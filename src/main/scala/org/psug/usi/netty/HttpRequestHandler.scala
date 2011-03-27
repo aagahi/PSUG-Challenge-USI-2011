@@ -11,6 +11,7 @@ import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{InitGame, Services}
 import org.psug.usi.akka.Receiver
 import io.{Codec, Source}
+import akka.util.Logging
 
 /**
  * User: alag
@@ -20,7 +21,7 @@ import io.{Codec, Source}
 
 case class Status( nodeType:String, port:Int )
 
-class RequestActor(services : Services) extends Receiver {
+class RequestActor(services : Services) extends Receiver with Logging {
 
   import services._
   import org.psug.usi.Main._
@@ -35,11 +36,11 @@ class RequestActor(services : Services) extends Receiver {
       event.getMessage match
       {
         case request:HttpRequest => handleRequest( request )
-        case _ => println( "Unknown message" )
+        case _ => log.warn( "Unknown message" )
       }
 
     case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
-    case DataStored( Left( message ) )	=> println(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+    case DataStored( Left( message ) )	=> log.debug(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
     case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
     case DataPulled( None )			=> sendResponse( None, HttpResponseStatus.BAD_REQUEST )

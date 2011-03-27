@@ -5,6 +5,7 @@ import org.psug.usi.store.StoreData
 import collection.mutable.HashMap
 import org.psug.usi.akka.Receiver
 import akka.actor.Channel
+import akka.util.Logging
 
 /**
  * User: alag
@@ -94,7 +95,7 @@ case object EndGame extends GameState
  */
 class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
                          var timer: GameManagerTimer = new DefaultGameManagerTimer)
-  extends DefaultServiceConfiguration with Service with RemoteService {
+  extends DefaultServiceConfiguration with Service with RemoteService with Logging {
   
 
   override lazy val name = "GameManagerService"
@@ -136,7 +137,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSlice(playerIdByEmail(userEmail))
-    case StopReceiver => println("service " + name + " exiting"); exit()
+    case StopReceiver => log.info("service " + name + " exiting"); exit()
     case x => //TODO : reply an error message ?
   }
 
@@ -178,7 +179,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
          //nothing ? 
        }
       } else {
-        println("TODO: error message: max number of user logged-in for that game")
+        log.error("TODO: error message: max number of user logged-in for that game")
       }
     }
     
@@ -192,7 +193,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       case WaitingRegistrationAndQ1 =>
         tryToAddUser
       case _ => 
-        println("TODO: error message: Error: cannot add user with mail %s. Registration are closed". format(user.mail))
+        log.error("TODO: error message: Error: cannot add user with mail %s. Registration are closed". format(user.mail))
     }
   }
 
@@ -267,7 +268,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       case EndGame => sender ! ScoreSlice(scorer.scoreSlice( registredPlayersHistory(userId).user ))
       case _ => 
         //TODO: error
-        println("Error: ask for the score or ranking on a non finished game")
+        log.error("Error: ask for the score or ranking on a non finished game")
         sender ! ScoreSliceUnawailable
     }
   }
