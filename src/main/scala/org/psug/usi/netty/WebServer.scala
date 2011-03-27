@@ -51,6 +51,8 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
 
     bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services) )
     bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
+
+    println("Started PSUG USI2011 Challenge server at 0.0.0.0:" + listenPort)
   }
 
   def stop = {
