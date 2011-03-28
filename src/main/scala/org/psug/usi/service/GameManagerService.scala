@@ -33,7 +33,7 @@ case class QueryScoreSlice(userId: Int)
 case class QueryScoreSliceAudit(userEmail: String)
 //answer to QueryScoreSlice may be "don't ask" if the game is not finished
 trait ScoreSliceAnswer
-case object ScoreSliceUnawailable extends ScoreSliceAnswer
+case object ScoreSliceUnavailable extends ScoreSliceAnswer
 case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
 
 
@@ -111,14 +111,14 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     val playerActors = new HashMap[Int, Channel[Any]]
   }
 
-
   var currentQuestionIndex = 0
+  var userAnswerCount = 0
 
   var currentQuestionPlayer : QuestionPlayer = null
   var nextQuestionPlayer : QuestionPlayer = null
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
-  val playerIdByEmail = new HashMap[String,Int]
+  val userIdByEmail = new HashMap[String,Int]
   
 
   def receive = {
@@ -136,7 +136,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (questionIndex == currentQuestionIndex) 
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
-    case QueryScoreSliceAudit(userEmail) => queryScoreSlice(playerIdByEmail(userEmail))
+    case QueryScoreSliceAudit(userEmail) => queryScoreSlice(userIdByEmail(userEmail))
     case StopReceiver => log.info("service " + name + " exiting"); exit()
     case x => //TODO : reply an error message ?
   }
@@ -151,7 +151,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         scorer = new Scorer(game.nbUsersThreshold)
         currentQuestionIndex = 0
         registredPlayersHistory.clear()
-        playerIdByEmail.clear()
+        userIdByEmail.clear()
         currentQuestionPlayer = new QuestionPlayer
         nextQuestionPlayer = new QuestionPlayer
         gameState = Initialized
@@ -174,7 +174,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (registredPlayersHistory.size < game.nbUsersThreshold) {
        if(!registredPlayersHistory.isDefinedAt(user.id)) {
          registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
-         playerIdByEmail(user.mail) = user.id
+         userIdByEmail(user.mail) = user.id
        } else { // user is already registered
          //nothing ? 
        }
@@ -212,16 +212,31 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors(userId) = sender
 
-    if (nextQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
-      currentQuestionPlayer = nextQuestionPlayer
-      nextQuestionPlayer = new QuestionPlayer
-      //TODO: I thing that there is always a SynchroTime, even if all users asked for the question
-      //before QuestionTimeFrame expiration - see "sequences-d-appels", les question, cas 1
-      currentQuestionIndex += 1
-      replyQuestion()
+    if (nextQuestionPlayer.playerIndex >= registredPlayersHistory.size ) {
+      gameState match {
+        case InGame =>
+          currentQuestionPlayer = nextQuestionPlayer
+          nextQuestionPlayer = new QuestionPlayer
+          //TODO: I thing that there is always a SynchroTime, even if all users asked for the question
+          //before QuestionTimeFrame expiration - see "sequences-d-appels", les question, cas 1
+          currentQuestionIndex += 1
+          replyQuestion()
+
+        case _ =>
+          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+      }
     }
     else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
-      replyQuestion()
+      gameState match {
+        case WaitingRegistrationAndQ1 =>
+          gameState = InGame
+          replyQuestion()
+        case InGame =>
+          replyQuestion()
+        case _ =>
+          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+      }
+
     }
   }
 
@@ -230,7 +245,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
    * question
    */
   private def answer(userId: Int, answerIndex: Int) {
-
+    userAnswerCount += 1
     val userAnswerHistory = registredPlayersHistory( userId )
 
     userAnswerHistory.answersHistory = AnswerHistory(currentQuestionIndex, answerIndex) :: userAnswerHistory.answersHistory
@@ -248,9 +263,10 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
     sender ! UserAnswerResponse( answerValue > 0, userScore.score)
-    
-    if (currentQuestionIndex == game.nbQuestions - 1) {
-      gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+
+
+    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == userIdByEmail.size ) {
+      endGame()
     }
 
   }
@@ -265,11 +281,12 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
    */
   private def queryScoreSlice(userId: Int) {
     gameState match {
-      case EndGame => sender ! ScoreSlice(scorer.scoreSlice( registredPlayersHistory(userId).user ))
+      case EndGame =>
+        sender ! ScoreSlice(scorer.scoreSlice( registredPlayersHistory(userId).user ))
       case _ => 
         //TODO: error
         log.error("Error: ask for the score or ranking on a non finished game")
-        sender ! ScoreSliceUnawailable
+        sender ! ScoreSliceUnavailable
     }
   }
 
@@ -280,7 +297,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
    * @return
    */
   private def replyQuestion() {
-
+    userAnswerCount = 0
     currentQuestionPlayer.playerActors.foreach {
       case (userId, playerActor) =>
         playerActor ! QuestionResponse(game.questions(currentQuestionIndex))
@@ -290,6 +307,25 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
 
 
   }
+
+  /**
+   * End the game
+   * Store all user answer history
+   * @return
+   */
+  private def endGame(){
+    gameState match {
+      case InGame =>
+        for (userId <- currentQuestionPlayer.players) {
+          val userAnswerHistory = registredPlayersHistory( userId )
+          gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+        }
+        gameState = EndGame
+      case _ =>
+        log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+    }
+  }
+
 
   /**
    * Handle a timeout:
@@ -317,12 +353,12 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         gameState = InGame
       }
       // LOGIN OR SYNCHRO
-      //if last question, does nothing and just hope that score and ranking are available ;)
-      if(currentQuestionIndex == game.nbQuestions - 1) {
-        gameState = EndGame
-      } else {
-        replyQuestion()
+      //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
+      if( gameState == InGame ){
+        if(currentQuestionIndex == game.nbQuestions - 1) endGame()
+        else replyQuestion()
       }
+
     }
   }
 }
