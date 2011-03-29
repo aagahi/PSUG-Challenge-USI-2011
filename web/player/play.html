@@ -1,9 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title></title>
+    <meta charset="utf-8" />
+    <title>Bonne chance!</title>
+    <script type="text/javascript" src="../js/jquery-1.5.1.min.js" ></script>
+    <script type="text/javascript" src="../js/json2.js" ></script>
+    <script type="text/javascript" src="../js/psug.js" ></script>
+    <script type="text/javascript">
+// TODO vérifier le cookie
+    </script>
 </head>
 <body>
+    <form id="auth_form">
+        <h3>Authentification</h3>
+        <label for="mail">Mail</label>
+        <input name="mail">
+        <br />
+        <label for="password">Mot de passe</label>
+        <input type="password" name="password">
+        <br />
+    </form>
+    <div id="result_panel"></div>
+    <script type="text/javascript">
+	$(document).ready(function (){
+	    var $dbg=$("#usi_debug");
+	    var usi_log=function(msg){
+		$dbg.html($dbg.html()+result);
+	    };
 
-</body>
+	    $("#auth_form").submit(function (event){
+		event.preventDefault();
+		var datas=$("#auth_form").serializeJSON();
+		console.log(JSON.stringify(datas));
+		var success=function(result, status, jqXHR){
+		    usi_log("Resultat de la requête ajax:"+result);
+		    if(status==="200") {
+			$("#result_panel").html("L'utilisateur a bien été créé");
+		    } else if(status==="404") {
+			$("#result_panel").html("L'identification a échoué. Veuillez recommencer.");
+		    } else  {
+			$("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+		    }
+		};
+		var error=function () { alert ("erreur...")};
+		$.post('/api/user', JSON.stringify(datas), success, "json").error(error);
+		return false;
+	    });
+	    $("#auth").click(function (){
+		$("form input[type='text']").each (function(){ this.attr("value", ""); });
+		$("form input[type='password']").each (function(){ this.attr("value", ""); });
+		$("#new_user_panel").hide();
+		$("#firstname").focus();
+	    });
+	});
+    </script>
+    </body>
 </html>

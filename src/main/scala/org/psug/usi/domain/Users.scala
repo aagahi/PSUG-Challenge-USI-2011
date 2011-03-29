@@ -9,17 +9,27 @@ import com.sun.jersey.core.util.Base64
 object AuthenticationToken {
   val re = "(\\d+);(.*)".r
   implicit def decrypt(value : String) : AuthenticationToken = Base64.base64Decode(value) match {
-    case re(id,email) => AuthenticationToken(Integer.parseInt(id),email)
+    case re(id,mail) => AuthenticationToken(Integer.parseInt(id),mail)
     case _            => throw new IllegalArgumentException("cannot decode token "+value)
   }
 
-  implicit def encrypt(token : AuthenticationToken) : String = new String(Base64.encode(token.id + ";" + token.email))
+  implicit def encrypt(token : AuthenticationToken) : String = new String(Base64.encode(token.id + ";" + token.mail))
 }
 
-case class AuthenticationToken(id : Int, email : String)
+case class AuthenticationToken(id : Int, mail : String)
+case class Credentials(mail: String, password: String)
 
-case class Credentials(email: String, password: String)
-
+object UserVO {
+  var index=0
+  def create_id={
+    index++
+    index
+  }
+}
+case class UserVO( firstname:String, lastname:String, mail:String, password:String )  {
+  def id:Int=
+  def getUser()=User(id, firstname, lastname, mail, password)
+}
 object User{
     def apply(firstname : String, lastname : String, mail : String, password : String):User = User( 0, firstname, lastname, mail, password )
 }
@@ -51,7 +61,7 @@ case class User( id:Int, firstname:String, lastname:String, mail:String, passwor
 
 }
 
-case class PullDataByEmail( email : String ) extends DataRepositoryMessage
+case class PullDataByEmail( mail : String ) extends DataRepositoryMessage
 case class AuthenticateUser (credentials : Credentials) extends DataRepositoryMessage
 case class UserAuthenticated (user : Either[User,String]) extends DataRepositoryMessage
 
@@ -80,9 +90,9 @@ abstract class UserRepository extends BDBDataRepository[Int,User]( "UserReposito
     }
   }
 
-  def idByEmail( email:String ) = {
+  def idByEmail( mail:String ) = {
     val key = new DatabaseEntry()
-    StringBinding.stringToEntry( email, key )
+    StringBinding.stringToEntry( mail, key ) 
     val data = new DatabaseEntry()
     database.get( null, key, data, LockMode.READ_UNCOMMITTED )
     if( data.getData != null ){
@@ -104,24 +114,24 @@ abstract class UserRepository extends BDBDataRepository[Int,User]( "UserReposito
       None
   }
 
-  def lookupUser(email : String) : DataPulled[Int] =
-    DataPulled[Int]( for(id   <- idByEmail( email );
+  def lookupUser(mail : String) : DataPulled[Int] =
+    DataPulled[Int]( for(id   <- idByEmail( mail );
                     user <- load( id )) yield user)
 
   override def handleMessage( any:Any )={
     any match {
-      case PullDataByEmail( email ) =>
-        lookupUser(email)
+      case PullDataByEmail( mail ) =>
+        lookupUser(mail)
       case AuthenticateUser(credentials) =>
-        lookupUser(credentials.email) match {
+        lookupUser(credentials.mail) match {
           case DataPulled(Some(user))  =>  {
             if(user.asInstanceOf[User].password == credentials.password) {
               UserAuthenticated(Left(user.asInstanceOf[User]))
             } else
-              UserAuthenticated(Right("invalid credentials for user " + credentials.email))
+              UserAuthenticated(Right("invalid credentials for user " + credentials.mail))
           }
           case DataPulled(None)       =>
-              UserAuthenticated(Right("invalid credentials for user " + credentials.email))
+              UserAuthenticated(Right("invalid credentials for user " + credentials.mail))
         }
       case _ => super.handleMessage( any )
     }
