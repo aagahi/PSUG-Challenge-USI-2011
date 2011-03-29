@@ -21,13 +21,10 @@ case class Credentials(mail: String, password: String)
 
 object UserVO {
   var index=0
-  def create_id={
-    index++
-    index
-  }
+  def create_id={ index+=1 ; index}
 }
 case class UserVO( firstname:String, lastname:String, mail:String, password:String )  {
-  def id:Int=
+  def id:Int=UserVO.create_id
   def getUser()=User(id, firstname, lastname, mail, password)
 }
 object User{
