@@ -11,14 +11,19 @@
 	#user_form input[type="submit"]{
 	    background-color:orange ;
 	    width:70px;
-	    border-radius: 3em	; -moz-border-radius : 3em ; -webkit-border-radius:3em; }
+	    border-radius: 3em	; -moz-border-radius : 3em ; -webkit-border-radius:3em;
+    }
 	#usi_debug { width:80em; height:20em; overflow:auto; }
-	#new_user_panel {display:none;}
+	#new_user_panel { display:none; }
+    input.error { border-color:#ff0000; }
+    div.error { color:#ff0000; font-weight:bold ; border: 1px solid #ff0000; margin-bottom:1em; padding: 0.5em 20px;}
+    none {display:none;}
     </style>
 </head>
 <body>
-    <h2>Enregistrez-vous pour le quizz de l'année</h2>
+    <h2>Enregistrez un nouveau joueur pour le quizz de l'année</h2>
     <form action="create_user.html" id="user_form">
+    <div id="messages" class="none"></div>
 	<label for="firstname">Prénom : </label>
 	<input type="text" name="firstname" id="firstname" placeholder="prénom" required="true">
 	<br>
@@ -45,32 +50,45 @@
 		$dbg.html($dbg.html()+result);
 	    };
 
-	    $("#user_form").submit(function (event){
-		event.preventDefault();
-		var randomnumber=Math.floor(Math.random()*999999999999)
-		var datas=$("#user_form").serializeJSON();
-                datas['id']= randomnumber;
-		console.log(JSON.stringify(datas));
-		var success=function(result, status, jqXHR){
-		    $("#new_user_panel").show();
-		    usi_log("Resultat de la requête ajax:"+result);
-		    if(status==="201") {
-			$("#result_panel").html("L'utilisateur a bien été créé");
-		    } else if(status==="400") {
-			$("#result_panel").html("une erreur est survenu lors de la création de l'utilisateur");
-		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
-		    }
-		};
-		var error=function () { alert ("erreur...")};
-		$.post('/api/user', JSON.stringify(datas), success, "json").error(error);
-		return false;
-	    });
-	    $("#new_user").click(function (){
-		$("form input[type='text']").each (function(){ this.attr("value", ""); });
-		$("form input[type='password']").each (function(){ this.attr("value", ""); });
-		$("#new_user_panel").hide();
-		$("#firstname").focus();
+	    $("#user_form") .submit(function (event){
+            event.preventDefault();
+            
+            var data=$("#user_form").serializeJSON();
+            var validate=function(key, value){
+                input_class= (value.length<=2?"error":"");
+                $("#"+key).attr("class", input_class);
+            };
+            $.each(data, validate);
+            if ($(".error").length) {
+                $("#messages").attr("class", "error");
+                $("#messages").html("Plusieurs champs sont en erreur.");
+                return false;
+            }
+            $("#messages").attr("class", "none");
+            $("#messages").html("");
+    //		var randomnumber=Math.floor(Math.random()*999999999999)
+    //      data['id']= randomnumber;
+            console.log(JSON.stringify(data));
+            var success=function(result, status, jqXHR){
+                $("#new_user_panel").show();
+                usi_log("Resultat de la requête ajax:"+result);
+                if(status==="201") {
+                    $("#result_panel").html("L'utilisateur a bien été créé");
+                } else if(status==="400") {
+                    $("#result_panel").html("une erreur est survenu lors de la création de l'utilisateur");
+                } else  {
+                    $("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
+                }
+            };
+            var error=function () { alert ("erreur...")};
+            $.post('/api/user', JSON.stringify(data), success, "json").error(error);
+            return false;
+            });
+            $("#new_user").click(function (){
+            $("form input[type='text']").each (function(){ this.attr("value", ""); });
+            $("form input[type='password']").each (function(){ this.attr("value", ""); });
+            $("#new_user_panel").hide();
+            $("#firstname").focus();
 	    });
 	});
     </script>

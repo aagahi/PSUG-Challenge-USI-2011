@@ -11,11 +11,12 @@
     <form id="auth_form">
         <h3>Authentification</h3>
         <label for="mail">Mail</label>
-        <input name="mail">
+        <input type="email" name="mail" required="required" t>
         <br />
         <label for="password">Mot de passe</label>
         <input type="password" name="password">
         <br />
+        <input type="submit" name="submit" value="submit" />
     </form>
     <div id="result_panel"></div>
     <script type="text/javascript">
@@ -30,17 +31,17 @@
 		var datas=$("#auth_form").serializeJSON();
 		console.log(JSON.stringify(datas));
 		var success=function(result, status, jqXHR){
-		    usi_log("Resultat de la requête ajax:"+result);
+		    usi_log("Resultat de la requÃªte ajax:"+result);
 		    if(status==="200") {
-			$("#result_panel").html("L'utilisateur a bien été créé");
+			$("#result_panel").html("L'utilisateur a bien Ã©tÃ© crÃ©Ã©");
 		    } else if(status==="404") {
-			$("#result_panel").html("L'identification a échoué. Veuillez recommencer.");
+			$("#result_panel").html("L'identification a Ã©chouÃ©. Veuillez recommencer.");
 		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+			$("#result_panel").html("Etat inconnu lors de la crÃ©ation d'un utilisateur (ni 200 ni 404)");
 		    }
 		};
 		var error=function () { alert ("erreur...")};
-		$.post('/api/user', JSON.stringify(datas), success, "json").error(error);
+		$.post('/api/login', JSON.stringify(datas), success, "json").error(error);
 		return false;
 	    });
 	    $("#auth").click(function (){
