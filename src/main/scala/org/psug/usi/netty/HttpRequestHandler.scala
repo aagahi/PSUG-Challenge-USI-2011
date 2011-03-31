@@ -99,12 +99,23 @@ class RequestActor(services : Services) extends Receiver with Logging {
 
       case ( HttpMethod.GET, Array("web", _* ) )  =>
         sendPage( queryStringDecoder.getPath )
+
+      case _ => log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
     }
   }
 
   private def sendPage( path:String ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=utf-8")
+    val contentType = path.substring( path.lastIndexOf(".") + 1 ) match {
+      case "html" => "text/html; charset=utf-8"
+      case "js" => "text/javascript; charset=utf-8"
+      case x =>
+        log.warn( "Unknown file type "+x+", using binary content type" )
+        "application/binary"
+    }
+    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
+
+
     val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
     response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
     val future = channel.write(response)

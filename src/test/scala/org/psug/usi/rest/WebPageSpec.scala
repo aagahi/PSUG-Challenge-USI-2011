@@ -50,7 +50,7 @@ class WebPageSpec extends SpecificationWithJUnit {
       val expectedContent = Source.fromFile( "./web/js/psug.js" )(Codec.UTF8).mkString
 
       response.getStatus must be_==( ClientResponse.Status.OK.getStatusCode )
-      response.getHeaders.getFirst( "Content-Type" ) must be_==( "text/html; charset=utf-8" )
+      response.getHeaders.getFirst( "Content-Type" ) must be_==( "text/javascript; charset=utf-8" )
       content must be_==( expectedContent )
 
     }
