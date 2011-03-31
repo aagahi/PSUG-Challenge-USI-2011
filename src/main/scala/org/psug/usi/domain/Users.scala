@@ -19,16 +19,11 @@ object AuthenticationToken {
 case class AuthenticationToken(id : Int, mail : String)
 case class Credentials(mail: String, password: String)
 
-object UserVO {
-  var index=0
-  def create_id={ index+=1 ; index}
-}
-case class UserVO( firstname:String, lastname:String, mail:String, password:String )  {
-  def id:Int=UserVO.create_id
-  def getUser()=User(id, firstname, lastname, mail, password)
-}
+case class UserVO( firstname:String, lastname:String, mail:String, password:String )
+
 object User{
     def apply(firstname : String, lastname : String, mail : String, password : String):User = User( 0, firstname, lastname, mail, password )
+    def apply( user:UserVO ):User = User( 0, user.firstname, user.lastname, user.mail, user.password )
 }
 case class User( id:Int, firstname:String, lastname:String, mail:String, password:String ) extends Data[Int] with Ordered[User] {
   def storeKey:Int = id

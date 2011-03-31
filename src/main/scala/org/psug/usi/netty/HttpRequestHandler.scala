@@ -74,7 +74,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val userVO = read[UserVO](content)
-        userRepositoryService.remote ! StoreData(userVO.getUser)
+        userRepositoryService.remote ! StoreData( User( userVO ) )
 
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
