@@ -28,7 +28,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : Services = new DefaultRepositoryServices) extends Logging {
+class WebServer( val listenPort:Int = 18080, val services : Services = new SimpleRepositoryServices) extends Logging {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _

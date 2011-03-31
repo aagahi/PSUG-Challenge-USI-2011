@@ -66,7 +66,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
     val content = request.getContent().toString(CharsetUtil.UTF_8)
-    val path=if (queryStringDecoder.getPath=="/") Array("web") else queryStringDecoder.getPath.split('/').tail ;
+    val path=if (queryStringDecoder.getPath=="/") Array("index.html") else queryStringDecoder.getPath.split('/').tail ;
     ( method, path ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
@@ -74,7 +74,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val userVO = read[UserVO](content)
-        userRepositoryService.remote ! StoreData(userVO.getUser)
+        userRepositoryService.remote ! StoreData( User( userVO ) )
 
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
@@ -94,8 +94,14 @@ class RequestActor(services : Services) extends Receiver with Logging {
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
 
-      case ( HttpMethod.GET, Array("web" ) )  =>
-        sendPage( "/web/index.html" )
+      case ( HttpMethod.GET, Array(thing:String) )  =>
+        val response = new DefaultHttpResponse(
+          HttpVersion.HTTP_1_1,
+          HttpResponseStatus.MOVED_PERMANENTLY )
+        response.setHeader(HttpHeaders.Names.CONTENT_TYPE,
+          "text/html; charset=utf-8 ; Location: http://127.0.0.1:8082/web/"+thing)
+        val future = channel.write(response)
+        future.addListener(ChannelFutureListener.CLOSE)
 
       case ( HttpMethod.GET, Array("web", _* ) )  =>
         sendPage( queryStringDecoder.getPath )

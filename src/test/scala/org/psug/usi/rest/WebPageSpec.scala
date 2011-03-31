@@ -45,6 +45,16 @@ class WebPageSpec extends SpecificationWithJUnit {
       
     }
 
+    "return a content for a /web/js/psug.js url" in {
+      val ( response, content ) = getResponseAndContent( "/web/js/psug.js")
+      val expectedContent = Source.fromFile( "./web/js/psug.js" )(Codec.UTF8).mkString
+
+      response.getStatus must be_==( ClientResponse.Status.OK.getStatusCode )
+      response.getHeaders.getFirst( "Content-Type" ) must be_==( "text/html; charset=utf-8" )
+      content must be_==( expectedContent )
+
+    }
+
     "return a contennt a / url" in {
       val ( response, content ) = getResponseAndContent( "/web/")
       val expectedContent = Source.fromFile( "./web/index.html" )(Codec.UTF8).mkString
