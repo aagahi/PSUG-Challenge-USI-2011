@@ -3,11 +3,11 @@
 <head>
     <meta charset="utf-8" />
     <title>Bonne chance!</title>
-    <script type="text/javascript" src="../js/jquery-1.5.1.min.js" ></script>
+    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
     <script type="text/javascript" src="../js/json2.js" ></script>
     <script type="text/javascript" src="../js/psug.js" ></script>
     <script type="text/javascript">
-// TODO vérifier le cookie
+// TODO vï¿½rifier le cookie
     </script>
 </head>
 <body>
@@ -33,13 +33,13 @@
 		var datas=$("#auth_form").serializeJSON();
 		console.log(JSON.stringify(datas));
 		var success=function(result, status, jqXHR){
-		    usi_log("Resultat de la requête ajax:"+result);
+		    usi_log("Resultat de la requï¿½te ajax:"+result);
 		    if(status==="200") {
-			$("#result_panel").html("L'utilisateur a bien été créé");
+			$("#result_panel").html("L'utilisateur a bien ï¿½tï¿½ crï¿½ï¿½");
 		    } else if(status==="404") {
-			$("#result_panel").html("L'identification a échoué. Veuillez recommencer.");
+			$("#result_panel").html("L'identification a ï¿½chouï¿½. Veuillez recommencer.");
 		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+			$("#result_panel").html("Etat inconnu lors de la crï¿½ation d'un utilisateur (ni 200 ni 404)");
 		    }
 		};
 		var error=function () { alert ("erreur...")};
