@@ -66,7 +66,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
     val content = request.getContent().toString(CharsetUtil.UTF_8)
-    val path=if (queryStringDecoder.getPath=="/") Array("web") else queryStringDecoder.getPath.split('/').tail ;
+    val path=if (queryStringDecoder.getPath=="/") Array("index.html") else queryStringDecoder.getPath.split('/').tail ;
     ( method, path ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
@@ -94,28 +94,23 @@ class RequestActor(services : Services) extends Receiver with Logging {
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
 
-      case ( HttpMethod.GET, Array("web" ) )  =>
-        sendPage( "/web/index.html" )
+      case ( HttpMethod.GET, Array(thing:String) )  =>
+        val response = new DefaultHttpResponse(
+          HttpVersion.HTTP_1_1,
+          HttpResponseStatus.MOVED_PERMANENTLY )
+        response.setHeader(HttpHeaders.Names.CONTENT_TYPE,
+          "text/html; charset=utf-8 ; Location: /web/"+Thing)
+        val future = channel.write(response)
+        future.addListener(ChannelFutureListener.CLOSE)
 
       case ( HttpMethod.GET, Array("web", _* ) )  =>
         sendPage( queryStringDecoder.getPath )
-
-      case _ => log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
     }
   }
 
   private def sendPage( path:String ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
-    val contentType = path.substring( path.lastIndexOf(".") + 1 ) match {
-      case "html" => "text/html; charset=utf-8"
-      case "js" => "text/javascript; charset=utf-8"
-      case x =>
-        log.warn( "Unknown file type "+x+", using binary content type" )
-        "application/binary"
-    }
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
-
-
+    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=utf-8")
     val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
     response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
     val future = channel.write(response)
