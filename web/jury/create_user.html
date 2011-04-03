@@ -7,6 +7,8 @@
     <script type="text/javascript" src="../js/json2.js" ></script>
     <script type="text/javascript" src="../js/psug.js" ></script>
     <style type="text/css">
+    .hide { display:none;}
+    .show { display:inherit;}
 	#user_form label { display:inline-block; width:150px; }
 	#user_form input[type="submit"]{
 	    background-color:orange ;
@@ -36,15 +38,14 @@
 	<label for="password">Mot de passe : </label>
 	<input type="password" name="password" id="password" placeholder="mot de passe" required="true">
 	 <br>
-	<input type="submit" name="submit" value="valider">
+	<input type="submit" name="submit" id="submit" value="valider">
     </form>
-    <div id="new_user_panel">
 	<div id="result_panel"></div>
 	<input type="button" id="new_user" value="Créer un nouvel utilisateur">
-    </div>
     <div id="usi_debug"></div>
     <script type="text/javascript">
 	$(document).ready(function (){
+        $("#new_user").hide();
 	    var $dbg=$("#usi_debug");
 	    var usi_log=function(msg){
 		$dbg.html($dbg.html()+result);
@@ -59,36 +60,49 @@
                 $("#"+key).attr("class", input_class);
             };
             $.each(data, validate);
-            if ($(".error").length) {
+            if ($("input.error").length) {
                 $("#messages").attr("class", "error");
                 $("#messages").html("Plusieurs champs sont en erreur.");
                 return false;
             }
             $("#messages").attr("class", "none");
             $("#messages").html("");
-    //		var randomnumber=Math.floor(Math.random()*999999999999)
-    //      data['id']= randomnumber;
-            console.log(JSON.stringify(data));
             var success=function(result, status, jqXHR){
-                $("#new_user_panel").show();
                 usi_log("Resultat de la requête ajax:"+result);
                 if(status==="201") {
                     $("#result_panel").html("L'utilisateur a bien été créé");
-                } else if(status==="400") {
-                    $("#result_panel").html("une erreur est survenu lors de la création de l'utilisateur");
                 } else  {
                     $("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
                 }
+                $("#result_panel").show();
+                $("#new_user").show();
+                $("#submit").hide();
             };
-            var error=function () { alert ("erreur...")};
+            var error=function (jqXHR, textStatus, errorThrown) {
+                $result_panel=$("#result_panel");
+                $result_panel.addClass("error")
+                if(jqXHR.status===400) {
+                    $result_panel.html("Un utilisateur existe déjà correspondant à ces données");
+                } else {
+                    $result_panel.html("Etat inconnu lors de la création d'un utilisateur.<br />Message : "+textStatus+" : "+errorThrown+"<br />"+"Status: "+ jqXHR.status +"");
+                    var st=jqXHR.serializeJSON();
+                }
+            };
             $.post('/api/user', JSON.stringify(data), success, "json").error(error);
             return false;
             });
             $("#new_user").click(function (){
-            $("form input[type='text']").each (function(){ this.attr("value", ""); });
-            $("form input[type='password']").each (function(){ this.attr("value", ""); });
-            $("#new_user_panel").hide();
-            $("#firstname").focus();
+                var cleanField=function(){
+                    this.attr("value", "");
+                    this.removeClass("error");
+                };
+                $("form input[type='text']").each (cleanField);
+                $("form input[type='password']").each (cleanField);
+                $("#result_panel").html("");
+                $("#result_panel").removeClass("error")
+                $("#new_user").hide();
+                $("#firstname").focus();
+                $("#submit").show();
 	    });
 	});
     </script>

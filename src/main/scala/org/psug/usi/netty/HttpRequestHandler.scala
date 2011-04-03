@@ -42,7 +42,7 @@ class RequestActor(services : Services) extends Receiver with Logging {
         case _ => log.warn( "Unknown message" )
       }
 
-    case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.OK )
+    case DataStored( Right( data ) )	=>  sendResponse( Some( data ), HttpResponseStatus.CREATED )
     case DataStored( Left( message ) )	=> log.debug(message); sendResponse( None, HttpResponseStatus.BAD_REQUEST )
 
     case DataPulled( Some( data ) )		=>  sendResponse( Some( data ), HttpResponseStatus.OK )
@@ -93,7 +93,6 @@ class RequestActor(services : Services) extends Receiver with Logging {
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
-
       case ( HttpMethod.GET, Array("web", _* ) )  =>
         sendPage( queryStringDecoder.getPath )
       case ( HttpMethod.GET, Array(page:String) )  =>
