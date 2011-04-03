@@ -94,21 +94,14 @@ class RequestActor(services : Services) extends Receiver with Logging {
       case ( HttpMethod.GET, Array("admin","status") ) =>
         sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
 
-      case ( HttpMethod.GET, Array(thing:String) )  =>
-        val response = new DefaultHttpResponse(
-          HttpVersion.HTTP_1_1,
-          HttpResponseStatus.MOVED_PERMANENTLY )
-        response.setHeader(HttpHeaders.Names.CONTENT_TYPE,
-          "text/html; charset=utf-8 ; Location: /web/"+Thing)
-        val future = channel.write(response)
-        future.addListener(ChannelFutureListener.CLOSE)
-
       case ( HttpMethod.GET, Array("web", _* ) )  =>
         sendPage( queryStringDecoder.getPath )
+      case ( HttpMethod.GET, Array(page:String) )  =>
+        sendRedirect(page)
     }
   }
 
-  private def sendPage( path:String ){
+  private def sendPage( path:String )={
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
     response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=utf-8")
     val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
@@ -117,6 +110,15 @@ class RequestActor(services : Services) extends Receiver with Logging {
     future.addListener(ChannelFutureListener.CLOSE)
   }
 
+  def sendRedirect(page: String) = {
+    val response = new DefaultHttpResponse(
+      HttpVersion.HTTP_1_1,
+      HttpResponseStatus.MOVED_PERMANENTLY)
+    response.setHeader(HttpHeaders.Names.LOCATION,
+      "/web/" + page)
+    val future = channel.write(response)
+    future.addListener(ChannelFutureListener.CLOSE)
+  }
 
   private def sendResponse( value:Option[AnyRef], status:HttpResponseStatus, headers : (String,String)* ){
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
