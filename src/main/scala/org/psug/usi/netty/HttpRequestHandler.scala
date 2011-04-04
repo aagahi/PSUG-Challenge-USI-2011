@@ -9,7 +9,7 @@ import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{
-  InitGame, Services, QueryScoreSliceAudit, 
+  InitGame, Services,
   ScoreSliceUnavailable, ScoreSlice
 }
 import org.psug.usi.akka.Receiver

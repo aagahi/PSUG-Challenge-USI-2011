@@ -5,7 +5,7 @@ import collection.mutable.HashMap
 import org.psug.usi.akka.Receiver
 import akka.actor.Channel
 import akka.util.Logging
-import org.psug.usi.store.{DataPulled, PullData, StoreData}
+import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
 
 /**

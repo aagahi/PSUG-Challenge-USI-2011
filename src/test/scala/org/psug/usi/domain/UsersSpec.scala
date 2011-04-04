@@ -37,7 +37,11 @@ class UsersSpec extends SpecificationWithJUnit {
 
 
     "lookup user by mail" in {
-      
+
+      var novalue = userRepositoryService.remote !? PullDataByEmail("m.odersky@scala-lang.org")
+      novalue must be_==( DataPulled( None ) )
+
+
       userRepositoryService.remote !? StoreData(martinOdersky)
 
       val DataPulled( Some( user ) ) = userRepositoryService.remote !? PullDataByEmail("m.odersky@scala-lang.org")

@@ -2,7 +2,7 @@ package org.psug.usi
 
 import _root_.akka.util.Logging
 import org.psug.usi.netty.WebServer
-import service.{RepositoryServices, RemoteServices, SimpleRepositoryServices}
+import service.{RepositoryServices, SimpleRepositoryServices}
 
 /**
  * 
