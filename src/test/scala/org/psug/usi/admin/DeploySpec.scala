@@ -61,7 +61,7 @@ class DeploySpec extends SpecificationWithJUnit {
     }
 
     "start as service on given port with arguments 'service'" in {
-      context.main.start("Service","" + servicesPort)
+      context.main.start("Service",webPort.toString, servicesPort.toString)
       val remoteReceiver = new RemoteReceiver("UserRepositoryService", "localhost", servicesPort)
       val status = (remoteReceiver !? ServiceStatus).asInstanceOf[Status]
       status.nodeType must be_==("Service")

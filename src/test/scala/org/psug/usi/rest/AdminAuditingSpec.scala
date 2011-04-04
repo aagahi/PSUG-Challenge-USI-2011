@@ -36,7 +36,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
   val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i )).toList
 
-  val gameManager = new GameManagerService( repositories.gameUserHistoryService )  
+  val gameManager = new GameManagerService( repositories.gameUserHistoryService, repositories.userRepositoryService )
   
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
   private[this] def queryRanking(key:String, userEmail:String ):ClientResponse = {

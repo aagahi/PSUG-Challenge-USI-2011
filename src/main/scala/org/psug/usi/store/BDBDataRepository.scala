@@ -185,7 +185,7 @@ trait BDBManagement extends Logging {
     log.debug( "Remove db: " + databaseName )
     close()
     try{
-      env.environment.removeDatabase(null, databaseName)
+      env.environment.truncateDatabase(null, databaseName, false )
     }
     catch {
       case _ => log.warn( "Error on removing database " + databaseName )
@@ -199,7 +199,7 @@ trait BDB[K<:Any,T<:Data[K]] extends BDBManagement {
 
 
 
-  
+
   def save(in:T) {
     val tx = env.environment.beginTransaction(null, null)
     database.put(null, dataFactory.keyToEntry(in.storeKey), dataFactory.valueToEntry(in) )

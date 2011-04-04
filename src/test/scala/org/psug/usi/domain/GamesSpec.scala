@@ -60,12 +60,14 @@ class GamesSpec extends SpecificationWithJUnit {
 
   val repositories = new SimpleRepositoryServices
 
-  def startRepository = {
+  def startRepository:Unit = {
     repositories.start
+    repositories.userRepositoryService.remote !? ClearRepository
+    repositories.gameRepositoryService.remote !? ClearRepository
+    
   }
 
   def exitRepository = {
-    repositories.gameRepositoryService.remote !? ClearRepository
     repositories.stop
   }
 
@@ -138,12 +140,18 @@ class GamesSpec extends SpecificationWithJUnit {
                     flushUserTable = false,
                     nbUsersThreshold = 160 )
 
-    val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i )).toList
 
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
-      val gameManager = new GameManagerService( repositories.gameUserHistoryService )
+      val users = (for( i <- 0 until game.nbUsersThreshold ) yield {
+        val DataStored( Right( user ) ) = repositories.userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
+        user.asInstanceOf[User]
+      }).toList
+
+
+
+      val gameManager = new GameManagerService( repositories.gameUserHistoryService, repositories.userRepositoryService )
       gameManager.go
       gameManager !? InitGame(game)
 
@@ -211,6 +219,11 @@ class GamesSpec extends SpecificationWithJUnit {
       users.foreach{
         user =>
           val scoreSlice = (gameManager.remote !? QueryScoreSlice( user.id ) ).asInstanceOf[ScoreSlice]
+          val scoreSliceAudit = (gameManager.remote !? QueryScoreSliceAudit( user.mail ) ).asInstanceOf[ScoreSlice]
+
+          (scoreSlice.r.deepEquals( scoreSliceAudit.r ) ) must beTrue
+
+          // TODO: rewrite this test
           // TODO: rewrite this test
           scoreSlice.r.score must be_>=( 0 )
           //val minSliceSize = math.min( math.abs( gameManager.scorer.sliceRange.head ), gameManager.scorer.sliceRange.last )
@@ -226,14 +239,14 @@ class GamesSpec extends SpecificationWithJUnit {
         userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
       }
 
-      gameManager.stop
     }
 
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (timeout scenario)" in {
+      val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) ).toList
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManagerService( gameUserHistoryService, timer )
+      val gameManager = new GameManagerService( gameUserHistoryService, repositories.userRepositoryService, timer )
       gameManager.go
       gameManager !? InitGame (game)
 

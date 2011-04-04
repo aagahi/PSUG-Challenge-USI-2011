@@ -1,11 +1,12 @@
 package org.psug.usi.service
 
 import org.psug.usi.domain._
-import org.psug.usi.store.StoreData
 import collection.mutable.HashMap
 import org.psug.usi.akka.Receiver
 import akka.actor.Channel
 import akka.util.Logging
+import org.psug.usi.store.{DataPulled, PullData, StoreData}
+import akka.dispatch.Future
 
 /**
  * User: alag
@@ -30,7 +31,7 @@ case class QueryQuestion(userId: Int, questionIndex: Int)
 case class UserAnswer(userId: Int, questionIndex: Int, answerIndex: Int)
 
 case class QueryScoreSlice(userId: Int)
-case class QueryScoreSliceAudit(userEmail: String)
+case class QueryScoreSliceAudit( userEmail: String)
 //answer to QueryScoreSlice may be "don't ask" if the game is not finished
 trait ScoreSliceAnswer
 case object ScoreSliceUnavailable extends ScoreSliceAnswer
@@ -94,6 +95,7 @@ case object EndGame extends GameState
  * A game manager: handle question/anwser and timeout
  */
 class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
+                         val userRepositoryService:UserRepositoryService,
                          var timer: GameManagerTimer = new DefaultGameManagerTimer)
   extends DefaultServiceConfiguration with Service with RemoteService with Logging {
   
@@ -118,8 +120,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
   var nextQuestionPlayer : QuestionPlayer = null
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
-  val userIdByEmail = new HashMap[String,Int]
-  
+
 
   def receive = {
     case InitGame(game) => initGame(game)
@@ -136,7 +137,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (questionIndex == currentQuestionIndex) 
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
-    case QueryScoreSliceAudit(userEmail) => queryScoreSlice(userIdByEmail(userEmail))
+    case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
     case StopReceiver => log.info("service " + name + " exiting"); exit()
     case x => //TODO : reply an error message ?
   }
@@ -151,7 +152,6 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         scorer = new Scorer(game.nbUsersThreshold)
         currentQuestionIndex = 0
         registredPlayersHistory.clear()
-        userIdByEmail.clear()
         currentQuestionPlayer = new QuestionPlayer
         nextQuestionPlayer = new QuestionPlayer
         gameState = Initialized
@@ -174,7 +174,6 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (registredPlayersHistory.size < game.nbUsersThreshold) {
        if(!registredPlayersHistory.isDefinedAt(user.id)) {
          registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
-         userIdByEmail(user.mail) = user.id
        } else { // user is already registered
          //nothing ? 
        }
@@ -265,7 +264,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
     sender ! UserAnswerResponse( answerValue > 0, userScore.score)
 
 
-    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == userIdByEmail.size ) {
+    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == registredPlayersHistory.size ) {
       endGame()
     }
 
@@ -289,6 +288,24 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         sender ! ScoreSliceUnavailable
     }
   }
+
+  /**
+   * Audit query for the ranking of the given user.
+   * Return Some(List(scores)) if score are available
+   * or None if it is not the time to ask
+   */
+  private def queryScoreSliceAudit(userEmail: String) {
+    val target = sender
+    (userRepositoryService.remote !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
+      future => future.result match {
+        case Some( DataPulled( Some( data:User ) ) ) => target ! ScoreSlice( scorer.scoreSlice( data ) )
+        case _ => log.warn( "Unexpected repo result for user email " + userEmail )
+      }
+    )
+
+  }
+
+
 
   /**
    * Send the text of the current question to all users who asked for.

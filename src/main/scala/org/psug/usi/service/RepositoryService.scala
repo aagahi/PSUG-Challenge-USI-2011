@@ -20,9 +20,13 @@ trait RepositoryService extends DefaultServiceConfiguration with Service with Lo
     case ServiceStatus => reply(Status( "Service", port))
     case StopReceiver => log.info("service " + name + " exiting"); stop()
     case x =>
-      handleMessage(x) match {
-        case message: DataRepositoryMessage => reply(message)
-        case _ =>
+      try {
+        handleMessage(x) match {
+          case message: DataRepositoryMessage => reply(message)
+          case x => log.warn( "Unknown message: " + x )
+        }
+      } catch {
+        case e => log.error( e, e.getMessage )
       }
   }
 
@@ -78,7 +82,7 @@ trait RepositoryServices extends Services {
   val userRepositoryService: UserRepositoryService
   val gameRepositoryService: GameRepositoryService
   val gameUserHistoryService: GameUserHistoryRepositoryService
-  lazy val gameManagerService : GameManagerService  = new GameManagerService(gameUserHistoryService)
+  lazy val gameManagerService : GameManagerService  = new GameManagerService(gameUserHistoryService, userRepositoryService)
 
   val services : List[Service] = List(userRepositoryService,gameUserHistoryService,gameRepositoryService,gameManagerService)
 
