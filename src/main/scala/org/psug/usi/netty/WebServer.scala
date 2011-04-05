@@ -28,7 +28,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : Services = new DefaultRepositoryServices) extends Logging {
+class WebServer( val listenPort:Int = 18080, val services : Services = new ClientServices, webAuthenticationKey:String = "") extends Logging {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _
@@ -50,7 +50,7 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
     bootstrap.setOption("child.keepAlive", keepAlive )
     bootstrap.setOption( "backlog", backLog )
 
-    bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services) )
+    bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services, webAuthenticationKey) )
     bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
 
     log.info("Started PSUG USI2011 Challenge server at 0.0.0.0:" + listenPort)
@@ -61,13 +61,13 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Defau
   }
 }
 
-class HttpServerPipelineFactory(services : Services) extends ChannelPipelineFactory {
+class HttpServerPipelineFactory(services : Services, webAuthenticationKey:String ) extends ChannelPipelineFactory {
 
   def getPipeline() = {
     val pipeline = Channels.pipeline()
     pipeline.addLast("decoder", new HttpRequestDecoder());
     pipeline.addLast("encoder", new HttpResponseEncoder());
-    pipeline.addLast("handler", new HttpRequestHandler(services))
+    pipeline.addLast("handler", new HttpRequestHandler(services, webAuthenticationKey))
     pipeline
   }
 }

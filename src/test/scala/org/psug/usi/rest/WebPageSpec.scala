@@ -18,9 +18,9 @@ class WebPageSpec extends SpecificationWithJUnit {
     val repositories = new SimpleRepositoryServices
     val webServer : WebServer = new WebServer(listenPort,repositories)
 
-    // start/stop web server on each Specification
-    beforeSpec { webServer.start; repositories.start  }
-    afterSpec { webServer.stop ; repositories.stop }
+    // launch/shutdown web server on each Specification
+    beforeSpec { webServer.start; repositories.launch  }
+    afterSpec { webServer.stop ; repositories.shutdown }
     
   }
 

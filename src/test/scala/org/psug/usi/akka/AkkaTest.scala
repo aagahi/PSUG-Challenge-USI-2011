@@ -2,10 +2,10 @@ package org.psug.usi.akka
 
 import org.junit.Assert._
 import org.junit.Test
-import akka.actor.Actor
 import akka.actor.Actor._
 import akka.remoteinterface._
-
+import akka.actor.{Channel, Actor}
+import akka.dispatch.Dispatchers
 /**
  * User: alag
  * Date: 3/14/11
@@ -14,6 +14,57 @@ import akka.remoteinterface._
 
 
 
+class SimpleReceiverServer extends Receiver {
+  start()
+  register("SimpleReceiverServer")
+
+  def receive = {
+    case Query("OK") => reply( Response("K0") )
+    case _ =>
+  }
+}
+
+
+case class Query(msg:String)
+case class Response(msg:String)
+
+class SimpleReceiverClient extends Receiver {
+
+   actorRef.dispatcher = Dispatchers.newExecutorBasedEventDrivenDispatcher("SimpleReceiverClient")
+    .setCorePoolSize(256)
+    .setMaxPoolSize(256)
+    .build
+  start()
+  val remoteReceiver = new RemoteReceiver("SimpleReceiverServer", "localhost", 2552 )
+
+  var target:Channel[Any] = null
+  def receive = {
+    case Query( x ) =>
+      target = sender
+      Thread.sleep( 500 )
+      remoteReceiver ! Query( x )
+    case Response( x ) =>
+      target ! Response( x )
+    case _ =>
+  }
+}
+
+
+class LightEventReceiverClient extends Receiver {
+
+  start()
+  val remoteReceiver = new RemoteReceiver("SimpleReceiverServer", "localhost", 2552 )
+
+  var target:Channel[Any] = null
+  def receive = {
+    case Query( x ) =>
+      target = sender
+      remoteReceiver ! Query( x )
+    case Response( x ) =>
+      target ! Response( x )
+    case _ =>
+  }
+}
 
 
 class AkkaTest  {
@@ -35,29 +86,28 @@ class AkkaTest  {
     remote.addListener( listener )
     remote.start()
 
+    val simpleServer = new SimpleReceiverServer
     
-
-    val simpleReceiver = new Receiver {
-      def receive = {
-        case "OK" => reply( "K0" )
-        case _ =>
-      }
+    val simpleReceivers = (1 to 256) map{ i=> new SimpleReceiverClient }
+    val t0 = System.currentTimeMillis
+    simpleReceivers.map( _ !! Query("OK") ).foreach{
+      future =>
+        assertEquals( Some( Response( "K0" ) ), future.awaitBlocking.result )
     }
+    val t1 = System.currentTimeMillis
 
-    simpleReceiver.start()
-    assertEquals( "K0",  (simpleReceiver !? "OK") )
+    assert( (t1-t0) < 5000 )
 
 
-    simpleReceiver.register( "Simple" )
+    (1 to 5000).map( i=> new LightEventReceiverClient )
+                .map( _ !! Query("OK") )
+                .foreach{
+                  future =>
+                  assertEquals( Some( Response( "K0" ) ), future.awaitBlocking.result )
+                }
 
-    val remoteReceiver = new RemoteReceiver("Simple", "localhost", 2552)
-    assertEquals( "K0",  remoteReceiver !? "OK" )
 
-    val future = remoteReceiver !! "OK"
-    future.awaitBlocking
-    assertEquals( "K0", future.result.get )
 
-    
     remote.shutdown
     remote.removeListener(listener)
 

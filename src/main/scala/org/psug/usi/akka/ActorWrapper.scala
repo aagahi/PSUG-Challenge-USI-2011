@@ -49,7 +49,6 @@ trait Receiver extends ActorWrapper {
 
 class RemoteReceiver( id:String, host:String, port:Int) extends ActorWrapper {
   val actorRef:ActorRef = remote.actorFor( id, host, port )
-
 }
 
 
