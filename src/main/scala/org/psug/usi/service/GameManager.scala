@@ -24,7 +24,7 @@ case class Register(user: User)
 
 case object QueryStats
 
-case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int)
+case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int, state:GameState )
 
 case class QueryQuestion(userId: Int, questionIndex: Int)
 
@@ -124,7 +124,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
     case QueryStats => 
-      sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
+      sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex,gameState)
     case QueryQuestion(userId, questionIndex) 
       if(registredPlayersHistory.isDefinedAt(userId)) 
       => queryQuestion(userId, questionIndex)
@@ -257,6 +257,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
         userAnswerHistory.answerBonus = 0
         0
       }
+
     val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
     sender ! UserAnswerResponse( answerValue > 0, userScore.score)

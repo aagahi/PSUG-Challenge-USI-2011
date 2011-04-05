@@ -11,6 +11,8 @@ import org.psug.usi.netty.WebServer
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
+import org.psug.usi.utils.GamePlayer
+
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
 
@@ -63,12 +65,13 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
         val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
         user.asInstanceOf[User]
       }).toList
-/*
-      playGame( gameManagerService, game, users )
-      val response = queryRanking(webAuthenticationKey, "email0")
-      response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
+
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
+      gamePlayer.play()
+      //val response = queryRanking(webAuthenticationKey, "email0")
+      //response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
       //TODO: check result
-      */
+      
     }
 
     "fail on POST" in {
@@ -101,65 +104,5 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     }
    
   }
-    
-    
-  ////////////////// Utility //////////////////
-    
-  //play a game
-  private[this] def playGame(gameManagerService:GameManagerService, game:Game, users:List[User]) : Unit = {
-      gameManagerService !? InitGame(game)
 
-
-      // Register
-      users.map( user => gameManagerService ! Register( user ) )
-
-     try {
-     //ask/answer question
-      (0 until game.questions.size) foreach { currentQuestion =>
-        println("question " + currentQuestion)
-        // Ask for Question i
-        val futures = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
-        Futures.awaitAll( futures )
-        futures.map( _.result ).foreach{
-          case Some( QuestionResponse( nextQuestion ) )=>
-            nextQuestion must be_==( game.questions(currentQuestion ) )
-          case _ => fail
-        }
-  
-        // Answser Question i
-        users.foreach{
-          user =>
-            val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
-            val expectedPrevScoreWithBonus = if(currentQuestion < 1) 0 else {
-              if( game.questions(currentQuestion).answers( user.id%(game.questions(currentQuestion-1).answers.size) ).status  ) game.questions(currentQuestion-1).value+1 else 0
-            }
-            val expectedScore = if( answerStatus ) game.questions(currentQuestion).value+expectedPrevScoreWithBonus else expectedPrevScoreWithBonus
-            score must be_== ( expectedScore )
-        }
-      }
-     } catch {
-       case e:Exception => 
-         println(e.getMessage)
-         //TODO: why does it not appear in tests ?
-         fail(e.getMessage)
-         throw e
-     }
-      // Get userScore slices
-      users.foreach{
-        user =>
-          (gameManagerService !? QueryScoreSlice( user.id ) ) match {
-            case ScoreSlice(scoreSlice) => 
-              //TODO check !
-            case x => fail("Received unexpected answer: " + x)
-          }
-      }
-      
-      // Check history
-      users.foreach{
-        user =>
-        val DataPulled( Some( userHistory ) ) = serverServices.gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
-        val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, user.id%(q.answers.size) ) }
-        userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
-      }
-  }    
 }
