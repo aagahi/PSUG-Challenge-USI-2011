@@ -42,7 +42,7 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
 
     val indexOfUser: Int = sortedScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
-    val end = if (sortedScores.size-1 < indexOfUser + sliceRange.end) sortedScores.size-1 else indexOfUser + sliceRange.end
+    val end = if (sortedScores.size < indexOfUser + sliceRange.end) sortedScores.size else indexOfUser + sliceRange.end
     val before = ListScores(sortedScores.slice(begin, indexOfUser))
     val after = ListScores(sortedScores.slice(indexOfUser + 1, end))
     Ranking(userScore.score, ListScores(sortedScores.take(topSize)) , before, after)
@@ -97,16 +97,12 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
       assert( isSorted( expectedSlice ) )
       assert( isSorted( ranking ))
 
-      // TODO: comprend pas pourquoi on a 2x la meme occurence
-
       ranking.top_scores.mail.foreach{
         mail =>
         val countOccurence = ranking.top_scores.mail.foldLeft(0){ (i,s) => if( s == mail ) i+1 else i }
         assert( countOccurence == 1 )
 
       }
-
-      // TODO: comprend pas pourquoi on a 2x la meme occurence
 
       expectedSlice.top_scores.mail.foreach{
         mail =>
@@ -116,11 +112,8 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
       }
 
       assert( expectedSlice.score == ranking.score )
-
-      // TODO: comprend pas pourquoi cela ne passe pas...
-      /*
       assert( expectedSlice.deepEquals( ranking ) )
-      */
+      
     }
 
     

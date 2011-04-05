@@ -14,6 +14,7 @@ object ListScores {
     var i = 0
     scores.foreach {
       case UserScore(user, score) =>
+
         listScore.mail(i) = user.mail
         listScore.scores(i) = score
         listScore.firstname(i) = user.firstname
@@ -54,6 +55,10 @@ case class UserScore(user: User, score: Int) extends Ordered[UserScore] {
     UserScore(user, score + answerValue)
   }
 
+  override def hashCode() = {
+    user.id.hashCode
+  }
+
   def compare(that: UserScore) = {
     val c1 = that.score compare score
     if (c1 == 0) that.user compare user
@@ -73,8 +78,10 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
   def scoreAnwser(scorerAnwserValue: ScorerAnwserValue) = {
     val user = scorerAnwserValue.user
     val userScore = userScoresMap.getOrElse(user, UserScore(user, 0))
+    sortedUserScores = sortedUserScores - userScore
 
     val newScore = userScore.update(scorerAnwserValue.answerValue)
+
     userScoresMap(user) = newScore
     sortedUserScores = sortedUserScores + newScore
     newScore
