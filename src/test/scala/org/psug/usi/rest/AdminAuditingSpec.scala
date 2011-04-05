@@ -8,19 +8,18 @@ import org.psug.usi.service._
 import org.psug.usi.store._
 import org.specs._
 import org.psug.usi.netty.WebServer
-import org.psug.usi.Main._
-
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
-
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
 
   val repositories = new SimpleRepositoryServices
-  val webServer : WebServer = new WebServer(listenPort,repositories)
+  val webAuthenticationKey = "dummy"
   val listenPort = 12345
-      
+  val webServer : WebServer = new WebServer(listenPort,repositories,webAuthenticationKey)
+
+
   val game = Game( questions = 
                      Question( "Q1", Answer( "A11", false )::Answer("A12", true)::Nil, 1 )
                      :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
@@ -61,7 +60,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
  
     "Succed if the auth key is OK, a game was played, and the queried user played that game" in {
       playGame(gameManager,game,users)      
-      val response = queryRanking(WEB_AUTHICATION_KEY, "email0")
+      val response = queryRanking(webAuthenticationKey, "email0")
       response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
       //TODO: check result
     }
@@ -106,14 +105,14 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
 
       // Register
-      users.map( user => gameManager.remote ! Register( user ) )
+      users.map( user => gameManager ! Register( user ) )
 
      try {
      //ask/answer question
       (0 until game.questions.size) foreach { currentQuestion =>
         println("question " + currentQuestion)
         // Ask for Question i
-        val futures = users.map( user => (gameManager.remote !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
+        val futures = users.map( user => (gameManager !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
         Futures.awaitAll( futures )
         futures.map( _.result ).foreach{
           case Some( QuestionResponse( nextQuestion ) )=>
@@ -124,7 +123,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
         // Answser Question i
         users.foreach{
           user =>
-            val UserAnswerResponse( answerStatus, score ) = (gameManager.remote !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+            val UserAnswerResponse( answerStatus, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
             val expectedPrevScoreWithBonus = if(currentQuestion < 1) 0 else {
               if( game.questions(currentQuestion).answers( user.id%(game.questions(currentQuestion-1).answers.size) ).status  ) game.questions(currentQuestion-1).value+1 else 0
             }
@@ -142,7 +141,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       // Get userScore slices
       users.foreach{
         user =>
-          (gameManager.remote !? QueryScoreSlice( user.id ) ) match {
+          (gameManager !? QueryScoreSlice( user.id ) ) match {
             case ScoreSlice(scoreSlice) => 
               //TODO check !
             case x => fail("Received unexpected answer: " + x)

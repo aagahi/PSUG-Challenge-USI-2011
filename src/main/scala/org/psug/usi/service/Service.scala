@@ -1,6 +1,6 @@
 package org.psug.usi.service
 
-import org.psug.usi.akka.{RemoteReceiver, Receiver}
+import org.psug.usi.akka.Receiver
 import akka.util.Logging
 
 /**
@@ -8,19 +8,6 @@ import akka.util.Logging
  * Date: 2/26/11
  * Time: 5:24 PM
  */
-
-trait ServiceConfiguration {
-  val port :  Int
-  val host  : String
-  val name : String
-}
-
-
-// Aslo check resource/akka.conf for akka server configuration
-trait DefaultServiceConfiguration extends ServiceConfiguration {
-  override lazy val port = 2552
-  override lazy val host = "localhost"
-}
 
 /**
  * Request for status of the service.
@@ -36,16 +23,17 @@ case object StopReceiver
 
 /**
  * A service is an actor that is registered for remote access.
+ * check akka.conf for host/port
  */
 trait Service extends Receiver with Logging {
-  config : ServiceConfiguration =>
+  val name:String
 
   def go = {
     start
     registerAsRemoteActor
   }
 
-  def registerAsRemoteActor {
+  private def registerAsRemoteActor {
     log.info( "Register Remote actor " + name )
     register( name )
   }
@@ -54,14 +42,4 @@ trait Service extends Receiver with Logging {
     unregister()
     super.stop()
   }
-}
-
-/**
- * A remote service exposes a remote actor.
- */
-trait RemoteService {
-  self : ServiceConfiguration =>
-
-  lazy val remote = new RemoteReceiver( name, host, port );
-
 }

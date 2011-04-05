@@ -2,11 +2,11 @@ package org.psug.usi.service
 
 import org.psug.usi.domain._
 import collection.mutable.HashMap
-import org.psug.usi.akka.Receiver
 import akka.actor.Channel
 import akka.util.Logging
 import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
+import org.psug.usi.akka.{ActorWrapper, Receiver}
 
 /**
  * User: alag
@@ -94,10 +94,10 @@ case object EndGame extends GameState
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
-                         val userRepositoryService:UserRepositoryService,
+class GameManagerService(val gameUserHistoryRepositoryService: ActorWrapper,
+                         val userRepositoryService:ActorWrapper,
                          var timer: GameManagerTimer = new DefaultGameManagerTimer)
-  extends DefaultServiceConfiguration with Service with RemoteService with Logging {
+  extends Service with Logging {
   
 
   override lazy val name = "GameManagerService"
@@ -296,7 +296,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
    */
   private def queryScoreSliceAudit(userEmail: String) {
     val target = sender
-    (userRepositoryService.remote !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
+    (userRepositoryService !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
       future => future.result match {
         case Some( DataPulled( Some( data:User ) ) ) => target ! ScoreSlice( scorer.scoreSlice( data ) )
         case _ => log.warn( "Unexpected repo result for user email " + userEmail )

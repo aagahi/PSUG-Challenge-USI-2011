@@ -58,14 +58,14 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
   def startRepository:Unit = {
     repositories.start
-    repositories.userRepositoryService.remote !? ClearRepository
-    repositories.gameRepositoryService.remote !? ClearRepository
+    repositories.userRepositoryService !? ClearRepository
+    repositories.gameRepositoryService !? ClearRepository
 
   }
 
   def exitRepository = {
-    repositories.userRepositoryService.remote !? ClearRepository
-    repositories.gameRepositoryService.remote !? ClearRepository
+    repositories.userRepositoryService !? ClearRepository
+    repositories.gameRepositoryService !? ClearRepository
     repositories.stop
   }
 
@@ -95,23 +95,22 @@ class GameManagerSpec  extends SpecificationWithJUnit {
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
       val users = (for( i <- 0 until game.nbUsersThreshold ) yield {
-        val DataStored( Right( user ) ) = repositories.userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
+        val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
+        println("-----------------------> " + user )
         user.asInstanceOf[User]
       }).toList
 
 
 
-      val gameManager = new GameManagerService( repositories.gameUserHistoryService, repositories.userRepositoryService )
-      gameManager.go
-      gameManager !? InitGame(game)
+      gameManagerService !? InitGame(game)
 
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManager.remote ! Register( user ) )
+      users.map( user => gameManagerService ! Register( user ) )
 
       // Ask for Q1
-      val futuresQ1 = users.map( user => (gameManager.remote !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
+      val futuresQ1 = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ1 )
       futuresQ1.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
@@ -122,14 +121,14 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q1
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManager.remote !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
           val expectedScore = if( answerStatus ) game.questions(currentQuestion).value else 0
           score must be_== ( expectedScore )
       }
 
       currentQuestion += 1
       // Ask for Q2
-      val futuresQ2 = users.map( user => ( gameManager.remote !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
+      val futuresQ2 = users.map( user => ( gameManagerService !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ2 )
       futuresQ2.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
@@ -140,7 +139,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q2
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManager.remote !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
 
           val expectedPrevScoreWithBonus = if( game.questions(currentQuestion).answers( user.id%(game.questions(currentQuestion-1).answers.size) ).status  ) game.questions(currentQuestion-1).value+1 else 0
           val expectedScore = if( answerStatus ) game.questions(currentQuestion).value+expectedPrevScoreWithBonus else expectedPrevScoreWithBonus
@@ -149,7 +148,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       currentQuestion += 1
       // Ask for Q3
-      val futuresQ3 = users.map( user => ( gameManager.remote !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
+      val futuresQ3 = users.map( user => ( gameManagerService !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ3 )
       futuresQ3.map( _.result ).foreach{
         case Some( QuestionResponse( nextQuestion ) )=>
@@ -160,7 +159,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q3
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManager.remote !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
           val expectedScore = if( answerStatus ) (1+1 +2+1 +3+1) else 0
           score must be_== ( expectedScore )
       }
@@ -168,8 +167,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Get userScore slices
       users.foreach{
         user =>
-          val scoreSlice = (gameManager.remote !? QueryScoreSlice( user.id ) ).asInstanceOf[ScoreSlice]
-          val scoreSliceAudit = (gameManager.remote !? QueryScoreSliceAudit( user.mail ) ).asInstanceOf[ScoreSlice]
+          val scoreSlice = (gameManagerService !? QueryScoreSlice( user.id ) ).asInstanceOf[ScoreSlice]
+          val scoreSliceAudit = (gameManagerService !? QueryScoreSliceAudit( user.mail ) ).asInstanceOf[ScoreSlice]
 
           (scoreSlice.r.deepEquals( scoreSliceAudit.r ) ) must beTrue
 

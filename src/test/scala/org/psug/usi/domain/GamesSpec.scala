@@ -59,12 +59,12 @@ class GamesSpec extends SpecificationWithJUnit {
     def startRepository:Unit = {
       repositories = new SimpleRepositoryServices
       repositories.start
-      repositories.gameRepositoryService.remote !? ClearRepository
+      repositories.gameRepositoryService !? ClearRepository
 
     }
 
     def exitRepository = {
-      repositories.gameRepositoryService.remote !? ClearRepository
+      repositories.gameRepositoryService !? ClearRepository
       repositories.stop
     }
 
@@ -74,15 +74,15 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil, nbQuestions = 1 )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService.remote !? StoreData(game)
+      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService !? StoreData(game)
       gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService.remote !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = repositories.gameRepositoryService.remote !? PullData(gameStored.asInstanceOf[Game].id)
+      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = repositories.gameRepositoryService !? PullData(gameStored.asInstanceOf[Game].id)
       gameFound.asInstanceOf[Game].questions.head.question must be_==( game.questions.head.question )
 
     }

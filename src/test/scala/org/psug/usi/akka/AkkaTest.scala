@@ -5,9 +5,7 @@ import org.junit.Test
 import akka.actor.Actor._
 import akka.remoteinterface._
 import akka.actor.{Channel, Actor}
-import akka.dispatch.{Dispatchers, Future}
-import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy
-
+import akka.dispatch.Dispatchers
 /**
  * User: alag
  * Date: 3/14/11

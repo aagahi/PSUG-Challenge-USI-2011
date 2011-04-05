@@ -6,7 +6,7 @@ import org.psug.usi.domain.{GameUserHistoryRepository, GameRepository, UserRepos
 import org.psug.usi.netty.Status
 import akka.actor.Actor._
 import akka.util.Logging
-
+import org.psug.usi.akka.{ActorWrapper, RemoteReceiver}
 
 /**
  * User: alag
@@ -14,10 +14,37 @@ import akka.util.Logging
  * Time: 2:32 PM
  */
 
-trait RepositoryService extends DefaultServiceConfiguration with Service with Logging {
+
+/**
+ * Abstract view of services as actors for sending messages.
+ */
+trait Services {
+  val userRepositoryService: ActorWrapper
+  val gameRepositoryService: ActorWrapper
+  val gameUserHistoryService: ActorWrapper
+  val gameManagerService : ActorWrapper
+}
+
+/**
+ * concrete instances of services viewed remotely as define in akka conf.
+ */
+class RemoteServices( host:String = "localhost", servicesPort: Int = 2552) extends Services {
+  override val userRepositoryService = new RemoteReceiver( "UserRepositoryService", host, servicesPort )
+  override val gameRepositoryService = new RemoteReceiver( "GameRepositoryService", host, servicesPort )
+  override val gameUserHistoryService = new RemoteReceiver( "GameUserHistoryRepositoryService", host, servicesPort )
+  override val gameManagerService = new RemoteReceiver( "GameService", host, servicesPort )
+}
+
+
+
+/// ---------------------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------------------
+
+trait RepositoryService extends Service with Logging {
 
   def receive = {
-    case ServiceStatus => reply(Status( "Service", port))
+    case ServiceStatus => reply(Status( "Service" ))
     case StopReceiver => log.info("service " + name + " exiting"); stop()
     case x =>
       try {
@@ -33,48 +60,15 @@ trait RepositoryService extends DefaultServiceConfiguration with Service with Lo
   def handleMessage(any: Any): Any
 }
 
-/**
- * Abstract view of services as actors for sending messages.
- */
-trait Services {
-  val userRepositoryService: RemoteService
-  val gameRepositoryService: RemoteService
-  val gameUserHistoryService: RemoteService
-  val gameManagerService : RemoteService
-}
-
-/**
- * concrete instances of services viewed remotely.
- */
-class RemoteServices(servicesPort: Int = 2552) extends Services {
-
-  override val userRepositoryService = new RemoteService with DefaultServiceConfiguration {
-    override lazy val port = servicesPort
-    override lazy val name = "UserRepositoryService"
-  }
-  override val gameRepositoryService = new RemoteService with DefaultServiceConfiguration {
-    override lazy val port = servicesPort
-    override lazy val name = "GameRepositoryService"
-  }
-  override val gameUserHistoryService = new RemoteService with DefaultServiceConfiguration {
-    override lazy val port = servicesPort
-    override lazy val name = "GameUserHistoryRepositoryService"
-  }
-  override val gameManagerService = new RemoteService with DefaultServiceConfiguration {
-    override lazy val port = servicesPort
-    override lazy val name = "GameService"
-  }
-}
-
-trait UserRepositoryService extends UserRepository with RepositoryService with RemoteService {
+trait UserRepositoryService extends UserRepository with RepositoryService  {
   override lazy val name = "UserRepositoryService"
 }
 
-trait GameRepositoryService extends GameRepository with RepositoryService with RemoteService {
+trait GameRepositoryService extends GameRepository with RepositoryService  {
   override lazy val name = "GameRepositoryService"
 }
 
-trait GameUserHistoryRepositoryService extends GameUserHistoryRepository with RepositoryService with RemoteService {
+trait GameUserHistoryRepositoryService extends GameUserHistoryRepository with RepositoryService {
   override lazy val name = "GameUserHistoryRepositoryService"
 }
 
@@ -100,35 +94,16 @@ trait RepositoryServices extends Services {
 
 /**
  * Repository services that use a single-instance BDB for storage.
+ * Host/port conf is in akka.conf
  */
-class SimpleRepositoryServices(servicesPort: Int = 2552) extends RepositoryServices {
+class SimpleRepositoryServices extends RepositoryServices {
   override lazy val userRepositoryService = new UserRepositoryService {
-    override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
   override lazy val gameRepositoryService = new GameRepositoryService {
-    override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
   override lazy val gameUserHistoryService = new GameUserHistoryRepositoryService {
-    override lazy val port = servicesPort
     override lazy val env = SingleBDBEnvironment
   }
 }
-
-/**
- * Repository services that use a replicated BDB environment for storage.
- */
-class DefaultRepositoryServices extends RepositoryServices {
-  override lazy val userRepositoryService = new UserRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
-  }
-  override lazy val gameRepositoryService = new GameRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
-  }
-  override lazy val gameUserHistoryService = new GameUserHistoryRepositoryService {
-    override lazy val env = ReplicatedBDBEnvironment
-  }
-}
-
-
