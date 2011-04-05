@@ -1,22 +1,24 @@
 package org.psug.usi.domain
 
 import org.specs._
-import org.psug.usi.service.SimpleRepositoryServices
 import org.psug.usi.store.{ClearRepository, DataPulled, DataStored, StoreData}
+import org.psug.usi.service.{ClientServices, SimpleRepositoryServices}
 
 class UsersSpec extends SpecificationWithJUnit {
 
-  val repositories = new SimpleRepositoryServices
-  import repositories._
+  val services = new ClientServices()
+  import services._
+
+  val serverServices = new SimpleRepositoryServices
 
   def startRepository : Unit = {
-    start
+    serverServices.launch
     userRepositoryService !? ClearRepository
   }
 
   def clearRepository =  {
     userRepositoryService !? ClearRepository
-    stop
+    serverServices.shutdown
   }
 
   "in-memory user repository" should {

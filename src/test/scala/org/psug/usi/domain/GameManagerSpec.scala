@@ -53,20 +53,24 @@ class TestGameManagerTimer extends GameManagerTimer {
 }
 class GameManagerSpec  extends SpecificationWithJUnit {
 
-  val repositories = new SimpleRepositoryServices
+  val serverServices = new SimpleRepositoryServices
+  val services = new ClientServices()
+  import services._
+
+
 
 
   def startRepository:Unit = {
-    repositories.start
-    repositories.userRepositoryService !? ClearRepository
-    repositories.gameRepositoryService !? ClearRepository
+    serverServices.launch
+    userRepositoryService !? ClearRepository
+    gameRepositoryService !? ClearRepository
 
   }
 
   def exitRepository = {
-    repositories.userRepositoryService !? ClearRepository
-    repositories.gameRepositoryService !? ClearRepository
-    repositories.stop
+    userRepositoryService !? ClearRepository
+    gameRepositoryService !? ClearRepository
+    serverServices.shutdown
   }
 
 
@@ -74,7 +78,6 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
 
   "game manager" should {
-    import repositories._
 
     startRepository.before
     exitRepository.after
@@ -96,7 +99,6 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       val users = (for( i <- 0 until game.nbUsersThreshold ) yield {
         val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
-        println("-----------------------> " + user )
         user.asInstanceOf[User]
       }).toList
 
@@ -175,15 +177,15 @@ class GameManagerSpec  extends SpecificationWithJUnit {
           // TODO: rewrite this test
           // TODO: rewrite this test
           scoreSlice.r.score must be_>=( 0 )
-          //val minSliceSize = math.min( math.abs( gameManager.scorer.sliceRange.head ), gameManager.scorer.sliceRange.last )
+          //val minSliceSize = math.min( math.abs( gameManagerService.scorer.sliceRange.head ), gameManagerService.scorer.sliceRange.last )
           //scoreSlice.r.before.scores.size must be_>=( minSliceSize )
-          //scoreSlice.r.before.scores.size must be_<( gameManager.scorer.sliceRange.size )
+          //scoreSlice.r.before.scores.size must be_<( gameManagerService.scorer.sliceRange.size )
       }
 
       // Check history
       users.foreach{
         user =>
-        val DataPulled( Some( userHistory ) ) = repositories.gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
+        val DataPulled( Some( userHistory ) ) = serverServices.gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
         val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, user.id%(q.answers.size) ) }
         userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
       }
@@ -195,8 +197,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) ).toList
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManagerService( gameUserHistoryService, repositories.userRepositoryService, timer )
-      gameManager.go
+      val gameManager = new GameManager( gameUserHistoryService, serverServices.userRepositoryService, timer )
+      gameManager.start
       gameManager !? InitGame (game)
 
       var currentQuestion = 0

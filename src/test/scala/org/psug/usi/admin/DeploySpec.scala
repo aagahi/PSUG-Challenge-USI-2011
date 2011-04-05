@@ -48,7 +48,7 @@ class DeploySpec extends SpecificationWithJUnit {
 
   "main launcher" should {
 
-    "start as web server on given port given arguments 'web'" in {
+    "launch as web server on given port given arguments 'web'" in {
       context.main.start( hostname, webPort, servicesPort, webAuthenticationKey )
       val result = webResource("/admin/status").header("Content-Type", "application/json").get(classOf[String])
       val status = read[Status](result)
@@ -63,7 +63,7 @@ class DeploySpec extends SpecificationWithJUnit {
 */
     }
 
-    "start as service on given port with arguments 'service'" in {
+    "launch as service on given port with arguments 'service'" in {
       context.main.start( hostname, webPort, servicesPort, webAuthenticationKey )
       val remoteReceiver = new RemoteReceiver( "UserRepositoryService", "localhost", servicesPort )
       val status = (remoteReceiver !? ServiceStatus).asInstanceOf[Status]

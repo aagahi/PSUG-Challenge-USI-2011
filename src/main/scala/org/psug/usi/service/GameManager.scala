@@ -6,7 +6,7 @@ import akka.actor.Channel
 import akka.util.Logging
 import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
-import org.psug.usi.akka.{ActorWrapper, Receiver}
+import org.psug.usi.akka.Receiver
 
 /**
  * User: alag
@@ -85,7 +85,7 @@ case object Uninitialized extends GameState
 case object Initialized extends GameState 
 case object WaitingRegistrationAndQ1 extends GameState
 //could be a couple of ProcessingQueryQuestion(i) / ProcessingReplyQuestion(i)
-//in place of GameManagerService.currentQuestionIndex
+//in place of GameManager.currentQuestionIndex
 case object InGame extends GameState 
 //case class ProcessingQueryQuestion(number:Int) extends GameState
 //case class ProcessingReplyQuestion(number:Int) extends GameState
@@ -94,13 +94,11 @@ case object EndGame extends GameState
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService(val gameUserHistoryRepositoryService: ActorWrapper,
-                         val userRepositoryService:ActorWrapper,
-                         var timer: GameManagerTimer = new DefaultGameManagerTimer)
-  extends Service with Logging {
+class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
+                   userRepositoryService:UserRepositoryService,
+                   timer: GameManagerTimer = new DefaultGameManagerTimer)
+  extends Receiver with Logging {
   
-
-  override lazy val name = "GameManagerService"
 
 
   var gameState : GameState = Uninitialized
@@ -138,7 +136,7 @@ class GameManagerService(val gameUserHistoryRepositoryService: ActorWrapper,
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
-    case StopReceiver => log.info("service " + name + " exiting"); exit()
+    case StopReceiver => stop()
     case x => //TODO : reply an error message ?
   }
 

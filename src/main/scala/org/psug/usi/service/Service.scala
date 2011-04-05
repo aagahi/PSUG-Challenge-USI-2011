@@ -1,7 +1,7 @@
 package org.psug.usi.service
 
-import org.psug.usi.akka.Receiver
 import akka.util.Logging
+import org.psug.usi.akka.Receiver
 
 /**
  * User: alag
@@ -15,8 +15,8 @@ import akka.util.Logging
 case object ServiceStatus
 
 /**
- * Unconditional stop message.
- * All services should stop() when receiving this message.
+ * Unconditional shutdown message.
+ * All services should shutdown() when receiving this message.
  */
 case object StopReceiver
 
@@ -25,21 +25,22 @@ case object StopReceiver
  * A service is an actor that is registered for remote access.
  * check akka.conf for host/port
  */
-trait Service extends Receiver with Logging {
+trait Service extends Logging {
+  self:Receiver =>
+
   val name:String
 
-  def go = {
-    start
-    registerAsRemoteActor
-  }
-
-  private def registerAsRemoteActor {
+  def launch = {
+    self.start
     log.info( "Register Remote actor " + name )
     register( name )
+
   }
 
-  override def stop(){
+  def shutdown(){
     unregister()
-    super.stop()
+    self.stop()
+    log.info( "Unregister Remote actor " + name )
+    
   }
 }

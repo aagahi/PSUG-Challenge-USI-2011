@@ -28,7 +28,7 @@ object WebServer{
 }
 
 
-class WebServer( val listenPort:Int = 18080, val services : Services = new RemoteServices, webAuthenticationKey:String = "") extends Logging {
+class WebServer( val listenPort:Int = 18080, val services : Services = new ClientServices, webAuthenticationKey:String = "") extends Logging {
   import  WebServer._
 
   var bootstrap : ServerBootstrap = _

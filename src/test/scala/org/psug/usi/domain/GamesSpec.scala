@@ -52,20 +52,25 @@ class GamesSpec extends SpecificationWithJUnit {
 
 
   "in-memory game repository" should {
-    var repositories:SimpleRepositoryServices = null
+    val services = new ClientServices()
+    import services._
+
+
+    var serverService:ServerServices = null
+
 
     setSequential()
 
     def startRepository:Unit = {
-      repositories = new SimpleRepositoryServices
-      repositories.start
-      repositories.gameRepositoryService !? ClearRepository
+      serverService = new SimpleRepositoryServices()
+      serverService.launch
+      gameRepositoryService !? ClearRepository
 
     }
 
     def exitRepository = {
-      repositories.gameRepositoryService !? ClearRepository
-      repositories.stop
+      services.gameRepositoryService !? ClearRepository
+      serverService.shutdown
     }
 
     startRepository.before
@@ -74,15 +79,15 @@ class GamesSpec extends SpecificationWithJUnit {
     val game = Game( questions = Question( "Q1", Answer( "A1", false )::Answer("A2", false)::Nil, 1 ) :: Nil, nbQuestions = 1 )
 
     "assign unique id to user when registering" in {
-      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService !? StoreData(game)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService !? StoreData(game)
       gameStored.asInstanceOf[Game].id must be_!=( game.id )
 
     }
 
     "lookup game by id" in {
 
-      val DataStored( Right( gameStored ) ) = repositories.gameRepositoryService !? StoreData(game)
-      val DataPulled( Some( gameFound ) ) = repositories.gameRepositoryService !? PullData(gameStored.asInstanceOf[Game].id)
+      val DataStored( Right( gameStored ) ) = gameRepositoryService !? StoreData(game)
+      val DataPulled( Some( gameFound ) ) = gameRepositoryService !? PullData(gameStored.asInstanceOf[Game].id)
       gameFound.asInstanceOf[Game].questions.head.question must be_==( game.questions.head.question )
 
     }

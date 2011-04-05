@@ -27,9 +27,9 @@ class GameRegistrationSpec extends SpecificationWithJUnit {
     val repositories = new SimpleRepositoryServices
     val webServer : WebServer = new WebServer(listenPort,repositories,webAuthenticationKey)
 
-    // start/stop web server on each Specification
-    beforeSpec { webServer.start; repositories.start  }
-    afterSpec { webServer.stop ; repositories.stop }
+    // launch/shutdown web server on each Specification
+    beforeSpec { webServer.start; repositories.launch  }
+    afterSpec { webServer.stop ; repositories.shutdown }
 
     // clear repository on each example
     before(repositories.gameRepositoryService !? ClearRepository)
