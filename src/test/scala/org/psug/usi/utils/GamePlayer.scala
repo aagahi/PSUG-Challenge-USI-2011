@@ -88,8 +88,7 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
     val GameManagerStats( registredPlayer, currentQuestionPlayersCount, state ) = gameManagerService !? QueryStats
     assert( state == EndGame )
 
-    assert( isSorted( ListScores( sortedScores ) ) )
-    
+
 
     users.foreach{
       user =>
@@ -98,15 +97,29 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
       assert( isSorted( expectedSlice ) )
       assert( isSorted( ranking ))
 
+      // TODO: comprend pas pourquoi on a 2x la meme occurence
 
+      ranking.top_scores.mail.foreach{
+        mail =>
+        val countOccurence = ranking.top_scores.mail.foldLeft(0){ (i,s) => if( s == mail ) i+1 else i }
+        assert( countOccurence == 1 )
+
+      }
+
+      // TODO: comprend pas pourquoi on a 2x la meme occurence
+
+      expectedSlice.top_scores.mail.foreach{
+        mail =>
+        val countOccurence = ranking.top_scores.mail.foldLeft(0){ (i,s) => if( s == mail ) i+1 else i }
+        assert( countOccurence == 1 )
+
+      }
 
       assert( expectedSlice.score == ranking.score )
 
       // TODO: comprend pas pourquoi cela ne passe pas...
       /*
-      assert( expectedSlice.top_scores.deepEquals( ranking.top_scores ) )
-      assert( expectedSlice.before.deepEquals( ranking.before ) )
-      assert( expectedSlice.after.deepEquals( ranking.after ) )
+      assert( expectedSlice.deepEquals( ranking ) )
       */
     }
 
