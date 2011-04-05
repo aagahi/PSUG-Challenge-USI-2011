@@ -4,45 +4,14 @@ import org.specs._
 import matcher.Matcher
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
+import org.psug.usi.utils.RankingUtil._
 
 @RunWith(classOf[JUnitSuiteRunner])
 class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
 
   implicit val defaultInterval = 100
 
-  def isSorted(r: Ranking): Boolean = {
 
-    def isSorted(l: ListScores): Boolean = {
-      var i = 0
-      var res = true
-      while (res && i < l.scores.size - 1) {
-        res = {
-          if (l.scores(i) > l.scores(i + 1)) true
-          else if (l.scores(i) < l.scores(i + 1)) false
-          else {
-            if (l.firstname(i) < l.firstname(i + 1)) true
-            else if (l.firstname(i) > l.firstname(i + 1)) false
-            else {
-              if (l.lastname(i) < l.lastname(i + 1)) true
-              else if (l.lastname(i) > l.lastname(i + 1)) false
-              else l.mail(i) <= l.mail(i + 1)
-            }
-          }
-        }
-        i += 1
-      }
-      res
-    }
-    isSorted(r.top_scores) &&
-      isSorted(r.before) &&
-      isSorted(r.after) && {
-      if (r.before.scores.size > 0) r.before.scores(r.before.scores.size - 1) >= r.score
-      else true
-    } && {
-      if (r.after.scores.size > 0) r.after.scores(0) <= r.score
-      else true
-    }
-  }
 
   "scoring agent" should {
 

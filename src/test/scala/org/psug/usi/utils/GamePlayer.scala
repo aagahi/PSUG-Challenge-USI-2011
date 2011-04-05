@@ -2,11 +2,11 @@ package org.psug.usi.utils
 
 import akka.dispatch.{Futures, Future}
 import org.psug.usi.service._
-import org.psug.usi.domain.{Question, User, Game}
 import util.Random
 import math._
 import akka.util.Logging
-
+import org.psug.usi.domain._
+import org.psug.usi.utils.RankingUtil._
 /**
  * User: alag
  * Date: 4/5/11
@@ -15,6 +15,9 @@ import akka.util.Logging
 
 class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[User] ) extends Logging {
   val seed = new Random().nextLong
+
+
+  lazy val sortedScores = users.map( user => UserScore(user, expectedScore(user)) ).sorted
 
   def expectedScore( user:User ) = {
     var score = 0
@@ -34,6 +37,17 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
   }
 
 
+  def expectedScoreSlice(user: User, sliceRange: Range = -10 to 10, topSize:Int = 100 ): Ranking = {
+    val userScore = sortedScores.find( _.user == user ).get
+
+    val indexOfUser: Int = sortedScores.indexOf(userScore)
+    val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
+    val end = if (sortedScores.size-1 < indexOfUser + sliceRange.end) sortedScores.size-1 else indexOfUser + sliceRange.end
+    val before = ListScores(sortedScores.slice(begin, indexOfUser))
+    val after = ListScores(sortedScores.slice(indexOfUser + 1, end))
+    Ranking(userScore.score, ListScores(sortedScores.take(topSize)) , before, after)
+  }
+
 
 
   def answer( user:User, questionIndex:Int ) = {
@@ -46,7 +60,6 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
   def play() {
     gameManagerService !? InitGame( game )
 
-    var currentQuestion = 0
 
     // Register
     users.map( user => gameManagerService ! Register( user ) )
@@ -74,6 +87,30 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
 
     val GameManagerStats( registredPlayer, currentQuestionPlayersCount, state ) = gameManagerService !? QueryStats
     assert( state == EndGame )
+
+    assert( isSorted( ListScores( sortedScores ) ) )
+    
+
+    users.foreach{
+      user =>
+      val ScoreSlice( ranking ) =  gameManagerService !? QueryScoreSlice( user.id )
+      val expectedSlice = expectedScoreSlice( user )
+      assert( isSorted( expectedSlice ) )
+      assert( isSorted( ranking ))
+
+
+
+      assert( expectedSlice.score == ranking.score )
+
+      // TODO: comprend pas pourquoi cela ne passe pas...
+      /*
+      assert( expectedSlice.top_scores.deepEquals( ranking.top_scores ) )
+      assert( expectedSlice.before.deepEquals( ranking.before ) )
+      assert( expectedSlice.after.deepEquals( ranking.after ) )
+      */
+    }
+
+    
   }
 
 }

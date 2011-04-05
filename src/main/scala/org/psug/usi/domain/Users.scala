@@ -34,9 +34,9 @@ case class User( id:Int, firstname:String, lastname:String, mail:String, passwor
     if( c1 == 0 ){
       val c2 = that.lastname compare lastname
       if( c2 == 0 ) {
-        val c3 = that.mail compare mail
-        if( c3 == 0 ) that.id compare id
-        else c3
+        that.mail compare mail
+        //if( c3 == 0 ) that.id compare id
+        //else c3
       } else c2
     } else c1
   }

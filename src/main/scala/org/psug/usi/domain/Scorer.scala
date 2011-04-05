@@ -7,6 +7,24 @@ import collection.mutable.HashMap
  * Strange structure to match:
  * https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz#TOC-Obtenir-le-classement-d-un-utilisat
  */
+object ListScores {
+  def apply( scores: Traversable[UserScore] ):ListScores = {
+    val s = scores.size
+    val listScore = ListScores(new Array(s), new Array(s), new Array(s), new Array(s))
+    var i = 0
+    scores.foreach {
+      case UserScore(user, score) =>
+        listScore.mail(i) = user.mail
+        listScore.scores(i) = score
+        listScore.firstname(i) = user.firstname
+        listScore.lastname(i) = user.lastname
+        i += 1
+    }
+    listScore
+  }
+}
+
+
 case class ListScores(mail: Array[String], scores: Array[Int], firstname: Array[String], lastname: Array[String]) {
   require(mail.size == scores.size && scores.size == firstname.size && firstname.size == lastname.size)
 
@@ -64,24 +82,8 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
 
   def userScore(user: User) = userScoresMap(user).score
 
-  //transform a list of UserScore to a ListScore structure
-  private[this] def toListScore(scores: Traversable[UserScore]): ListScores = {
-    val s = scores.size
-    val listScore = ListScores(new Array(s), new Array(s), new Array(s), new Array(s))
-    var i = 0
-    scores.foreach {
-      case UserScore(user, score) =>
-        listScore.mail(i) = user.mail
-        listScore.scores(i) = score
-        listScore.firstname(i) = user.firstname
-        listScore.lastname(i) = user.lastname
-        i += 1
-    }
-    listScore
-  }
-
   //retrieve the Top 100. Do the calcul only one time (it has to be called at the end of game
-  private[this] lazy val topPlayers: ListScores = toListScore(sortedUserScores.take(topSize))
+  private[this] lazy val topPlayers: ListScores = ListScores(sortedUserScores.take(topSize))
 
   /**
    * a lazily evaluated array filled from the sorted set of users.
@@ -98,8 +100,8 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
     val indexOfUser: Int = arrayOfScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
     val end = if (numUsers < indexOfUser + sliceRange.end) numUsers else indexOfUser + sliceRange.end
-    val before = toListScore(arrayOfScores.slice(begin, indexOfUser))
-    val after = toListScore(arrayOfScores.slice(indexOfUser + 1, end))
+    val before = ListScores(arrayOfScores.slice(begin, indexOfUser))
+    val after = ListScores(arrayOfScores.slice(indexOfUser + 1, end))
     Ranking(userScore.score, topPlayers, before, after)
   }
 
