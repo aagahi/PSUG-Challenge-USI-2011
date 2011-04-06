@@ -8,13 +8,10 @@ import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
-import org.psug.usi.service.{
-  InitGame, Services,
-  ScoreSliceUnavailable, ScoreSlice
-}
 import org.psug.usi.akka.Receiver
 import io.{Codec, Source}
 import akka.util.Logging
+import org.psug.usi.service._
 
 /**
  * User: alag
@@ -65,41 +62,59 @@ class RequestActor(services : Services, webAuthenticationKey:String ) extends Re
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
     val content = request.getContent().toString(CharsetUtil.UTF_8)
-    val path=if (queryStringDecoder.getPath=="/") Array("") else queryStringDecoder.getPath.split('/').tail ;
+    val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
+
+    log.info( "Method: " + method +  " - Path:" + path.mkString(",") )
+
+
     ( method, path ) match {
 
-      case ( HttpMethod.GET, Array("api","user",userId) )  =>
+      case ( HttpMethod.GET, "api"::"user"::userId::Nil )  =>
         userRepositoryService ! PullData( userId.toInt )
 
-      case ( HttpMethod.POST, Array("api","user") ) =>
+      case ( HttpMethod.POST, "api"::"user"::Nil ) =>
         val userVO = read[UserVO](content)
         userRepositoryService ! StoreData( User( userVO ) )
 
-      case ( HttpMethod.POST, Array("api","login") ) =>
+      case ( HttpMethod.POST, "api"::"login"::Nil ) =>
         val credentials = read[Credentials](content)
         userRepositoryService ! AuthenticateUser(credentials)
 
-      case ( HttpMethod.POST, Array("api","game") ) =>
+      case ( HttpMethod.POST, "api"::"game"::Nil ) =>
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
-          gameRepositoryService ! StoreData( game)
+          gameRepositoryService ! StoreData( game )
           gameManagerService ! InitGame (game)
         }
         else{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
-      case ( HttpMethod.GET, Array("admin","status") ) =>
+      case ( HttpMethod.GET, "api"::"score"::Nil ) =>
+        // TODO: what if param is not provided
+        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
+          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
+          gameManagerService ! QueryScoreSliceAudit (mail)
+        }
+        else{
+          sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
+
+
+      case ( HttpMethod.GET, "admin"::"status"::Nil ) =>
         sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
 
-      case ( HttpMethod.GET, Array("web" ) )  =>
+
+
+
+      case ( HttpMethod.GET, "web"::Nil )  =>
         sendPage( "/web/index.html" )
 
-      case ( HttpMethod.GET, Array("web", _* ) )  =>
+      case ( HttpMethod.GET, "web"::subPath  )  =>
         sendPage( queryStringDecoder.getPath )
 
-      case ( HttpMethod.GET, Array(page:String) )  =>
+      case ( HttpMethod.GET, page::Nil )  =>
         sendRedirectToWeb(page)
 
       case _ => log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )

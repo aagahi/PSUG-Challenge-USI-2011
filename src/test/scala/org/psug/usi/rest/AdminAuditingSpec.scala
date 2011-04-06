@@ -12,9 +12,14 @@ import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
 import org.psug.usi.utils.GamePlayer
+import net.liftweb.json.{NoTypeHints, Serialization}
+import net.liftweb.json.Serialization.read
+
 
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
+
+  implicit val formats = Serialization.formats(NoTypeHints)
 
   val serverServices = new SimpleRepositoryServices
   val services = new ClientServices()
@@ -41,11 +46,12 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
 
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
-  private[this] def queryRanking(key:String, userEmail:String ):ClientResponse = {
+
+  private[this] def queryRanking(key:String, userEmail:String ):String = {
     val queryParams = new MultivaluedMapImpl()
     queryParams.add("user_mail", userEmail)
     queryParams.add("authentication_key", key)
-    webResource("/api/score").queryParams(queryParams).get(classOf[ClientResponse])
+    webResource("/api/score").queryParams(queryParams).get(classOf[String])
   } 
   
   "Admin auditing score for one user" should {
@@ -68,12 +74,16 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
       val gamePlayer = new GamePlayer( gameManagerService, game, users )
       gamePlayer.play()
-      //val response = queryRanking(webAuthenticationKey, "email0")
+
+      val user = users(10)
+
+      val ranking = read[Ranking](queryRanking( webAuthenticationKey, user.mail))
+      val expectedRanking = gamePlayer.expectedScoreSlice(user)
+      ranking.deepEquals( expectedRanking ) must beTrue
       //response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
-      //TODO: check result
       
     }
-
+/*
     "fail on POST" in {
       
     }
@@ -102,6 +112,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     "fail if the authentication key is OK, a finished game exists, but the user didn't played it" in {
       
     }
+    */
    
   }
 
