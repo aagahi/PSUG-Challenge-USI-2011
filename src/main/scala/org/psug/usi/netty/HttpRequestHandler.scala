@@ -9,7 +9,7 @@ import org.jboss.netty.handler.codec.http._
 import net.liftweb.json.Serialization.{read, write}
 import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import org.psug.usi.service.{
-  InitGame, Services, QueryScoreSliceAudit, 
+  InitGame, Services,
   ScoreSliceUnavailable, ScoreSlice
 }
 import org.psug.usi.akka.Receiver
@@ -22,12 +22,11 @@ import akka.util.Logging
  * Time: 1:07 AM
  */
 
-case class Status( nodeType:String, port:Int )
+case class Status( nodeType:String )
 
-class RequestActor(services : Services) extends Receiver with Logging {
+class RequestActor(services : Services, webAuthenticationKey:String ) extends Receiver with Logging {
 
   import services._
-  import org.psug.usi.Main._
   implicit val formats = Serialization.formats(NoTypeHints)
 
   var channel:Channel = null
@@ -70,29 +69,32 @@ class RequestActor(services : Services) extends Receiver with Logging {
     ( method, path ) match {
 
       case ( HttpMethod.GET, Array("api","user",userId) )  =>
-        userRepositoryService.remote ! PullData( userId.toInt )
+        userRepositoryService ! PullData( userId.toInt )
 
       case ( HttpMethod.POST, Array("api","user") ) =>
         val userVO = read[UserVO](content)
-        userRepositoryService.remote ! StoreData( User( userVO ) )
+        userRepositoryService ! StoreData( User( userVO ) )
 
       case ( HttpMethod.POST, Array("api","login") ) =>
         val credentials = read[Credentials](content)
-        userRepositoryService.remote ! AuthenticateUser(credentials)
+        userRepositoryService ! AuthenticateUser(credentials)
 
       case ( HttpMethod.POST, Array("api","game") ) =>
         val createGame = read[RegisterGame](content)
-        if( createGame.authentication_key == WEB_AUTHICATION_KEY ){
+        if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
-          gameRepositoryService.remote ! StoreData( game)
-          gameManagerService.remote ! InitGame (game)
+          gameRepositoryService ! StoreData( game)
+          gameManagerService ! InitGame (game)
         }
         else{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
       case ( HttpMethod.GET, Array("admin","status") ) =>
-        sendResponse(Some(Status("Web",34567)),HttpResponseStatus.OK)
+        sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
+
+      case ( HttpMethod.GET, Array("web" ) )  =>
+        sendPage( "/web/index.html" )
 
       case ( HttpMethod.GET, Array("web" ) )  =>
         sendPage( "/web/index.html" )
@@ -155,10 +157,10 @@ class RequestActor(services : Services) extends Receiver with Logging {
 }
 
 @ChannelHandler.Sharable
-class HttpRequestHandler(services : Services) extends SimpleChannelUpstreamHandler {
+class HttpRequestHandler(services : Services, webAuthenticationKey:String ) extends SimpleChannelUpstreamHandler {
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
-    ( new RequestActor(services) ).start() ! e
+    ( new RequestActor(services, webAuthenticationKey) ).start() ! e
   }
 
   override def exceptionCaught( ctx:ChannelHandlerContext, e:ExceptionEvent ){

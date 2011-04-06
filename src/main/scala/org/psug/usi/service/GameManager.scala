@@ -1,11 +1,12 @@
 package org.psug.usi.service
 
 import org.psug.usi.domain._
-import org.psug.usi.store.StoreData
 import collection.mutable.HashMap
-import org.psug.usi.akka.Receiver
 import akka.actor.Channel
 import akka.util.Logging
+import org.psug.usi.store.{DataPulled, StoreData}
+import akka.dispatch.Future
+import org.psug.usi.akka.Receiver
 
 /**
  * User: alag
@@ -23,14 +24,14 @@ case class Register(user: User)
 
 case object QueryStats
 
-case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int)
+case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int, state:GameState )
 
 case class QueryQuestion(userId: Int, questionIndex: Int)
 
 case class UserAnswer(userId: Int, questionIndex: Int, answerIndex: Int)
 
 case class QueryScoreSlice(userId: Int)
-case class QueryScoreSliceAudit(userEmail: String)
+case class QueryScoreSliceAudit( userEmail: String)
 //answer to QueryScoreSlice may be "don't ask" if the game is not finished
 trait ScoreSliceAnswer
 case object ScoreSliceUnavailable extends ScoreSliceAnswer
@@ -84,7 +85,7 @@ case object Uninitialized extends GameState
 case object Initialized extends GameState 
 case object WaitingRegistrationAndQ1 extends GameState
 //could be a couple of ProcessingQueryQuestion(i) / ProcessingReplyQuestion(i)
-//in place of GameManagerService.currentQuestionIndex
+//in place of GameManager.currentQuestionIndex
 case object InGame extends GameState 
 //case class ProcessingQueryQuestion(number:Int) extends GameState
 //case class ProcessingReplyQuestion(number:Int) extends GameState
@@ -93,12 +94,11 @@ case object EndGame extends GameState
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
-                         var timer: GameManagerTimer = new DefaultGameManagerTimer)
-  extends DefaultServiceConfiguration with Service with RemoteService with Logging {
+class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
+                   userRepositoryService:UserRepositoryService,
+                   timer: GameManagerTimer = new DefaultGameManagerTimer)
+  extends Receiver with Logging {
   
-
-  override lazy val name = "GameManagerService"
 
 
   var gameState : GameState = Uninitialized
@@ -118,14 +118,13 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
   var nextQuestionPlayer : QuestionPlayer = null
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
-  val userIdByEmail = new HashMap[String,Int]
-  
+
 
   def receive = {
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
     case QueryStats => 
-      sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex)
+      sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex,gameState)
     case QueryQuestion(userId, questionIndex) 
       if(registredPlayersHistory.isDefinedAt(userId)) 
       => queryQuestion(userId, questionIndex)
@@ -136,8 +135,8 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (questionIndex == currentQuestionIndex) 
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
-    case QueryScoreSliceAudit(userEmail) => queryScoreSlice(userIdByEmail(userEmail))
-    case StopReceiver => log.info("service " + name + " exiting"); exit()
+    case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
+    case StopReceiver => stop()
     case x => //TODO : reply an error message ?
   }
 
@@ -151,7 +150,6 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         scorer = new Scorer(game.nbUsersThreshold)
         currentQuestionIndex = 0
         registredPlayersHistory.clear()
-        userIdByEmail.clear()
         currentQuestionPlayer = new QuestionPlayer
         nextQuestionPlayer = new QuestionPlayer
         gameState = Initialized
@@ -174,7 +172,6 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
       if (registredPlayersHistory.size < game.nbUsersThreshold) {
        if(!registredPlayersHistory.isDefinedAt(user.id)) {
          registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
-         userIdByEmail(user.mail) = user.id
        } else { // user is already registered
          //nothing ? 
        }
@@ -260,12 +257,13 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         userAnswerHistory.answerBonus = 0
         0
       }
+
     val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
     sender ! UserAnswerResponse( answerValue > 0, userScore.score)
 
 
-    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == userIdByEmail.size ) {
+    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == registredPlayersHistory.size ) {
       endGame()
     }
 
@@ -289,6 +287,24 @@ class GameManagerService(val gameUserHistoryRepositoryService: GameUserHistoryRe
         sender ! ScoreSliceUnavailable
     }
   }
+
+  /**
+   * Audit query for the ranking of the given user.
+   * Return Some(List(scores)) if score are available
+   * or None if it is not the time to ask
+   */
+  private def queryScoreSliceAudit(userEmail: String) {
+    val target = sender
+    (userRepositoryService !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
+      future => future.result match {
+        case Some( DataPulled( Some( data:User ) ) ) => target ! ScoreSlice( scorer.scoreSlice( data ) )
+        case _ => log.warn( "Unexpected repo result for user email " + userEmail )
+      }
+    )
+
+  }
+
+
 
   /**
    * Send the text of the current question to all users who asked for.
