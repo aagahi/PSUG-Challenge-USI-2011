@@ -11,10 +11,9 @@ import org.psug.usi.netty.WebServer
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
-import org.psug.usi.utils.GamePlayer
 import net.liftweb.json.{NoTypeHints, Serialization}
 import net.liftweb.json.Serialization.read
-
+import org.psug.usi.utils.{UserGenerator, GameGenerator, GamePlayer}
 
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
@@ -30,18 +29,6 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
   val webServer : WebServer = new WebServer( listenPort, services, webAuthenticationKey )
 
 
-  val game = Game( questions = 
-                     Question( "Q1", Answer( "A11", false )::Answer("A12", true)::Nil, 1 )
-                     :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
-                     :: Question( "Q3", Answer( "A31", false )::Answer("A32", true)::Nil, 3 )
-                     :: Nil
-                 , loginTimeoutSec = 5
-                 , synchroTimeSec = 7
-                 , questionTimeFrameSec = 11
-                 , nbQuestions = 3
-                 , flushUserTable = false
-                 , nbUsersThreshold = 160 
-                 )
 
 
 
@@ -67,10 +54,9 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     }
  
     "Succed if the auth key is OK, a game was played, and the queried user played that game" in {
-      val users = (for( i <- 0 until game.nbUsersThreshold ) yield {
-        val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
-        user.asInstanceOf[User]
-      }).toList
+
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
 
       val gamePlayer = new GamePlayer( gameManagerService, game, users )
       gamePlayer.play()

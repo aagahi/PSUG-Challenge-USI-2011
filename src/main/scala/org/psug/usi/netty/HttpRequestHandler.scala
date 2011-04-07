@@ -12,7 +12,7 @@ import org.psug.usi.akka.Receiver
 import io.{Codec, Source}
 import akka.util.Logging
 import org.psug.usi.service._
-
+import scala.collection.JavaConversions._
 /**
  * User: alag
  * Date: 2/22/11
@@ -46,7 +46,9 @@ class RequestActor(services : Services, webAuthenticationKey:String ) extends Re
 
     case UserAuthenticated (Left(user)) =>    sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
     case UserAuthenticated (Right(message)) => sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
-    
+
+    case QuestionResponse( question ) => sendResponse( Some( question ), HttpResponseStatus.OK )
+
     case ScoreSliceUnavailable => sendResponse( None, HttpResponseStatus.BAD_REQUEST )
     case ScoreSlice(ranking) => sendResponse( Some( ranking ), HttpResponseStatus.OK )
   }
@@ -55,6 +57,11 @@ class RequestActor(services : Services, webAuthenticationKey:String ) extends Re
     val encoder = new CookieEncoder(true)
     encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.mail)))
     encoder.encode()
+  }
+  private def decodeCookieAsAuthenticationToken(cookie:String):Option[AuthenticationToken] = {
+    val decoder = new CookieDecoder()
+    val cookies = decoder.decode(cookie)
+    cookies.find( _.getName == "session_key" ).map( cookie => AuthenticationToken.decrypt( cookie.getValue ) )
   }
   
   private def handleRequest( request:HttpRequest ){
@@ -90,6 +97,20 @@ class RequestActor(services : Services, webAuthenticationKey:String ) extends Re
         else{
           sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
+
+      case ( HttpMethod.GET, "api"::"question"::questionIndex::Nil ) =>
+        decodeCookieAsAuthenticationToken( request.getHeader( HttpHeaders.Names.SET_COOKIE ) ) match
+        {
+          case Some( AuthenticationToken( userId, mail ) ) =>
+           // api assume question starts at 1 but gamemanager starts at 0
+            gameManagerService ! QueryQuestion( userId, questionIndex.toInt-1 )
+
+          case None => 
+            sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
+
+
+
 
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>
         // TODO: what if param is not provided

@@ -6,8 +6,7 @@ import org.psug.usi.service._
 import akka.actor.Channel
 import akka.dispatch.Futures
 import akka.dispatch.Future
-
-
+import org.psug.usi.utils.{UserGenerator, GamePlayer, GameGenerator}
 
 /**
  * User: alag
@@ -82,29 +81,17 @@ class GameManagerSpec  extends SpecificationWithJUnit {
     startRepository.before
     exitRepository.after
 
-    val game = Game( questions = Question( "Q1", Answer( "A11", false )::Answer("A12", true)::Nil, 1 )
-                    :: Question( "Q2", Answer( "A21", false )::Answer("A22", true)::Nil, 2 )
-                    :: Question( "Q3", Answer( "A31", false )::Answer("A32", true)::Nil, 3 )
-                    :: Nil,
-                    loginTimeoutSec = 5,
-                    synchroTimeSec = 7,
-                    questionTimeFrameSec = 11,
-                    nbQuestions = 3,
-                    flushUserTable = false,
-                    nbUsersThreshold = 160 )
-
-
+/*
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
-      val users = (for( i <- 0 until game.nbUsersThreshold ) yield {
-        val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
-        user.asInstanceOf[User]
-      }).toList
-
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
 
 
       gameManagerService !? InitGame(game)
+
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
 
       var currentQuestion = 0
 
@@ -123,9 +110,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q1
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
-          val expectedScore = if( answerStatus ) game.questions(currentQuestion).value else 0
-          score must be_== ( expectedScore )
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
       currentQuestion += 1
@@ -141,11 +127,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q2
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
-
-          val expectedPrevScoreWithBonus = if( game.questions(currentQuestion).answers( user.id%(game.questions(currentQuestion-1).answers.size) ).status  ) game.questions(currentQuestion-1).value+1 else 0
-          val expectedScore = if( answerStatus ) game.questions(currentQuestion).value+expectedPrevScoreWithBonus else expectedPrevScoreWithBonus
-          score must be_== ( expectedScore )
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
       currentQuestion += 1
@@ -161,50 +144,48 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q3
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
-          val expectedScore = if( answerStatus ) (1+1 +2+1 +3+1) else 0
-          score must be_== ( expectedScore )
+          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
       // Get userScore slices
       users.foreach{
         user =>
-          val scoreSlice = (gameManagerService !? QueryScoreSlice( user.id ) ).asInstanceOf[ScoreSlice]
-          val scoreSliceAudit = (gameManagerService !? QueryScoreSliceAudit( user.mail ) ).asInstanceOf[ScoreSlice]
+          val ScoreSlice( ranking ) = (gameManagerService !? QueryScoreSlice( user.id ) ).asInstanceOf[ScoreSlice]
+          val ScoreSlice( rankingAudit ) = (gameManagerService !? QueryScoreSliceAudit( user.mail ) ).asInstanceOf[ScoreSlice]
 
-          (scoreSlice.r.deepEquals( scoreSliceAudit.r ) ) must beTrue
-
-          // TODO: rewrite this test
-          // TODO: rewrite this test
-          scoreSlice.r.score must be_>=( 0 )
-          //val minSliceSize = math.min( math.abs( gameManagerService.scorer.sliceRange.head ), gameManagerService.scorer.sliceRange.last )
-          //scoreSlice.r.before.scores.size must be_>=( minSliceSize )
-          //scoreSlice.r.before.scores.size must be_<( gameManagerService.scorer.sliceRange.size )
+          ranking.deepEquals( rankingAudit ) must beTrue
+          ranking.deepEquals( gamePlayer.expectedScoreSlice(user) ) must beTrue
       }
 
       // Check history
       users.foreach{
         user =>
         val DataPulled( Some( userHistory ) ) = serverServices.gameUserHistoryService !? PullData( GameUserKey( game.id, user.id ) )
-        val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, user.id%(q.answers.size) ) }
+        val expectedHistory = game.questions.zipWithIndex.reverse.map{ case( q, i ) => AnswerHistory( i, gamePlayer.answer( user, i ) ) }
         userHistory.asInstanceOf[GameUserHistory].anwsers must be_==( expectedHistory )
       }
 
     }
 
-
+*/
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (timeout scenario)" in {
-      val users = (for( i <- 0 until game.nbUsersThreshold ) yield User( i, "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) ).toList
+      val game = GameGenerator( 3, 4, 16 )
+      val users = UserGenerator( userRepositoryService, 16 )
+
 
       val timer = new TestGameManagerTimer
       val gameManager = new GameManager( gameUserHistoryService, serverServices.userRepositoryService, timer )
       gameManager.start
       gameManager !? InitGame (game)
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
 
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManager ! Register( user ) )
+      users.map{ user =>
+        println ( "Register => " + user )
+        gameManager ! Register( user ) }
       var messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
       messages.head must be_==( TimeoutMessage( TimeoutType.LOGIN, currentQuestion, game.loginTimeoutSec ) )
@@ -236,11 +217,11 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       // 25% user answers to Q1
       val answerQ1Users = for( user <- users ; if( user.id%4 == 0 ) ) yield {
-        val UserAnswerResponse( answerStatus, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, user.id%(game.questions(currentQuestion).answers.size) ) ).asInstanceOf[UserAnswerResponse]
-        val expectedScore = if( answerStatus ) game.questions(currentQuestion).value else 0
-        score must be_== ( expectedScore )
+        val UserAnswerResponse( answerStatus, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+        score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
         user
       }
+
 
       // fire end question
       timer !? FireLastMessage

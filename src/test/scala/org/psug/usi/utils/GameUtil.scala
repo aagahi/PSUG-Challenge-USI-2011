@@ -7,11 +7,51 @@ import math._
 import akka.util.Logging
 import org.psug.usi.domain._
 import org.psug.usi.utils.RankingUtil._
+import org.psug.usi.store.{DataStored, StoreData}
+
 /**
  * User: alag
  * Date: 4/5/11
  * Time: 4:57 PM
  */
+
+
+object UserGenerator {
+  def apply(  userRepositoryService:UserRepositoryService, nbUser:Int ) = {
+    (for( i <- 0 until nbUser ) yield {
+        val DataStored( Right( user ) ) = userRepositoryService !? StoreData( User( "firstname"+i, "lastname"+i, "mail"+i, "password"+i ) )
+        user.asInstanceOf[User]
+      }).toList
+  }
+}
+
+object GameGenerator {
+
+  def apply( nbQuestion:Int, nbAnswer:Int, nbUsersThreshold:Int, loginTimeoutSec:Int = 5, synchroTimeSec:Int = 7, questionTimeFrameSec:Int = 11 ):Game =
+  {
+    val questions = for( i <- 1 to nbQuestion ) yield {
+      val correctAnswer = Random.nextInt( nbQuestion )
+      val answers = for( j <- 1 to nbAnswer ) yield {
+        Answer( "A"+i+"-"+j, j-1 == correctAnswer )
+      }
+
+      var questionValue = ((i)/5)*5
+      if( questionValue == 0 ) questionValue = 1
+
+      Question( "Q"+i, answers, questionValue )
+    }
+
+    Game( questions = questions
+         , loginTimeoutSec = loginTimeoutSec
+         , synchroTimeSec = synchroTimeSec
+         , questionTimeFrameSec = questionTimeFrameSec
+         , nbQuestions = nbQuestion
+         , flushUserTable = false
+         , nbUsersThreshold = nbUsersThreshold
+         )
+
+  }
+}
 
 class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[User] ) extends Logging {
   val seed = new Random().nextLong
@@ -19,10 +59,10 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
 
   lazy val sortedScores = users.map( user => UserScore(user, expectedScore(user)) ).sorted
 
-  def expectedScore( user:User ) = {
+  def expectedScore( user:User, atQuestionIndex:Int = game.nbQuestions-1 ) = {
     var score = 0
     var bonus = 0
-    for( questionIndex <- 0 until game.nbQuestions ){
+    for( questionIndex <- 0 to atQuestionIndex ){
       val answerIndex  = answer( user, questionIndex )
       val question = game.questions(questionIndex)
       if( question.answers(answerIndex).status ){

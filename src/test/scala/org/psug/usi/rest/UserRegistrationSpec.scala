@@ -64,7 +64,7 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
   }
 
   def getCookieFrom(response : ClientResponse) : Option[Cookie] = {
-    Some(new CookieDecoder().decode(response.getHeaders.getFirst("Set-Cookie")).iterator.next)
+    Some(new CookieDecoder().decode(response.getHeaders.getFirst( "Set-Cookie")).iterator.next)
   }
   
   "user registration" should {

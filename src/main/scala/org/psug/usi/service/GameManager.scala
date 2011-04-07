@@ -197,6 +197,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   /**
    * A user query a question. If the question number is the currently processed, 
    * we wait for all user to query that question and then reply to all of them.
+   * questionIndex start at 0 (fyi octo rest api assume it starts at 1 => http request handler should have set -1)
    */
   private def queryQuestion(userId: Int, questionIndex: Int) {
     //TODO: why not check that the user is in that game ?
@@ -205,7 +206,9 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     //query for a question that is not currentQuestionIndex
     val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
+
     questionPlayer.players(questionPlayer.playerIndex) = userId
+
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors(userId) = sender
 
@@ -352,9 +355,11 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   private def timeout(timeoutType: TimeoutType.Value) {
 
     if (timeoutType == TimeoutType.QUESTION) {
-      for (userId <- currentQuestionPlayer.players) {
+      for ( i <- 0 until currentQuestionPlayer.playerIndex ) {
+        val userId = currentQuestionPlayer.players( i )
         if (!currentQuestionPlayer.playerActors.contains( userId ) ) {
           val userAnswerHistory = registredPlayersHistory( userId )
+
           userAnswerHistory.answerBonus = 0
         }
       }
