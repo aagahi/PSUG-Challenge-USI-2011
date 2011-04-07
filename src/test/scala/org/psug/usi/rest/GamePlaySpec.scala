@@ -14,29 +14,12 @@ import org.psug.usi.netty.WebServer
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
-import net.liftweb.json.{NoTypeHints, Serialization}
+import net.liftweb.json.NoTypeHints
 import net.liftweb.json.Serialization
-import org.psug.usi.utils.{GameGenerator, UserGenerator, GamePlayer}
 import org.jboss.netty.handler.codec.http.CookieEncoder
-import org.psug.usi.akka.Receiver
-import akka.dispatch.{Dispatchers, Future, Futures}
+import akka.dispatch.Futures
+import org.psug.usi.utils.{AsyncExecutor, GameGenerator, UserGenerator}
 
-
-class HttpQuery extends Receiver {
-
-  actorRef.dispatcher = Dispatchers.newExecutorBasedEventDrivenDispatcher("HttpQuery")
-    .setCorePoolSize(256)
-    .setMaxPoolSize(256)
-    .build
-  start()
-
-  def execute( f: ()=>Any ) = this !! f
-  
-
-  def receive = {
-    case f:( ()=>Any ) => reply( f() )
-  }
-}
 
 @RunWith(classOf[JUnitSuiteRunner])
 class GamePlaySpec extends SpecificationWithJUnit {
@@ -98,7 +81,7 @@ def startRepository:Unit = {
 
       val currentQuestion = 0
       val futures = users.map{
-        user => new HttpQuery().execute{ ()=>queryQuestionN( user, currentQuestion+1 ) }.asInstanceOf[Future[String]]
+        user => AsyncExecutor().execute{ queryQuestionN( user, currentQuestion+1 ) }
       }
 
       Futures.awaitAll( futures )

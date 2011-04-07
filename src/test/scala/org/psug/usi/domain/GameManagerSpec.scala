@@ -81,7 +81,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
     startRepository.before
     exitRepository.after
 
-/*
+
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
@@ -168,10 +168,10 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
     }
 
-*/
+
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (timeout scenario)" in {
-      val game = GameGenerator( 3, 4, 16 )
-      val users = UserGenerator( userRepositoryService, 16 )
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
 
 
       val timer = new TestGameManagerTimer

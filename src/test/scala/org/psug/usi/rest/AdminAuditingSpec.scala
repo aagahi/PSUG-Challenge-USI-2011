@@ -2,7 +2,6 @@ package org.psug.usi.rest
 
 import com.sun.jersey.core.util.MultivaluedMapImpl
 
-import akka.dispatch.{Future,Futures}
 import org.psug.usi.domain._
 import org.psug.usi.service._
 import org.psug.usi.store._
