@@ -87,8 +87,13 @@ def startRepository:Unit = {
       Futures.awaitAll( futures )
       futures.map( _.result ).foreach{
         case Some( str )=>
-          val question = Serialization.read[Question]( str )
-          question must be_==( game.questions( currentQuestion ) )
+          val questionVO = Serialization.read[QuestionVO]( str )
+          questionVO.question must be_==( game.questions( currentQuestion ).question )
+          questionVO.answer_1 must be_==( game.questions( currentQuestion ).answers(0).anwser )
+          questionVO.answer_2 must be_==( game.questions( currentQuestion ).answers(1).anwser )
+          questionVO.answer_3 must be_==( game.questions( currentQuestion ).answers(2).anwser )
+          questionVO.answer_4 must be_==( game.questions( currentQuestion ).answers(3).anwser )
+          questionVO.score must be_==( 0 )
         case _ => fail
       }
 

@@ -153,7 +153,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           case Some( AuthenticationToken( userId, mail ) ) =>
            // api assume question starts at 1 but gamemanager starts at 0
             gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
-              case QuestionResponse( question ) => out.sendResponse( Some( question ), HttpResponseStatus.OK )
+              case QuestionResponse( question, score ) => out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
               case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
 

@@ -117,7 +117,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       }
 
       for (user <- users) {
-        val score = scorer.userScore(user)
+        val score = scorer.userScore(user.id)
         if (user.id % 2 == 0) score must be(numResponse)
         else score must be(0)
       }

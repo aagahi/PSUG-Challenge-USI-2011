@@ -102,8 +102,9 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       val futuresQ1 = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ1 )
       futuresQ1.map( _.result ).foreach{
-        case Some( QuestionResponse( nextQuestion ) )=>
+        case Some( QuestionResponse( nextQuestion, score ) )=>
           nextQuestion must be_==( game.questions(currentQuestion ) )
+          score must be_==( 0 )
         case _ => fail
       }
 
@@ -119,7 +120,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       val futuresQ2 = users.map( user => ( gameManagerService !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ2 )
       futuresQ2.map( _.result ).foreach{
-        case Some( QuestionResponse( nextQuestion ) )=>
+        case Some( QuestionResponse( nextQuestion, score ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
       }
@@ -136,7 +137,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       val futuresQ3 = users.map( user => ( gameManagerService !! QueryQuestion( user.id, currentQuestion ) ).asInstanceOf[Future[QuestionResponse]] )
       Futures.awaitAll( futuresQ3 )
       futuresQ3.map( _.result ).foreach{
-        case Some( QuestionResponse( nextQuestion ) )=>
+        case Some( QuestionResponse( nextQuestion, score ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
       }
@@ -205,7 +206,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       val futuresQ1Results = futuresQ1.map( _.result )
       futuresQ1Results.size must be_==( users.size/2 )
       futuresQ1Results.foreach{
-        case Some( QuestionResponse( nextQuestion ) )=>
+        case Some( QuestionResponse( nextQuestion, score ) )=>
+          score must be_==( 0 )
           nextQuestion must be_==( game.questions(currentQuestion ) )
         case _ => fail
       }
@@ -251,7 +253,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       Futures.awaitAll( futuresQ2 )
       futuresQ2.map( _.result ).foreach{
-        case Some( QuestionResponse( nextQuestion ) )=>
+        case Some( QuestionResponse( nextQuestion, score ) )=>
           nextQuestion must be_==( game.questions( currentQuestion ) )
         case _ => fail
       }

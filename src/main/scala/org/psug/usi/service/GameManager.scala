@@ -41,7 +41,7 @@ case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
 // Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
 case class UserAnswerResponse(answerStatus: Boolean, score: Int)
 
-case class QuestionResponse(question: Question)
+case class QuestionResponse(question: Question, score:Int)
 
 object TimeoutType extends Enumeration {
   val LOGIN, SYNCRO, QUESTION = Value
@@ -317,9 +317,10 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    */
   private def replyQuestion() {
     userAnswerCount = 0
+    val question =game.questions(currentQuestionIndex)
     currentQuestionPlayer.playerActors.foreach {
       case (userId, playerActor) =>
-        playerActor ! QuestionResponse(game.questions(currentQuestionIndex))
+        playerActor ! QuestionResponse(question, scorer.userScore( userId ) )
     }
     currentQuestionPlayer.playerActors.clear
     timer ! TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec)
