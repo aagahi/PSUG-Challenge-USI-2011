@@ -3,10 +3,10 @@ package org.psug.usi.domain
 import org.specs._
 import org.psug.usi.store._
 import org.psug.usi.service._
-import akka.actor.Channel
 import akka.dispatch.Futures
 import akka.dispatch.Future
 import org.psug.usi.utils.{UserGenerator, GamePlayer, GameGenerator}
+import org.psug.usi.akka.Receiver
 
 /**
  * User: alag
@@ -22,31 +22,24 @@ class TestGameManagerTimer extends GameManagerTimer {
 
   private var messages:List[TimeoutMessage] = Nil
 
-  private var gameManagerActor:Channel[Any] = null
+  private var gameManagerActor:Receiver = null
 
-  override def handleQuestionTimeout( questionTimeout:TimeoutMessage ){
-    gameManagerActor = sender
-    messages = questionTimeout :: messages
+  override def schedule( questionTimeout:TimeoutMessage, target:Receiver ){
+    gameManagerActor = target
+    synchronized{ messages = questionTimeout :: messages }
+
   }
 
-  override def handleOtherMessage( message:Any ){
-    message match {
-
-      case FireLastMessage =>
-        gameManagerActor ! messages.head
-        messages = messages.tail
-        sender ! LastMessageFired
-
-      case PullAllMessages =>
-        sender ! messages
+  def fireLastMessage(){
+    synchronized{
+      gameManagerActor ! messages.head
+      messages = messages.tail
     }
-
   }
 
   def awaitOneOrMoreMessage = {
-    var m:List[TimeoutMessage] = Nil
-    while( m.size == 0 ) m = (this !? PullAllMessages ).asInstanceOf[List[TimeoutMessage]]
-    m
+    while( synchronized{ messages.size == 0 } ) Thread.sleep(10)
+    synchronized{ messages }
   }
 
 }
@@ -73,8 +66,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
   }
 
 
-
-
+  
 
   "game manager" should {
 
@@ -111,7 +103,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q1
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, correctAnwser, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
           score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
@@ -128,7 +120,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q2
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, correctAnwser, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
           score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
@@ -145,7 +137,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       // Answser Q3
       users.foreach{
         user =>
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, correctAnwser, score ) = (gameManagerService !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
           score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
       }
 
@@ -184,9 +176,8 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map{ user =>
-        println ( "Register => " + user )
-        gameManager ! Register( user ) }
+      users.map{ user => gameManager ! Register( user ) }
+      
       var messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
       messages.head must be_==( TimeoutMessage( TimeoutType.LOGIN, currentQuestion, game.loginTimeoutSec ) )
@@ -200,7 +191,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       futuresQ1.forall( ! _.isCompleted ) must beTrue
 
       // fire login
-      timer !? FireLastMessage
+      timer.fireLastMessage()
 
       Futures.awaitAll( futuresQ1 )
       val futuresQ1Results = futuresQ1.map( _.result )
@@ -219,15 +210,15 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       // 25% user answers to Q1
       val answerQ1Users = for( user <- users ; if( user.id%4 == 0 ) ) yield {
-        val UserAnswerResponse( answerStatus, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
+        val UserAnswerResponse( answerStatus, correctAnwser, score ) = (gameManager !? UserAnswer( user.id, currentQuestion, gamePlayer.answer( user, currentQuestion ) ) ).asInstanceOf[UserAnswerResponse]
         score must be_== ( gamePlayer.expectedScore( user, currentQuestion ) )
         user
       }
 
 
       // fire end question
-      timer !? FireLastMessage
-
+      timer.fireLastMessage()
+      
       currentQuestion += 1
 
       messages = timer.awaitOneOrMoreMessage
@@ -243,7 +234,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       futuresQ2.forall( ! _.isCompleted ) must beTrue
 
       // fire end syncho
-      timer !? FireLastMessage
+      timer.fireLastMessage()
 
 
       messages = timer.awaitOneOrMoreMessage

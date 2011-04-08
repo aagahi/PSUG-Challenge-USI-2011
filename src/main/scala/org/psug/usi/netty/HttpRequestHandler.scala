@@ -96,6 +96,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
+    // TODO: check the spec to see if content is supposed to be UTF-8 or ISO LATIN
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
@@ -162,6 +163,23 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         }
 
 
+      case ( HttpMethod.POST, "api"::"answer"::questionIndex::Nil ) =>
+        decodeCookieAsAuthenticationToken( request.getHeader( HttpHeaders.Names.SET_COOKIE ) ) match
+        {
+          case Some( AuthenticationToken( userId, mail ) ) =>
+            val answerVO = read[AnswerVO](content)
+
+           // api assume question starts at 1 but gamemanager starts at 0
+            gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer ) ){
+              case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+
+          case None =>
+            out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
+
+
 
 
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>
@@ -196,7 +214,9 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.GET, page::Nil )  =>
         out.sendRedirectToWeb(page)
 
-      case _ => log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
+      case _ =>
+        log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
+        out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
     }
   }
 

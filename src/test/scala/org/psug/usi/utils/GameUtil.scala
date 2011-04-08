@@ -59,6 +59,7 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
 
   lazy val sortedScores = users.map( user => UserScore(user, expectedScore(user)) ).sorted
 
+
   def expectedScore( user:User, atQuestionIndex:Int = game.nbQuestions-1 ) = {
     var score = 0
     var bonus = 0
@@ -89,6 +90,10 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
   }
 
 
+  def correctAnwser( user:User, questionIndex:Int ) = {
+    val question = game.questions(questionIndex)
+    question.answers( answer( user, questionIndex ) ).status
+  }
 
   def answer( user:User, questionIndex:Int ) = {
     val question = game.questions(questionIndex)
@@ -114,7 +119,7 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
           val answerIndex = answer( user, questionIndex )
           val answerIndex2 = answer( user, questionIndex )
           assert( answerIndex == answerIndex2 )
-          val UserAnswerResponse( answerStatus, score ) = (gameManagerService !? UserAnswer( user.id, questionIndex, answerIndex ) ).asInstanceOf[UserAnswerResponse]
+          val UserAnswerResponse( answerStatus, answser, score ) = (gameManagerService !? UserAnswer( user.id, questionIndex, answerIndex ) ).asInstanceOf[UserAnswerResponse]
 
           if( questionIndex == game.nbQuestions - 1 ){
             assert( score == expectedScore( user ) )

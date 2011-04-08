@@ -2,11 +2,12 @@ package org.psug.usi.service
 
 import org.psug.usi.domain._
 import collection.mutable.HashMap
-import akka.actor.Channel
 import akka.util.Logging
 import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
 import org.psug.usi.akka.Receiver
+import java.util.concurrent.TimeUnit
+import akka.actor.{Channel, Scheduler}
 
 /**
  * User: alag
@@ -38,8 +39,10 @@ case object ScoreSliceUnavailable extends ScoreSliceAnswer
 case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
 
 
-// Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
-case class UserAnswerResponse(answerStatus: Boolean, score: Int)
+case class UserAnswerResponse(answerStatus: Boolean, correctAnwser:String, score: Int)
+case class UserAnswerResponseVO(are_u_right: Boolean, good_answer:String, score: Int)
+
+
 
 case class QuestionResponse(question: Question, score:Int)
 
@@ -49,23 +52,13 @@ object TimeoutType extends Enumeration {
 
 case class TimeoutMessage(timeoutType: TimeoutType.Value, questionIndex: Int, timoutSec: Int)
 
-trait GameManagerTimer extends Receiver {
-  start
-
-  def receive = {
-    case questionTimeout: TimeoutMessage => handleQuestionTimeout(questionTimeout)
-    case x => handleOtherMessage(x)
-  }
-
-  def handleQuestionTimeout(questionTimeout: TimeoutMessage)
-
-  def handleOtherMessage(message: Any) {}
+trait GameManagerTimer {
+  def schedule(questionTimeout: TimeoutMessage, target:Receiver)
 }
 
 class DefaultGameManagerTimer extends GameManagerTimer {
-  def handleQuestionTimeout(questionTimeout: TimeoutMessage) {
-    Thread.sleep(questionTimeout.timoutSec * 1000)
-    sender ! questionTimeout
+  def schedule(questionTimeout: TimeoutMessage, target:Receiver) {
+    Scheduler.scheduleOnce( target.actorRef, questionTimeout, questionTimeout.timoutSec, TimeUnit.SECONDS )
   }
 }
 
@@ -136,9 +129,10 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
-    case StopReceiver => stop()
-    case x => //TODO : reply an error message ?
+    case x =>
+      log.warn( "Unhandled message: " + x )
   }
+
 
   /**
    * Initialize a game if it is not already initialized.
@@ -183,7 +177,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     gameState match {
       case Initialized =>
         // initialize the logintimeout timer for long polling
-        timer ! TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec)
+        timer.schedule( TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec), this )
         this.gameState = WaitingRegistrationAndQ1
         //add that user
         tryToAddUser
@@ -263,7 +257,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
 
     val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
-    sender ! UserAnswerResponse( answerValue > 0, userScore.score)
+    sender ! UserAnswerResponse( answerValue > 0, game.correctAnswer(currentQuestionIndex), userScore.score)
 
 
     if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == registredPlayersHistory.size ) {
@@ -323,7 +317,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
         playerActor ! QuestionResponse(question, scorer.userScore( userId ) )
     }
     currentQuestionPlayer.playerActors.clear
-    timer ! TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec)
+    timer.schedule( TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec), this )
 
 
   }
@@ -368,7 +362,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
-      timer ! TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec)
+      timer.schedule( TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec), this )
     }
     else {
       if(timeoutType == TimeoutType.LOGIN) {

@@ -17,8 +17,8 @@ import com.sun.jersey.api.client._
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.Serialization
 import org.jboss.netty.handler.codec.http.CookieEncoder
-import akka.dispatch.Futures
-import org.psug.usi.utils.{AsyncExecutor, GameGenerator, UserGenerator}
+import akka.dispatch.{Future, Futures}
+import org.psug.usi.utils.{GamePlayer, AsyncExecutor, GameGenerator, UserGenerator}
 
 
 @RunWith(classOf[JUnitSuiteRunner])
@@ -31,7 +31,7 @@ class GamePlaySpec extends SpecificationWithJUnit {
   import services._
 
 
-def startRepository:Unit = {
+  def startRepository:Unit = {
     serverServices.launch
     webServer.start
     userRepositoryService !? ClearRepository
@@ -46,6 +46,7 @@ def startRepository:Unit = {
   }
 
 
+  setSequential()
 
 
   val webAuthenticationKey = "dummy"
@@ -54,26 +55,30 @@ def startRepository:Unit = {
 
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
-  // query /api/question/N
-  def queryQuestionN( user:User, questionIndex:Int ):String = {
+  // GET /api/question/N
+  def getQuestionN( user:User, questionIndex:Int ):String = {
     val cookieEncoder = new CookieEncoder( false )
     cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
     webResource("/api/question/"+questionIndex).header("Set-Cookie", cookieEncoder.encode() ).get(classOf[String] )
   }
 
+  // POST /api/answer/N
+  def postAnswerN( user:User, questionIndex:Int, anwser:AnswerVO ):(User,String) = {
+    val cookieEncoder = new CookieEncoder( false )
+    cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
+    (user, webResource("/api/answer/"+questionIndex).header("Set-Cookie", cookieEncoder.encode() ).post(classOf[String], Serialization.write(anwser) ))
+  }
 
 
-
-
-  "registred player" should {
+  "query question" should {
 
     startRepository.before
     exitRepository.after
 
-    "query question 0 should return error" in {
+    "return error on number 0 " in {
     }
 
-    "query question 1" in {
+    "return json when request question 1" in {
       val game = GameGenerator( 3, 4, 16 )
       val users = UserGenerator( userRepositoryService, 16 )
       gameManagerService !? InitGame(game)
@@ -81,7 +86,7 @@ def startRepository:Unit = {
 
       val currentQuestion = 0
       val futures = users.map{
-        user => AsyncExecutor().execute{ queryQuestionN( user, currentQuestion+1 ) }
+        user => AsyncExecutor().execute{ getQuestionN( user, currentQuestion+1 ) }
       }
 
       Futures.awaitAll( futures )
@@ -96,8 +101,63 @@ def startRepository:Unit = {
           questionVO.score must be_==( 0 )
         case _ => fail
       }
+    }
 
+/*
+    "not be available as long as query 1 + anwser has not been done" in {
+    }
+
+
+    "fail with POST" in {
+    }
+
+    "fail without a question number" in {
+    }
+
+    "fail without user cookie" in {
+    }
+
+    "fail with wrong/unkonwn user cookie" in {
+    }
+    */
       
+    
+
+  }
+
+  "answer to question" should {
+    startRepository.before
+    exitRepository.after
+
+    "return json if answed to appropriate question" in {
+      val game = GameGenerator( 3, 4, 16 )
+      val users = UserGenerator( userRepositoryService, 16 )
+      gameManagerService !? InitGame(game)
+      users.foreach( user => gameManagerService ! Register( user ) )
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
+
+      val currentQuestion = 0
+
+      val futuresQ1 = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
+      Futures.awaitAll( futuresQ1 )
+
+
+
+      val futures = users.map{
+        user => AsyncExecutor().execute{ postAnswerN( user, currentQuestion+1, AnswerVO( gamePlayer.answer( user, currentQuestion ) ) ) }
+      }
+
+      Futures.awaitAll( futures )
+      futures.map( _.result ).foreach{
+        case Some( (user, str ) )=>
+          val userAnswerResponseVO = Serialization.read[UserAnswerResponseVO]( str )
+
+          gamePlayer.correctAnwser( user, currentQuestion ) must be_==( userAnswerResponseVO.are_u_right )
+          game.correctAnswer( currentQuestion ) must be_==( userAnswerResponseVO.good_answer )
+          gamePlayer.expectedScore( user, currentQuestion ) must be_==( userAnswerResponseVO.score )
+        case _ => fail
+      }
+
 
     }
   }
