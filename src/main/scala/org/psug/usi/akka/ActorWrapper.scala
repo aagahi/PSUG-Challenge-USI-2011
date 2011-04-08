@@ -23,7 +23,7 @@ trait ActorWrapper extends Logging {
     case None => throw new RuntimeException("Sending message to actor '%s' timeout. Message: '%s'".format(actorRef.id, msg))
   }
   
-  def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg )( senderActor )
+  def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg, 20000 )( senderActor )
 
   def callback( msg:Any )( f: PartialFunction[Any,Unit] )(implicit senderActor: Option[ActorRef] =None){
     val future:Future[Any] = actorRef.!!!( msg )( senderActor )
