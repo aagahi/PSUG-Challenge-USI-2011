@@ -78,15 +78,27 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
   }
 
 
-  def expectedScoreSlice(user: User, sliceRange: Range = -10 to 10, topSize:Int = 100 ): Ranking = {
+  def expectedScoreSlice(user: User, sliceRange: Range = -10 to 10, topSize:Int = 100 ): RankingVO = {
     val userScore = sortedScores.find( _.user == user ).get
 
     val indexOfUser: Int = sortedScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
     val end = if (sortedScores.size < indexOfUser + sliceRange.end) sortedScores.size else indexOfUser + sliceRange.end
-    val before = ListScores(sortedScores.slice(begin, indexOfUser))
-    val after = ListScores(sortedScores.slice(indexOfUser + 1, end))
-    Ranking(userScore.score, ListScores(sortedScores.take(topSize)) , before, after)
+    val before = ListScoresVO(sortedScores.slice(begin, indexOfUser))
+    val after = ListScoresVO(sortedScores.slice(indexOfUser + 1, end))
+    RankingVO(userScore.score, ListScoresVO(sortedScores.take(topSize)) , before, after)
+  }
+
+  def expectedAnswersHistoryVO(user: User ): AnswersHistoryVO = {
+    val answersHistoryVO = AnswersHistoryVO( new Array(game.questions.size), new Array(game.questions.size) )
+    for( questionIndex <- 0 until game.questions.size ){
+      answersHistoryVO.user_answers(questionIndex) = answer( user, questionIndex ) + 1
+      answersHistoryVO.good_answers(questionIndex) = game.correctAnswerIndex(questionIndex) + 1
+    }
+    answersHistoryVO
+  }
+  def expectedAnswerHistoryVO(user: User, questionIndex:Int ): AnswerHistoryVO = {
+    AnswerHistoryVO(  answer( user, questionIndex ) + 1, game.correctAnswerIndex(questionIndex) + 1, game.questions( questionIndex ).question )
   }
 
 

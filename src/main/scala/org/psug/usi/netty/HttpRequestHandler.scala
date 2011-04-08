@@ -188,8 +188,8 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
 
           gameManagerService.callback( QueryScoreSliceAudit (mail) ){
-            case ScoreSliceUnavailable => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             case ScoreSlice(ranking) => out.sendResponse( Some( ranking ), HttpResponseStatus.OK )
+            case ScoreSliceUnavailable => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
           }
         }
         else{
@@ -197,7 +197,35 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         }
 
 
+      case ( HttpMethod.GET, "api"::"audit"::Nil ) =>
+        // TODO: what if param is not provided
+        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
+          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
 
+          gameManagerService.callback( QueryHistory(mail,None) ){
+            case GameAnwsersHistory( answers ) => out.sendResponse( Some( answers ), HttpResponseStatus.OK )
+            case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          }
+        }
+        else{
+          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
+
+
+      case ( HttpMethod.GET, "api"::"audit"::questionIndex::Nil ) =>
+        // TODO: what if param is not provided
+        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
+          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
+
+           // api assume question starts at 1 but gamemanager starts at 0
+          gameManagerService.callback( QueryHistory(mail, Some( questionIndex.toInt - 1 ) ) ){
+            case GameAnwserHistory( answer ) => out.sendResponse( Some( answer ), HttpResponseStatus.OK )
+            case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          }
+        }
+        else{
+          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
 
 
 

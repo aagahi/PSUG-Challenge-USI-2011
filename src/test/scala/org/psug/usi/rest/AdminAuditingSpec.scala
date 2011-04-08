@@ -13,6 +13,7 @@ import com.sun.jersey.api.client._
 import net.liftweb.json.{NoTypeHints, Serialization}
 import net.liftweb.json.Serialization.read
 import org.psug.usi.utils.{UserGenerator, GameGenerator, GamePlayer}
+import scala.util.Random
 
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
@@ -33,26 +34,42 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
-  private[this] def queryRanking(key:String, userEmail:String ):String = {
+  private[this] def getScore(key:String, userEmail:String ):String = {
     val queryParams = new MultivaluedMapImpl()
     queryParams.add("user_mail", userEmail)
     queryParams.add("authentication_key", key)
     webResource("/api/score").queryParams(queryParams).get(classOf[String])
   } 
-  
-  "Admin auditing score for one user" should {
+  private[this] def getAudit(key:String, userEmail:String, questionIndex:Option[Int] ):String = {
+    val queryParams = new MultivaluedMapImpl()
+    queryParams.add("user_mail", userEmail)
+    queryParams.add("authentication_key", key)
+    val uri = "/api/audit" + (questionIndex match {
+      case Some(questionIndex) => "/"+questionIndex
+      case None => ""
+    })
+    webResource( uri ).queryParams(queryParams).get(classOf[String])
+
+  }
+
+  "admin auditing" should {
     doBefore {
       serverServices.launch
       webServer.start
       userRepositoryService !? ClearRepository
+      gameRepositoryService !? ClearRepository
+      gameUserHistoryService !? ClearRepository
     }
       
     doAfter {
+      gameUserHistoryService !? ClearRepository
+      gameRepositoryService !? ClearRepository
+      userRepositoryService !? ClearRepository
       webServer.stop
       serverServices.shutdown
     }
- 
-    "Succed if the auth key is OK, a game was played, and the queried user played that game" in {
+
+    "provide user score if good auth key is provided, a game was played" in {
 
       val game = GameGenerator( 3, 4, 160 )
       val users = UserGenerator( userRepositoryService, 160 )
@@ -62,12 +79,37 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
       val user = users(10)
 
-      val ranking = read[Ranking](queryRanking( webAuthenticationKey, user.mail))
+      val ranking = read[RankingVO](getScore( webAuthenticationKey, user.mail))
       val expectedRanking = gamePlayer.expectedScoreSlice(user)
       ranking.deepEquals( expectedRanking ) must beTrue
-      //response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
-      
+
     }
+
+    "provide user answers if good auth key is provided, a game was played" in {
+
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
+
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
+      gamePlayer.play()
+
+      0 to 16 foreach {
+        i =>
+        val user = users( Random.nextInt( users.size ))
+        val answers = read[AnswersHistoryVO](getAudit( webAuthenticationKey, user.mail, None))
+        val expectedAnswersHistory = gamePlayer.expectedAnswersHistoryVO(user)
+        expectedAnswersHistory.deepEquals( answers ) must beTrue
+
+        val questionIndex = Random.nextInt( game.questions.size )
+        // +1 on current question (we assume it start at 1 on api side)
+        val answer = read[AnswerHistoryVO](getAudit( webAuthenticationKey, user.mail, Some(questionIndex+1)))
+        val expectedAnswerHistory = gamePlayer.expectedAnswerHistoryVO(user,questionIndex)
+        expectedAnswerHistory must be_==( answer )
+      }
+
+    }
+
+
 /*
     "fail on POST" in {
       

@@ -84,6 +84,9 @@ case class Game( id : Int=0, questions:Seq[Question], loginTimeoutSec:Int=10, sy
   def correctAnswer( questionIndex:Int ) = {
     questions( questionIndex ).answers.find( _.status == true ).get.anwser
   }
+  def correctAnswerIndex( questionIndex:Int ):Int = {
+    questions( questionIndex ).answers.indexWhere(_.status==true)
+  }
 }
 
 object QuestionVO {
@@ -101,6 +104,13 @@ case class Question( question:String, answers:List[Answer], value:Int )
 case class AnswerVO( answer:Int )
 case class Answer( anwser:String, status:Boolean )
 
+case class AnswersHistoryVO( user_answers: Array[Int], good_answers: Array[Int] ){
+  require(user_answers.size == good_answers.size)
+
+  def deepEquals(that: AnswersHistoryVO): Boolean = user_answers.deep.equals(that.user_answers.deep) &&
+    good_answers.deep.equals(that.good_answers.deep) 
+}
+case class AnswerHistoryVO( user_answer: Int, good_answer:Int, question:String )
 
 
 

@@ -144,6 +144,7 @@ class GamePlaySpec extends SpecificationWithJUnit {
 
 
       val futures = users.map{
+        // +1 on current question (we assume it start at 1)
         user => AsyncExecutor().execute{ postAnswerN( user, currentQuestion+1, AnswerVO( gamePlayer.answer( user, currentQuestion ) ) ) }
       }
 

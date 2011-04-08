@@ -3,11 +3,11 @@ package org.psug.usi.service
 import org.psug.usi.domain._
 import collection.mutable.HashMap
 import akka.util.Logging
-import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
 import org.psug.usi.akka.Receiver
 import java.util.concurrent.TimeUnit
 import akka.actor.{Channel, Scheduler}
+import org.psug.usi.store.{DataStored, PullData, DataPulled, StoreData}
 
 /**
  * User: alag
@@ -24,6 +24,7 @@ case object ErrorAlreadyStarted extends InitGameReply
 case class Register(user: User)
 
 case object QueryStats
+case object GameManagerError
 
 case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int, state:GameState )
 
@@ -33,10 +34,16 @@ case class UserAnswer(userId: Int, questionIndex: Int, answerIndex: Int)
 
 case class QueryScoreSlice(userId: Int)
 case class QueryScoreSliceAudit( userEmail: String)
+
 //answer to QueryScoreSlice may be "don't ask" if the game is not finished
 trait ScoreSliceAnswer
 case object ScoreSliceUnavailable extends ScoreSliceAnswer
-case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
+case class ScoreSlice(r:RankingVO) extends ScoreSliceAnswer
+
+
+case class QueryHistory( userEmail:String, questionIndex:Option[Int])
+case class GameAnwsersHistory(answers:AnswersHistoryVO)
+case class GameAnwserHistory(answer:AnswerHistoryVO)
 
 
 case class UserAnswerResponse(answerStatus: Boolean, correctAnwser:String, score: Int)
@@ -129,6 +136,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
+    case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
     case x =>
       log.warn( "Unhandled message: " + x )
   }
@@ -271,7 +279,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    * Can be done only when EndGame state is reached 
    * (last question answered and SynchroTime expired)
    * 
-   * Return Some(List(scores)) if score are available
+   * Reply Some(List(scores)) if score are available
    * or None if it is not the time to ask
    */
   private def queryScoreSlice(userId: Int) {
@@ -287,20 +295,64 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
 
   /**
    * Audit query for the ranking of the given user.
-   * Return Some(List(scores)) if score are available
+   * Reply Some(List(scores)) if score are available
    * or None if it is not the time to ask
    */
   private def queryScoreSliceAudit(userEmail: String) {
     val target = sender
-    (userRepositoryService !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
-      future => future.result match {
-        case Some( DataPulled( Some( data:User ) ) ) => target ! ScoreSlice( scorer.scoreSlice( data ) )
-        case _ => log.warn( "Unexpected repo result for user email " + userEmail )
-      }
-    )
+    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
+      case DataPulled( Some( data ) ) => target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
+      case _ => log.warn( "Unexpected repo result for user email " + userEmail )
+    }
 
   }
 
+
+  /**
+   * Audit query for user game history
+   * Reply Answers if avalaible
+   * or None if it is not the time to ask
+   */
+  private def queryGameHistoryAudit(userEmail: String, questionIndex:Option[Int]) {
+    val target = sender
+    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
+      case DataPulled( Some( data ) ) =>
+        val key = GameUserKey( game.id, data.asInstanceOf[User].id )
+        gameUserHistoryRepositoryService.callback( PullData( key ) ){
+          case DataPulled( Some( data ) ) =>
+            val gameUserHistory = data.asInstanceOf[GameUserHistory]
+
+            questionIndex match {
+              case Some( questionIndex ) =>
+
+                val answerVO = AnswerHistoryVO(  user_answer = gameUserHistory.anwsers.find( _.questionIndex == questionIndex ).map( _.answerIndex + 1 ).getOrElse(0),
+                                                 good_answer = game.correctAnswerIndex( questionIndex  ) + 1,
+                                                 question = game.questions( questionIndex ).question )
+                target ! GameAnwserHistory( answerVO )
+
+              case None =>
+                val s = game.questions.size
+                val answersVO = AnswersHistoryVO( new Array(s), new Array(s) )
+                for( i <- 0 until s ){
+                  // here again we assume anwser number starting at 1 (instead of 0)
+                  answersVO.user_answers(i) = gameUserHistory.anwsers.find( _.questionIndex == i ).map( _.answerIndex + 1 ).getOrElse(0)
+                  // here again we assume anwser number starting at 1 (instead of 0)
+                  answersVO.good_answers(i) = game.correctAnswerIndex( i ) + 1
+                }
+                target ! GameAnwsersHistory( answersVO )
+            }
+          case _ =>
+            log.warn( "Unexpected repo result for GameUserHistory " + key  )
+            target ! GameManagerError
+
+        }
+
+      case _ =>
+        log.warn( "Unexpected repo result for User email " + userEmail )
+        target ! GameManagerError
+      
+    }
+  }
 
 
   /**
@@ -332,7 +384,11 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       case InGame =>
         for (userId <- currentQuestionPlayer.players) {
           val userAnswerHistory = registredPlayersHistory( userId )
-          gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+          val key = GameUserKey(game.id, userId)
+          gameUserHistoryRepositoryService.callback(StoreData(GameUserHistory( key, userAnswerHistory.answersHistory )) ){
+            case DataStored( Right( historyStored ) ) =>
+            case _ => log.error("Unable to store GameUserHistory key " + key )
+          }
         }
         gameState = EndGame
       case _ =>
