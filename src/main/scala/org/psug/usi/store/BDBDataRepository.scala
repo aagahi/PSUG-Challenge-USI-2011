@@ -28,6 +28,7 @@ trait BDBEnvironment extends Logging {
    */
   def configure(envConfig: EnvironmentConfig): Environment
 
+  log.info( "Adding shutdown hook for databases")
   Runtime.getRuntime().addShutdownHook(new ShutdownHook)
 
   lazy val environment = {
@@ -38,7 +39,8 @@ trait BDBEnvironment extends Logging {
     //envConfig.setCachePercent( 5 )
     envConfig.setSharedCache(true)
 
-    envConfig.setTransactional(true)
+    envConfig.setTransactional(transactional)
+    
 
     val durability = new Durability(Durability.SyncPolicy.WRITE_NO_SYNC,
       Durability.SyncPolicy.NO_SYNC,
@@ -52,21 +54,19 @@ trait BDBEnvironment extends Logging {
   }
 
 
-  def shutdown() {
-    environment.getDatabaseNames().foreach{
-      dbName =>
-      databases.get( dbName ).foreach{ db => log.info( "Closing db: " + db.databaseName ); db.close() }
-    }
-
-    environment.sync()
-    environment.cleanLog()
-    environment.close()
-  }
 
   class ShutdownHook extends Thread {
     override def run() {
       log.info("Shutting down databases")
-      //shutdown
+      environment.sync()
+      environment.cleanLog()
+
+      environment.getDatabaseNames().foreach{
+        dbName =>
+        databases.get( dbName ).foreach{ db => log.info( "Closing db: " + db.databaseName ); db.close() }
+      }
+
+      environment.close()
     }
   }
 
@@ -81,7 +81,9 @@ case class BDBConfiguration(
                              nodeName: String = "Node1",
                              replicaHostName: String = "localhost:5501",
                              replicaHelperHostName: String = "localhost:5501",
-                             envHome: File = new File("./target/bdb")
+                             envHome: File = new File("./target/bdb"),
+                             transactional:Boolean = false,
+                             deferredWrite:Boolean = true
                              )
 
 trait SingleInstanceEnvironment extends BDBEnvironment {
@@ -167,8 +169,8 @@ trait BDBManagement extends Logging {
       if (!dbFolder.exists()) dbFolder.mkdirs()
       val dbConfig = new DatabaseConfig()
       dbConfig.setAllowCreate(true)
-      dbConfig.setTransactional(true)
-      dbConfig.setDeferredWrite(false)
+      dbConfig.setTransactional(env.transactional)
+      dbConfig.setDeferredWrite(env.deferredWrite)
       _database = env.environment.openDatabase(null, databaseName, dbConfig);
       env.databases( databaseName ) = this
     }
@@ -176,7 +178,11 @@ trait BDBManagement extends Logging {
   }
 
   def close() {
-    if( _database != null ) _database.close()
+    if( _database != null ){
+      _database.close()
+      log.info( databaseName + " closed")
+    }
+
     _database = null
   }
 
@@ -201,9 +207,7 @@ trait BDB[K<:Any,T<:Data[K]] extends BDBManagement {
 
 
   def save(in:T) {
-    val tx = env.environment.beginTransaction(null, null)
     database.put(null, dataFactory.keyToEntry(in.storeKey), dataFactory.valueToEntry(in) )
-    tx.commit()
   }
 
   def last = {

@@ -79,8 +79,8 @@ class GamePlaySpec extends SpecificationWithJUnit {
     }
 
     "return json when request question 1" in {
-      val game = GameGenerator( 3, 4, 16 )
-      val users = UserGenerator( userRepositoryService, 16 )
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
       gameManagerService !? InitGame(game)
       users.foreach( user => gameManagerService ! Register( user ) )
 
