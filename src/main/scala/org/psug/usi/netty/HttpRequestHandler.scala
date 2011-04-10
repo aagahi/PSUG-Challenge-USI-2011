@@ -92,6 +92,11 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val cookies = decoder.decode(cookieStr)
     cookies.find( _.getName == "session_key" ).map( cookie => AuthenticationToken.decrypt( cookie.getValue ) )
   }
+  
+  //utility method from Java to Scala
+  private[this] def javamap2Scala(in:java.util.Map[String,java.util.List[String]]) : Map[String,List[String]] = {
+    in.toMap.map { case(k,v) => (k,v.toList) }
+  }
 
   def handleRequest( out:HttpOutput, request:HttpRequest ){
 
@@ -107,17 +112,24 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     ( method, path ) match {
 
       case ( HttpMethod.GET, "api"::"user"::userId::Nil )  =>
-        userRepositoryService.callback( PullData( userId.toInt ) ){
-          case DataPulled( Some( data ) )	=>  out.sendResponse( Some( data ), HttpResponseStatus.OK )
-          case DataPulled( None )	=> out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        try {
+          userRepositoryService.callback( PullData( userId.toInt ) ){
+            case DataPulled( Some( data ) )	=>  out.sendResponse( Some( data ), HttpResponseStatus.OK )
+            case DataPulled( None )	=> out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user/%s".format(userId)); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          }
+        } catch {
+          case e:NumberFormatException => 
+            log.debug("Bad UserId in /api/user/%s : was expecting an integer".format(userId))
+            out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
         }
-
 
       case ( HttpMethod.POST, "api"::"user"::Nil ) =>
         val userVO = read[UserVO](content)
         userRepositoryService.callback( StoreData( User( userVO ) ) ){
           case DataStored( Right( data ) )	=> out.sendResponse( None, HttpResponseStatus.CREATED )
           case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user"); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
         }
 
 
@@ -129,8 +141,6 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
               case RegisterSuccess => out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
               case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-
-
           case UserAuthenticated (Right(message)) => out.sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
         }
 
@@ -162,14 +172,20 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         {
           case Some( AuthenticationToken( userId, mail ) ) =>
             log.info("Get Q " + questionIndex )
-           // api assume question starts at 1 but gamemanager starts at 0
-            gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
-              case QuestionResponse( question, score ) =>
-                log.info("Reply Q " + questionIndex )
-                out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            // api assume question starts at 1 but gamemanager starts at 0
+            try {
+              gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
+                case QuestionResponse( question, score ) =>
+                  log.info("Reply Q " + questionIndex )
+                  out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
+                case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              }
+            } catch {
+              case e:NumberFormatException => 
+                log.debug("Bad questionIndex in /api/question/%s : was expecting an integer".format(userId))
+                out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-
+    
           case None =>
             log.info("Unable to get session cookie")
             out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
@@ -182,10 +198,16 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           case Some( AuthenticationToken( userId, mail ) ) =>
             val answerVO = read[AnswerVO](content)
 
-           // api assume question & anwser starts at 1 but gamemanager starts at 0
-            gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer-1 ) ){
-              case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            // api assume question & anwser starts at 1 but gamemanager starts at 0
+            try {
+              gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer-1 ) ){
+                case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
+                case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              }
+            } catch {
+              case e:NumberFormatException => 
+                log.debug("Bad questionIndex in /api/answer/%s : was expecting an integer".format(userId))
+                out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
 
           case None =>
@@ -198,50 +220,57 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>
         // TODO: what if param is not provided
-        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
-          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
-
-          gameManagerService.callback( QueryScoreSliceAudit (mail) ){
-            case ScoreSlice(ranking) => out.sendResponse( Some( ranking ), HttpResponseStatus.OK )
-            case ScoreSliceUnavailable => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-          }
+        val params  = javamap2Scala(queryStringDecoder.getParameters)
+        params.get( "authentication_key" ) match {
+          case Some(key :: Nil) if(key == webAuthenticationKey ) => 
+            params.get( "user_mail" ) match {
+              case Some( mail :: Nil) if( mail != null ) => 
+                gameManagerService.callback( QueryScoreSliceAudit (mail) ){
+                  case ScoreSlice(ranking) => out.sendResponse( Some( ranking ), HttpResponseStatus.OK )
+                  case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                }
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
-        else{
-          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
-        }
-
 
       case ( HttpMethod.GET, "api"::"audit"::Nil ) =>
-        // TODO: what if param is not provided
-        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
-          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
-
-          gameManagerService.callback( QueryHistory(mail,None) ){
-            case GameAnwsersHistory( answers ) => out.sendResponse( Some( answers ), HttpResponseStatus.OK )
-            case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-          }
-        }
-        else{
-          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        val keyParam = queryStringDecoder.getParameters().get("authentication_key")
+        val params  = javamap2Scala(queryStringDecoder.getParameters)
+        params.get( "authentication_key" ) match {
+          case Some(key :: Nil) if(key == webAuthenticationKey ) => 
+            params.get( "user_mail" ) match {
+              case Some( mail :: Nil) if( mail != null ) => 
+                gameManagerService.callback( QueryHistory(mail,None) ){
+                  case GameAnwsersHistory( answers ) => out.sendResponse( Some( answers ), HttpResponseStatus.OK )
+                  case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                }
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
       case ( HttpMethod.GET, "api"::"audit"::questionIndex::Nil ) =>
-        // TODO: what if param is not provided
-        if( queryStringDecoder.getParameters().get("authentication_key").get(0) == webAuthenticationKey ) {
-          val mail = queryStringDecoder.getParameters().get("user_mail").get(0)
-
-           // api assume question starts at 1 but gamemanager starts at 0
-          gameManagerService.callback( QueryHistory(mail, Some( questionIndex.toInt - 1 ) ) ){
-            case GameAnwserHistory( answer ) => out.sendResponse( Some( answer ), HttpResponseStatus.OK )
-            case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-          }
+        val keyParam = queryStringDecoder.getParameters().get("authentication_key")
+        val params  = javamap2Scala(queryStringDecoder.getParameters)
+        params.get( "authentication_key" ) match {
+          case Some(key :: Nil) if(key == webAuthenticationKey ) => 
+            params.get( "user_mail" ) match {
+              case Some( mail :: Nil) if( mail != null ) => 
+                // api assume question starts at 1 but gamemanager starts at 0
+                try {
+                  gameManagerService.callback( QueryHistory(mail, Some( questionIndex.toInt - 1 ) ) ){
+                    case GameAnwserHistory( answer ) => out.sendResponse( Some( answer ), HttpResponseStatus.OK )
+                    case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                  }
+                } catch {
+                  case e:NumberFormatException => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                }
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
-        else{
-          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
-        }
-
-
 
       case ( HttpMethod.GET, "admin"::"status"::Nil ) =>
         out.sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
