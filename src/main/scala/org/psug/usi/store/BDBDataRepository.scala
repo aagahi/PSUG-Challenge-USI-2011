@@ -7,6 +7,7 @@ import rep.{NoConsistencyRequiredPolicy, ReplicatedEnvironment, ReplicationConfi
 import collection.JavaConversions._
 import collection.mutable.HashMap
 import akka.util.Logging
+import java.util.Properties
 
 /**
  * User: alag
@@ -75,16 +76,19 @@ trait BDBEnvironment extends Logging {
 /**
  * Configuration parameters for BDB environment with default 'sensible' values.
  */
-case class BDBConfiguration(
-                             cacheSizeInByte: Int = 1024 * 1024 * 8,
-                             replicaGroupName: String = "ChallengeUSI",
-                             nodeName: String = "Node1",
-                             replicaHostName: String = "localhost:5501",
-                             replicaHelperHostName: String = "localhost:5501",
-                             envHome: File = new File("./target/bdb"),
-                             transactional:Boolean = false,
-                             deferredWrite:Boolean = true
-                             )
+class BDBConfiguration{
+  private val properties = new Properties()
+  properties.load( getClass.getResourceAsStream( "/db.properties" ) )
+
+  val cacheSizeInByte = properties.getProperty("cacheSizeInByte").toInt
+  val replicaGroupName = properties.getProperty("replicaGroupName")
+  val nodeName = properties.getProperty("nodeName")
+  val replicaHostName = properties.getProperty("replicaHostName")
+  val replicaHelperHostName = properties.getProperty("replicaHelperHostName")
+  val envHome = new File( properties.getProperty("envHome") )
+  val transactional = properties.getProperty("transactional").toBoolean
+  val deferredWrite = properties.getProperty("deferredWrite").toBoolean
+}
 
 trait SingleInstanceEnvironment extends BDBEnvironment {
   self: BDBConfiguration =>
