@@ -44,7 +44,15 @@ trait ActorWrapper extends Logging {
 }
 
 class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
-  def receive = reciever.receive
+  def receive:PartialFunction[Any,Unit] = {
+    case x:Any =>
+      try {
+        reciever.receive( x )
+      }
+      catch {
+        case e:Throwable => log.error( e, e.getMessage )
+      }
+  }
 }
 
 
@@ -53,7 +61,6 @@ trait Receiver extends ActorWrapper {
   implicit val implicitActorRef = Some( actorRef )
 
   def receive:PartialFunction[Any,Unit]
-
   // check resource/akka.conf for server configuration
   def register( id:String ){ remote.register( id, actorRef ) }
   def unregister(){ remote.unregister( actorRef ) }
