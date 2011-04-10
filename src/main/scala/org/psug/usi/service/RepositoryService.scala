@@ -51,13 +51,9 @@ trait RepositoryService extends Receiver with Service with Logging {
     case ServiceStatus => reply(Status( "Service" ))
     case StopReceiver => log.info("service " + name + " exiting"); stop()
     case x =>
-      try {
-        handleMessage(x) match {
-          case message: DataRepositoryMessage => reply(message)
-          case x => log.warn( "Unknown message: " + x )
-        }
-      } catch {
-        case e => log.error( e, e.getMessage )
+      handleMessage(x) match {
+        case message: DataRepositoryMessage => reply(message)
+        case x => log.warn( "Unknown message: " + x )
       }
   }
 
