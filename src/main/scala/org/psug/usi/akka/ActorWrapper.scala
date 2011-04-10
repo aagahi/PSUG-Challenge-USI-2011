@@ -10,9 +10,10 @@ import scala.PartialFunction
 import akka.actor.{ActorRef, Actor}
 import akka.actor.Actor._
 import akka.dispatch.Future
+import akka.util.Logging
 
 
-trait ActorWrapper {
+trait ActorWrapper extends Logging {
   val actorRef:ActorRef
 
   def ! ( msg:Any )( implicit senderActor:Option[ActorRef] =None ) = actorRef.!( msg )( senderActor )
@@ -22,7 +23,19 @@ trait ActorWrapper {
     case None => throw new RuntimeException("Sending message to actor '%s' timeout. Message: '%s'".format(actorRef.id, msg))
   }
   
-  def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg )( senderActor )
+  def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg, 20000 )( senderActor )
+
+  def callback( msg:Any )( f: PartialFunction[Any,Unit] )(implicit senderActor: Option[ActorRef] =None){
+    val future:Future[Any] = actorRef.!!!( msg )( senderActor )
+    future.onComplete( {
+      future:Future[Any] =>
+        future.result match {
+          case Some( v ) => f( v )
+          case None => log.error("Unexpected empty futur for callback message: "+ msg )
+        }
+    } )
+  }
+
 
   def sender = actorRef.channel
   def start() = actorRef.start
@@ -33,6 +46,7 @@ trait ActorWrapper {
 class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
   def receive = reciever.receive
 }
+
 
 trait Receiver extends ActorWrapper {
   override val actorRef:ActorRef = actorOf( new ReceiverAkkaActor( this ) )

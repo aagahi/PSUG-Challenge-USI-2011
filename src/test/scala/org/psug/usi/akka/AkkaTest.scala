@@ -6,6 +6,9 @@ import akka.actor.Actor._
 import akka.remoteinterface._
 import akka.actor.{Channel, Actor}
 import akka.dispatch.Dispatchers
+import akka.util.Logging
+import java.util.concurrent.atomic.AtomicInteger
+
 /**
  * User: alag
  * Date: 3/14/11
@@ -67,7 +70,7 @@ class LightEventReceiverClient extends Receiver {
 }
 
 
-class AkkaTest  {
+class AkkaTest extends Logging {
 
   @Test
   def respondsToExitRequest() = {
@@ -98,15 +101,18 @@ class AkkaTest  {
 
     assert( (t1-t0) < 5000 )
 
+    val t2 = System.currentTimeMillis
+    val count = new AtomicInteger(0)
+    val numFutures = 10000
+    (0 until numFutures).map( i=> new LightEventReceiverClient )
+                .map( _.callback( Query("OK") ){
+                  case Response( "K0" ) => count.incrementAndGet; Unit
+                })
+    val t3 = System.currentTimeMillis
 
-    (1 to 5000).map( i=> new LightEventReceiverClient )
-                .map( _ !! Query("OK") )
-                .foreach{
-                  future =>
-                  assertEquals( Some( Response( "K0" ) ), future.awaitBlocking.result )
-                }
-
-
+    while( count.get < numFutures) Thread.sleep(10)
+    log.info( "Future timing " + (t3-t2)+ " / " + count.get )
+    assert( count.get == numFutures  )
 
     remote.shutdown
     remote.removeListener(listener)

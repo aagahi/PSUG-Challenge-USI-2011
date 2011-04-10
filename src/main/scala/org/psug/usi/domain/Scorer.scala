@@ -7,10 +7,10 @@ import collection.mutable.HashMap
  * Strange structure to match:
  * https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz#TOC-Obtenir-le-classement-d-un-utilisat
  */
-object ListScores {
-  def apply( scores: Traversable[UserScore] ):ListScores = {
+object ListScoresVO {
+  def apply( scores: Traversable[UserScore] ):ListScoresVO = {
     val s = scores.size
-    val listScore = ListScores(new Array(s), new Array(s), new Array(s), new Array(s))
+    val listScore = ListScoresVO(new Array(s), new Array(s), new Array(s), new Array(s))
     var i = 0
     scores.foreach {
       case UserScore(user, score) =>
@@ -26,24 +26,24 @@ object ListScores {
 }
 
 
-case class ListScores(mail: Array[String], scores: Array[Int], firstname: Array[String], lastname: Array[String]) {
+case class ListScoresVO(mail: Array[String], scores: Array[Int], firstname: Array[String], lastname: Array[String]) {
   require(mail.size == scores.size && scores.size == firstname.size && firstname.size == lastname.size)
 
-  def deepEquals(that: ListScores): Boolean = mail.deep.equals(that.mail.deep) &&
+  def deepEquals(that: ListScoresVO): Boolean = mail.deep.equals(that.mail.deep) &&
     scores.deep.equals(that.scores.deep) &&
     firstname.deep.equals(that.firstname.deep) &&
     lastname.deep.equals(that.lastname.deep)
 
   override def toString: String = {
-    "ListScores(" + mail.deep.mkString("[",",","]") + ", "
+    "ListScoresVO(" + mail.deep.mkString("[",",","]") + ", "
                     scores.deep.mkString("[",",","]") + ", "
                     firstname.deep.mkString("[",",","]") + ", "
                     lastname.deep.mkString("[",",","]") + ")"
   }
 }
 
-case class Ranking(score: Int, top_scores: ListScores, before: ListScores, after: ListScores) {
-  def deepEquals(that: Ranking): Boolean = score == that.score &&
+case class RankingVO(score: Int, top_scores: ListScoresVO, before: ListScoresVO, after: ListScoresVO) {
+  def deepEquals(that: RankingVO): Boolean = score == that.score &&
     top_scores.deepEquals(that.top_scores) &&
     before.deepEquals(that.before) &&
     after.deepEquals(that.after)
@@ -73,24 +73,27 @@ case class ScorerAnwserValue(user: User, answerValue: Int)
 class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: Int = 100) {
 
   var sortedUserScores = new TreeSet[UserScore]
-  val userScoresMap = new HashMap[User, UserScore]
+  val userIdScoresMap = new HashMap[Int, UserScore]
 
   def scoreAnwser(scorerAnwserValue: ScorerAnwserValue) = {
     val user = scorerAnwserValue.user
-    val userScore = userScoresMap.getOrElse(user, UserScore(user, 0))
+    val userScore = userIdScoresMap.getOrElse(user.id, UserScore(user, 0))
     sortedUserScores = sortedUserScores - userScore
 
     val newScore = userScore.update(scorerAnwserValue.answerValue)
 
-    userScoresMap(user) = newScore
+    userIdScoresMap(user.id) = newScore
     sortedUserScores = sortedUserScores + newScore
     newScore
   }
 
-  def userScore(user: User) = userScoresMap(user).score
+  def userScore(userId: Int) = userIdScoresMap.get(userId) match {
+    case Some( userScore ) => userScore.score
+    case None => 0
+  }
 
   //retrieve the Top 100. Do the calcul only one time (it has to be called at the end of game
-  private[this] lazy val topPlayers: ListScores = ListScores(sortedUserScores.take(topSize))
+  private[this] lazy val topPlayers: ListScoresVO = ListScoresVO(sortedUserScores.take(topSize))
 
   /**
    * a lazily evaluated array filled from the sorted set of users.
@@ -102,18 +105,18 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
     a
   }
 
-  def scoreSlice(user: User): Ranking = {
-    val userScore = userScoresMap(user)
+  def scoreSlice(user: User): RankingVO = {
+    val userScore = userIdScoresMap(user.id)
     val indexOfUser: Int = arrayOfScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
     val end = if (numUsers < indexOfUser + sliceRange.end) numUsers else indexOfUser + sliceRange.end
-    val before = ListScores(arrayOfScores.slice(begin, indexOfUser))
-    val after = ListScores(arrayOfScores.slice(indexOfUser + 1, end))
-    Ranking(userScore.score, topPlayers, before, after)
+    val before = ListScoresVO(arrayOfScores.slice(begin, indexOfUser))
+    val after = ListScoresVO(arrayOfScores.slice(indexOfUser + 1, end))
+    RankingVO(userScore.score, topPlayers, before, after)
   }
 
   override def toString = {
-    "Scores: (" + userScoresMap.values.mkString(",") + ")"
+    "Scores: (" + userIdScoresMap.values.mkString(",") + ")"
   }
 
 }

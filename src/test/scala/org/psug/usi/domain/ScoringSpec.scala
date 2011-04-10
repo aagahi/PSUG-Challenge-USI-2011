@@ -43,15 +43,15 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       scorer.scoreAnwser(ScorerAnwserValue(user2, 1)) must be_==(UserScore(user2, 1))
 
       //create the expected ranking for each user
-      val top5 = ListScores(
+      val top5 = ListScoresVO(
         mail = Array("B", "C", "D", "E", "F"),
         scores = Array(1, 1, 1, 1, 1),
         firstname = Array("A", "A", "A", "A", "B"),
         lastname = Array("A", "A", "A", "B", "B")
       )
 
-      def haveSameRankingThan(ranking: Ranking) = new Matcher[Ranking] {
-        def apply(other: => Ranking) = {
+      def haveSameRankingThan(ranking: RankingVO) = new Matcher[RankingVO] {
+        def apply(other: => RankingVO) = {
           val sameScore = ranking.score == other.score
           val sameTopScores = ranking.top_scores.deepEquals(other.top_scores)
           val sameBefore = ranking.before.deepEquals(other.before)
@@ -70,34 +70,34 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
         }
       }
 
-      scorer.scoreSlice(user1) must haveSameRankingThan(Ranking(1, top5,
-        before = ListScores(Array(), Array(), Array(), Array()),
-        after = ListScores(Array("C", "D", "E", "F", "A"), Array(1, 1, 1, 1, 0), Array("A", "A", "A", "B", "A"), Array("A", "A", "B", "B", "A"))
+      scorer.scoreSlice(user1) must haveSameRankingThan(RankingVO(1, top5,
+        before = ListScoresVO(Array(), Array(), Array(), Array()),
+        after = ListScoresVO(Array("C", "D", "E", "F", "A"), Array(1, 1, 1, 1, 0), Array("A", "A", "A", "B", "A"), Array("A", "A", "B", "B", "A"))
       ))
 
-      scorer.scoreSlice(user2) must haveSameRankingThan(Ranking(1, top5,
-        before = ListScores(Array("B"), Array(1), Array("A"), Array("A")),
-        after = ListScores(Array("D", "E", "F", "A"), Array(1, 1, 1, 0), Array("A", "A", "B", "A"), Array("A", "B", "B", "A"))
+      scorer.scoreSlice(user2) must haveSameRankingThan(RankingVO(1, top5,
+        before = ListScoresVO(Array("B"), Array(1), Array("A"), Array("A")),
+        after = ListScoresVO(Array("D", "E", "F", "A"), Array(1, 1, 1, 0), Array("A", "A", "B", "A"), Array("A", "B", "B", "A"))
       ))
 
-      scorer.scoreSlice(user3) must haveSameRankingThan(Ranking(1, top5,
-        before = ListScores(Array("B", "C"), Array(1, 1), Array("A", "A"), Array("A", "A")),
-        after = ListScores(Array("E", "F", "A"), Array(1, 1, 0), Array("A", "B", "A"), Array("B", "B", "A"))
+      scorer.scoreSlice(user3) must haveSameRankingThan(RankingVO(1, top5,
+        before = ListScoresVO(Array("B", "C"), Array(1, 1), Array("A", "A"), Array("A", "A")),
+        after = ListScoresVO(Array("E", "F", "A"), Array(1, 1, 0), Array("A", "B", "A"), Array("B", "B", "A"))
       ))
 
-      scorer.scoreSlice(user4) must haveSameRankingThan(Ranking(1, top5,
-        before = ListScores(Array("B", "C", "D"), Array(1, 1, 1), Array("A", "A", "A"), Array("A", "A", "A")),
-        after = ListScores(Array("F", "A"), Array(1, 0), Array("B", "A"), Array("B", "A"))
+      scorer.scoreSlice(user4) must haveSameRankingThan(RankingVO(1, top5,
+        before = ListScoresVO(Array("B", "C", "D"), Array(1, 1, 1), Array("A", "A", "A"), Array("A", "A", "A")),
+        after = ListScoresVO(Array("F", "A"), Array(1, 0), Array("B", "A"), Array("B", "A"))
       ))
 
-      scorer.scoreSlice(user5) must haveSameRankingThan(Ranking(1, top5,
-        before = ListScores(Array("B", "C", "D", "E"), Array(1, 1, 1, 1), Array("A", "A", "A", "A"), Array("A", "A", "A", "B")),
-        after = ListScores(Array("A"), Array(0), Array("A"), Array("A"))
+      scorer.scoreSlice(user5) must haveSameRankingThan(RankingVO(1, top5,
+        before = ListScoresVO(Array("B", "C", "D", "E"), Array(1, 1, 1, 1), Array("A", "A", "A", "A"), Array("A", "A", "A", "B")),
+        after = ListScoresVO(Array("A"), Array(0), Array("A"), Array("A"))
       ))
 
-      scorer.scoreSlice(user6) must haveSameRankingThan(Ranking(0, top5,
-        before = ListScores(Array("B", "C", "D", "E", "F"), Array(1, 1, 1, 1, 1), Array("A", "A", "A", "A", "B"), Array("A", "A", "A", "B", "B")),
-        after = ListScores(Array(), Array(), Array(), Array())
+      scorer.scoreSlice(user6) must haveSameRankingThan(RankingVO(0, top5,
+        before = ListScoresVO(Array("B", "C", "D", "E", "F"), Array(1, 1, 1, 1, 1), Array("A", "A", "A", "A", "B"), Array("A", "A", "A", "B", "B")),
+        after = ListScoresVO(Array(), Array(), Array(), Array())
       ))
     }
 
@@ -117,7 +117,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       }
 
       for (user <- users) {
-        val score = scorer.userScore(user)
+        val score = scorer.userScore(user.id)
         if (user.id % 2 == 0) score must be(numResponse)
         else score must be(0)
       }

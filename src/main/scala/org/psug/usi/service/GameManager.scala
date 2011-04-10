@@ -2,11 +2,12 @@ package org.psug.usi.service
 
 import org.psug.usi.domain._
 import collection.mutable.HashMap
-import akka.actor.Channel
 import akka.util.Logging
-import org.psug.usi.store.{DataPulled, StoreData}
 import akka.dispatch.Future
 import org.psug.usi.akka.Receiver
+import java.util.concurrent.TimeUnit
+import akka.actor.{Channel, Scheduler}
+import org.psug.usi.store.{DataStored, PullData, DataPulled, StoreData}
 
 /**
  * User: alag
@@ -23,6 +24,7 @@ case object ErrorAlreadyStarted extends InitGameReply
 case class Register(user: User)
 
 case object QueryStats
+case object GameManagerError
 
 case class GameManagerStats(registredPlayer: Int, currentQuestionPlayersCount: Int, state:GameState )
 
@@ -32,16 +34,24 @@ case class UserAnswer(userId: Int, questionIndex: Int, answerIndex: Int)
 
 case class QueryScoreSlice(userId: Int)
 case class QueryScoreSliceAudit( userEmail: String)
+
 //answer to QueryScoreSlice may be "don't ask" if the game is not finished
 trait ScoreSliceAnswer
 case object ScoreSliceUnavailable extends ScoreSliceAnswer
-case class ScoreSlice(r:Ranking) extends ScoreSliceAnswer
+case class ScoreSlice(r:RankingVO) extends ScoreSliceAnswer
 
 
-// Question send to the user => if we assume that we send this question to an actor that has a ref on user id, we should not need to have userId in this class
-case class UserAnswerResponse(answerStatus: Boolean, score: Int)
+case class QueryHistory( userEmail:String, questionIndex:Option[Int])
+case class GameAnwsersHistory(answers:AnswersHistoryVO)
+case class GameAnwserHistory(answer:AnswerHistoryVO)
 
-case class QuestionResponse(question: Question)
+
+case class UserAnswerResponse(answerStatus: Boolean, correctAnwser:String, score: Int)
+case class UserAnswerResponseVO(are_u_right: Boolean, good_answer:String, score: Int)
+
+
+
+case class QuestionResponse(question: Question, score:Int)
 
 object TimeoutType extends Enumeration {
   val LOGIN, SYNCRO, QUESTION = Value
@@ -49,23 +59,13 @@ object TimeoutType extends Enumeration {
 
 case class TimeoutMessage(timeoutType: TimeoutType.Value, questionIndex: Int, timoutSec: Int)
 
-trait GameManagerTimer extends Receiver {
-  start
-
-  def receive = {
-    case questionTimeout: TimeoutMessage => handleQuestionTimeout(questionTimeout)
-    case x => handleOtherMessage(x)
-  }
-
-  def handleQuestionTimeout(questionTimeout: TimeoutMessage)
-
-  def handleOtherMessage(message: Any) {}
+trait GameManagerTimer {
+  def schedule(questionTimeout: TimeoutMessage, target:Receiver)
 }
 
 class DefaultGameManagerTimer extends GameManagerTimer {
-  def handleQuestionTimeout(questionTimeout: TimeoutMessage) {
-    Thread.sleep(questionTimeout.timoutSec * 1000)
-    sender ! questionTimeout
+  def schedule(questionTimeout: TimeoutMessage, target:Receiver) {
+    Scheduler.scheduleOnce( target.actorRef, questionTimeout, questionTimeout.timoutSec, TimeUnit.SECONDS )
   }
 }
 
@@ -136,9 +136,11 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
-    case StopReceiver => stop()
-    case x => //TODO : reply an error message ?
+    case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
+    case x =>
+      log.warn( "Unhandled message: " + x )
   }
+
 
   /**
    * Initialize a game if it is not already initialized.
@@ -183,7 +185,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     gameState match {
       case Initialized =>
         // initialize the logintimeout timer for long polling
-        timer ! TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec)
+        timer.schedule( TimeoutMessage(TimeoutType.LOGIN, currentQuestionIndex, game.loginTimeoutSec), this )
         this.gameState = WaitingRegistrationAndQ1
         //add that user
         tryToAddUser
@@ -197,6 +199,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   /**
    * A user query a question. If the question number is the currently processed, 
    * we wait for all user to query that question and then reply to all of them.
+   * questionIndex start at 0 (fyi octo rest api assume it starts at 1 => http request handler should have set -1)
    */
   private def queryQuestion(userId: Int, questionIndex: Int) {
     //TODO: why not check that the user is in that game ?
@@ -205,7 +208,9 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     //query for a question that is not currentQuestionIndex
     val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
+
     questionPlayer.players(questionPlayer.playerIndex) = userId
+
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors(userId) = sender
 
@@ -260,7 +265,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
 
     val userScore = scorer.scoreAnwser(ScorerAnwserValue(userAnswerHistory.user, answerValue))
 
-    sender ! UserAnswerResponse( answerValue > 0, userScore.score)
+    sender ! UserAnswerResponse( answerValue > 0, game.correctAnswer(currentQuestionIndex), userScore.score)
 
 
     if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == registredPlayersHistory.size ) {
@@ -274,7 +279,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    * Can be done only when EndGame state is reached 
    * (last question answered and SynchroTime expired)
    * 
-   * Return Some(List(scores)) if score are available
+   * Reply Some(List(scores)) if score are available
    * or None if it is not the time to ask
    */
   private def queryScoreSlice(userId: Int) {
@@ -290,20 +295,64 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
 
   /**
    * Audit query for the ranking of the given user.
-   * Return Some(List(scores)) if score are available
+   * Reply Some(List(scores)) if score are available
    * or None if it is not the time to ask
    */
   private def queryScoreSliceAudit(userEmail: String) {
     val target = sender
-    (userRepositoryService !! PullDataByEmail( userEmail )).asInstanceOf[Future[DataPulled[Int]]].onComplete(
-      future => future.result match {
-        case Some( DataPulled( Some( data:User ) ) ) => target ! ScoreSlice( scorer.scoreSlice( data ) )
-        case _ => log.warn( "Unexpected repo result for user email " + userEmail )
-      }
-    )
+    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
+      case DataPulled( Some( data ) ) => target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
+      case _ => log.warn( "Unexpected repo result for user email " + userEmail )
+    }
 
   }
 
+
+  /**
+   * Audit query for user game history
+   * Reply Answers if avalaible
+   * or None if it is not the time to ask
+   */
+  private def queryGameHistoryAudit(userEmail: String, questionIndex:Option[Int]) {
+    val target = sender
+    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
+      case DataPulled( Some( data ) ) =>
+        val key = GameUserKey( game.id, data.asInstanceOf[User].id )
+        gameUserHistoryRepositoryService.callback( PullData( key ) ){
+          case DataPulled( Some( data ) ) =>
+            val gameUserHistory = data.asInstanceOf[GameUserHistory]
+
+            questionIndex match {
+              case Some( questionIndex ) =>
+
+                val answerVO = AnswerHistoryVO(  user_answer = gameUserHistory.anwsers.find( _.questionIndex == questionIndex ).map( _.answerIndex + 1 ).getOrElse(0),
+                                                 good_answer = game.correctAnswerIndex( questionIndex  ) + 1,
+                                                 question = game.questions( questionIndex ).question )
+                target ! GameAnwserHistory( answerVO )
+
+              case None =>
+                val s = game.questions.size
+                val answersVO = AnswersHistoryVO( new Array(s), new Array(s) )
+                for( i <- 0 until s ){
+                  // here again we assume anwser number starting at 1 (instead of 0)
+                  answersVO.user_answers(i) = gameUserHistory.anwsers.find( _.questionIndex == i ).map( _.answerIndex + 1 ).getOrElse(0)
+                  // here again we assume anwser number starting at 1 (instead of 0)
+                  answersVO.good_answers(i) = game.correctAnswerIndex( i ) + 1
+                }
+                target ! GameAnwsersHistory( answersVO )
+            }
+          case _ =>
+            log.warn( "Unexpected repo result for GameUserHistory " + key  )
+            target ! GameManagerError
+
+        }
+
+      case _ =>
+        log.warn( "Unexpected repo result for User email " + userEmail )
+        target ! GameManagerError
+      
+    }
+  }
 
 
   /**
@@ -314,12 +363,13 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    */
   private def replyQuestion() {
     userAnswerCount = 0
+    val question =game.questions(currentQuestionIndex)
     currentQuestionPlayer.playerActors.foreach {
       case (userId, playerActor) =>
-        playerActor ! QuestionResponse(game.questions(currentQuestionIndex))
+        playerActor ! QuestionResponse(question, scorer.userScore( userId ) )
     }
     currentQuestionPlayer.playerActors.clear
-    timer ! TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec)
+    timer.schedule( TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec), this )
 
 
   }
@@ -334,7 +384,11 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       case InGame =>
         for (userId <- currentQuestionPlayer.players) {
           val userAnswerHistory = registredPlayersHistory( userId )
-          gameUserHistoryRepositoryService ! StoreData(GameUserHistory(GameUserKey(game.id, userId), userAnswerHistory.answersHistory ))
+          val key = GameUserKey(game.id, userId)
+          gameUserHistoryRepositoryService.callback(StoreData(GameUserHistory( key, userAnswerHistory.answersHistory )) ){
+            case DataStored( Right( historyStored ) ) =>
+            case _ => log.error("Unable to store GameUserHistory key " + key )
+          }
         }
         gameState = EndGame
       case _ =>
@@ -352,9 +406,11 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   private def timeout(timeoutType: TimeoutType.Value) {
 
     if (timeoutType == TimeoutType.QUESTION) {
-      for (userId <- currentQuestionPlayer.players) {
+      for ( i <- 0 until currentQuestionPlayer.playerIndex ) {
+        val userId = currentQuestionPlayer.players( i )
         if (!currentQuestionPlayer.playerActors.contains( userId ) ) {
           val userAnswerHistory = registredPlayersHistory( userId )
+
           userAnswerHistory.answerBonus = 0
         }
       }
@@ -362,7 +418,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       currentQuestionPlayer = nextQuestionPlayer
       nextQuestionPlayer = new QuestionPlayer
       currentQuestionIndex += 1
-      timer ! TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec)
+      timer.schedule( TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec), this )
     }
     else {
       if(timeoutType == TimeoutType.LOGIN) {

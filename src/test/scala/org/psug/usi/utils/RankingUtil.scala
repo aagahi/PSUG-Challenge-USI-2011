@@ -1,6 +1,6 @@
 package org.psug.usi.utils
 
-import org.psug.usi.domain.{ListScores, Ranking}
+import org.psug.usi.domain.{ListScoresVO, RankingVO}
 
 /**
  * User: alag
@@ -10,7 +10,7 @@ import org.psug.usi.domain.{ListScores, Ranking}
 
 object  RankingUtil {
 
-  def isSorted(l: ListScores): Boolean = {
+  def isSorted(l: ListScoresVO): Boolean = {
     var i = 0
     var res = true
     while (res && i < l.scores.size - 1) {
@@ -33,7 +33,7 @@ object  RankingUtil {
   }
 
 
-  def isSorted(r: Ranking): Boolean = {
+  def isSorted(r: RankingVO): Boolean = {
 
     isSorted(r.top_scores) &&
       isSorted(r.before) &&

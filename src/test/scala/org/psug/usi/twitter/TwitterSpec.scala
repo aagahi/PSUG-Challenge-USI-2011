@@ -2,9 +2,6 @@ package org.psug.usi.twitter
 
 import org.specs._
 import org.psug.usi.twitter.Twitter._
-import org.scribe.exceptions.OAuthException
-import java.net.{InetAddress, UnknownHostException}
-
 class TwitterSpec extends SpecificationWithJUnit {
 
   "twitter client" should {
