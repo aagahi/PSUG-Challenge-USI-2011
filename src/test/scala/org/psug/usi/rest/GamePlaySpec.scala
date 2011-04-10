@@ -59,14 +59,14 @@ class GamePlaySpec extends SpecificationWithJUnit {
   def getQuestionN( user:User, questionIndex:Int ):String = {
     val cookieEncoder = new CookieEncoder( false )
     cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
-    webResource("/api/question/"+questionIndex).header("Set-Cookie", cookieEncoder.encode() ).get(classOf[String] )
+    webResource("/api/question/"+questionIndex).header("Cookie", cookieEncoder.encode() ).get(classOf[String] )
   }
 
   // POST /api/answer/N
   def postAnswerN( user:User, questionIndex:Int, anwser:AnswerVO ):(User,String) = {
     val cookieEncoder = new CookieEncoder( false )
     cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
-    (user, webResource("/api/answer/"+questionIndex).header("Set-Cookie", cookieEncoder.encode() ).post(classOf[String], Serialization.write(anwser) ))
+    (user, webResource("/api/answer/"+questionIndex).header("Cookie", cookieEncoder.encode() ).post(classOf[String], Serialization.write(anwser) ))
   }
 
 
@@ -82,7 +82,7 @@ class GamePlaySpec extends SpecificationWithJUnit {
       val game = GameGenerator( 3, 4, 160 )
       val users = UserGenerator( userRepositoryService, 160 )
       gameManagerService !? InitGame(game)
-      users.foreach( user => gameManagerService ! Register( user ) )
+      users.foreach( user => gameManagerService !? Register( user ) )
 
       val currentQuestion = 0
       val futures = users.map{
@@ -133,7 +133,7 @@ class GamePlaySpec extends SpecificationWithJUnit {
       val game = GameGenerator( 3, 4, 16 )
       val users = UserGenerator( userRepositoryService, 16 )
       gameManagerService !? InitGame(game)
-      users.foreach( user => gameManagerService ! Register( user ) )
+      users.foreach( user => gameManagerService !? Register( user ) )
       val gamePlayer = new GamePlayer( gameManagerService, game, users )
 
       val currentQuestion = 0
@@ -145,7 +145,7 @@ class GamePlaySpec extends SpecificationWithJUnit {
 
       val futures = users.map{
         // +1 on current question (we assume it start at 1)
-        user => AsyncExecutor().execute{ postAnswerN( user, currentQuestion+1, AnswerVO( gamePlayer.answer( user, currentQuestion ) ) ) }
+        user => AsyncExecutor().execute{ postAnswerN( user, currentQuestion+1, AnswerVO( gamePlayer.answer( user, currentQuestion ) +1 ) ) }
       }
 
       Futures.awaitAll( futures )

@@ -50,7 +50,8 @@ trackeduseridmail : ne pas tenir compte de ce paramètre.
 
 object Game{
   def apply( xmlParameters:String ) = {
-    val xml = XML.loadString( xmlParameters )
+    val xmlStr = xmlParameters.replaceAll("&lt;", "<" ).replaceAll( "&gt;",">" ).replaceAll( "&quot;", "'" ).replaceAll("&amp;", "&" )
+    val xml = XML.loadString( xmlStr )
 
     val questions = ( xml \ "questions" \\ "question").zipWithIndex.map {
       case ( xmlQuestion, index )  =>
