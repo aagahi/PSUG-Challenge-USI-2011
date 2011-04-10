@@ -62,7 +62,7 @@ class HttpOutput( channel:Channel ) extends Logging {
       data =>
       val str = write( data )
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=utf-8")
-      response.setContent(ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8))
+      response.setContent( ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8) )
     }
 
     headers.foreach { header => response.setHeader(header._1,header._2) }
@@ -100,7 +100,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
-    log.info( "Method: " + method +  " - Path:" + path.mkString(",") )
+    log.debug( "Method: " + method +  " - Path:" + path.mkString(",") )
 
 
     ( method, path ) match {
@@ -115,7 +115,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.POST, "api"::"user"::Nil ) =>
         val userVO = read[UserVO](content)
         userRepositoryService.callback( StoreData( User( userVO ) ) ){
-          case DataStored( Right( data ) )	=>  out.sendResponse( Some( data ), HttpResponseStatus.OK )
+          case DataStored( Right( data ) )	=> out.sendResponse( None, HttpResponseStatus.CREATED )
           case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
         }
 
@@ -129,14 +129,16 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
         
       case ( HttpMethod.POST, "api"::"game"::Nil ) =>
+
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
-
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
-              gameManagerService ! InitGame (game)
-              out.sendResponse( Some( data ), HttpResponseStatus.OK )
+              gameManagerService.callback( InitGame (game) ){
+                case InitGameSuccess => log.info( "Game initialized")
+              }
+              out.sendResponse( None, HttpResponseStatus.CREATED )
             case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
           }
 

@@ -55,7 +55,7 @@ class GameRegistrationSpec extends SpecificationWithJUnit {
     "store game if approprite authtoken is provided" in {
       val parameters = Source.fromFile( "./test-data/simplegamesession.xml" ).mkString
       val response = registerGame( RegisterGame( webAuthenticationKey, parameters ) )
-      response.getStatus must be_==(ClientResponse.Status.OK.getStatusCode)
+      response.getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
 
 
       val DataPulled( Some( gameFound ) ) = setup.repositories.gameRepositoryService !? PullData(1)
