@@ -19,7 +19,7 @@ import net.liftweb.json.Serialization
 import org.jboss.netty.handler.codec.http.CookieEncoder
 import akka.dispatch.{Future, Futures}
 import org.psug.usi.utils.{GamePlayer, AsyncExecutor, GameGenerator, UserGenerator}
-
+import org.psug.usi.netty.HttpRequestHandler._
 
 @RunWith(classOf[JUnitSuiteRunner])
 class GamePlaySpec extends SpecificationWithJUnit {
@@ -58,14 +58,14 @@ class GamePlaySpec extends SpecificationWithJUnit {
   // GET /api/question/N
   def getQuestionN( user:User, questionIndex:Int ):String = {
     val cookieEncoder = new CookieEncoder( false )
-    cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
+    cookieEncoder.addCookie(SESSION_KEY_COOKIE_NAME,AuthenticationToken( user.id, user.mail ))
     webResource("/api/question/"+questionIndex).header("Cookie", cookieEncoder.encode() ).get(classOf[String] )
   }
 
   // POST /api/answer/N
   def postAnswerN( user:User, questionIndex:Int, anwser:AnswerVO ):(User,String) = {
     val cookieEncoder = new CookieEncoder( false )
-    cookieEncoder.addCookie("session_key",AuthenticationToken( user.id, user.mail ))
+    cookieEncoder.addCookie(SESSION_KEY_COOKIE_NAME,AuthenticationToken( user.id, user.mail ))
     (user, webResource("/api/answer/"+questionIndex).header("Cookie", cookieEncoder.encode() ).post(classOf[String], Serialization.write(anwser) ))
   }
 
