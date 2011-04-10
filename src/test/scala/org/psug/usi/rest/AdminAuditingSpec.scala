@@ -1,7 +1,6 @@
 package org.psug.usi.rest
 
 import com.sun.jersey.core.util.MultivaluedMapImpl
-
 import org.psug.usi.domain._
 import org.psug.usi.service._
 import org.psug.usi.store._
@@ -14,6 +13,7 @@ import net.liftweb.json.{NoTypeHints, Serialization}
 import net.liftweb.json.Serialization.read
 import org.psug.usi.utils.{UserGenerator, GameGenerator, GamePlayer}
 import scala.util.Random
+import org.jboss.netty.handler.codec.http.HttpResponseStatus
 
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
@@ -28,22 +28,24 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
   val listenPort = 12345
   val webServer : WebServer = new WebServer( listenPort, services, webAuthenticationKey )
 
+  val param_key = "authentication_key"
+  val param_mail = "user_mail"
 
-
-
+  setSequential()
 
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
   private[this] def getScore(key:String, userEmail:String ):String = {
     val queryParams = new MultivaluedMapImpl()
-    queryParams.add("user_mail", userEmail)
-    queryParams.add("authentication_key", key)
+    queryParams.add(param_mail, userEmail)
+    queryParams.add(param_key, key)
     webResource("/api/score").queryParams(queryParams).get(classOf[String])
   } 
+  
   private[this] def getAudit(key:String, userEmail:String, questionIndex:Option[Int] ):String = {
     val queryParams = new MultivaluedMapImpl()
-    queryParams.add("user_mail", userEmail)
-    queryParams.add("authentication_key", key)
+    queryParams.add(param_mail, userEmail)
+    queryParams.add(param_key, key)
     val uri = "/api/audit" + (questionIndex match {
       case Some(questionIndex) => "/"+questionIndex
       case None => ""
@@ -51,6 +53,14 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     webResource( uri ).queryParams(queryParams).get(classOf[String])
 
   }
+  
+  //utility method to test both score and audit with bad request parameters
+  private[this] def testWithParam(uri:String, params:Map[String,String]) : ClientResponse = {
+    val queryParams = new MultivaluedMapImpl()
+    params foreach { case(key,value) => queryParams.add(key, value) }
+    webResource( uri ).queryParams(queryParams).get(classOf[ClientResponse])
+  }
+  
 
   "admin auditing" should {
     doBefore {
@@ -109,38 +119,115 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
     }
 
+    //test for a POST in the uri
+    def notGetRequest(uri:String) : Unit = {
+      val queryParams = new MultivaluedMapImpl()
+      queryParams.add(param_mail, "user@mail.com")
+      queryParams.add(param_key, webAuthenticationKey)
+      val answer = webResource( uri ).`type`("application/x-www-form-urlencoded").post(classOf[ClientResponse], queryParams) 
+          
+      answer.getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
+    }
+    
+    "fail on POST for /api/score" in {
+      notGetRequest("/api/score")
+    }
+      
+    "fail on POST for /api/audit" in {
+      notGetRequest("/api/audit")
+    }
 
-/*
-    "fail on POST" in {
-      
+    
+    
+    //test for bad param name for key
+    def badNameForParamKey(uri:String) : Unit = {
+      testWithParam(uri, Map(param_key + "bad" -> webAuthenticationKey)).
+        getStatus must be_==( HttpResponseStatus.UNAUTHORIZED.getCode ) 
     }
       
-    "fail if the authentication key is not given as 'authentication_key' URL parameter" in {
-      
+    "fail for /api/score if the authentication key is not given as 'authentication_key' URL parameter" in {
+      badNameForParamKey("/api/score")
     }
-      
-    "fail if the authentication key is not the good one" in {
-      
+
+    "fail for /api/audit if the authentication key is not given as 'authentication_key' URL parameter" in {
+      badNameForParamKey("/api/audit")
+    }
+     
+
+    //test for bad param name for key
+    def badParamKey(uri:String) : Unit = {
+      testWithParam(uri, Map(param_key -> ("bad" + webAuthenticationKey))).
+        getStatus must be_==( HttpResponseStatus.UNAUTHORIZED.getCode ) 
+    }
+    
+    "fail for /api/score if the authentication key is not the good one" in {
+      badParamKey("/api/score")
+    }
+    
+    "fail for /api/audit if the authentication key is not the good one" in {
+      badParamKey("/api/audit")
     }
     
 
-    "fail if the authentication key is OK but no user mail is provided" in {
-      
+    
+    //test for bad param name for key
+    def noUserParam(uri:String) : Unit = {
+      testWithParam(uri, Map(param_key -> webAuthenticationKey)).
+        getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
+    }
+    
+    "fail for /api/audit if the authentication key is OK but no user mail is provided" in {
+      noUserParam("/api/audit")
     }
       
-    "fail if the authentication key is OK but the provided user is not reigstered" in {
-      
+    "fail for /api/score if the authentication key is OK but no user mail is provided" in {
+      noUserParam("/api/score")
     }
+    
+    "fail if the authentication key is OK but no game was finished" in {
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
+
       
-    "fail if the authentication key is OK but the no game was finished" in {
-      
+      testWithParam("/api/score", Map( 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "mail10" 
+       ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
+       
+      testWithParam("/api/audit/10", Map( 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "mail10" 
+       ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
+    
     }
       
     "fail if the authentication key is OK, a finished game exists, but the user didn't played it" in {
+      val game = GameGenerator( 3, 4, 160 )
+      val users = UserGenerator( userRepositoryService, 160 )
+      val gamePlayer = new GamePlayer( gameManagerService, game, users )
+
+      gamePlayer.play()
+
+      testWithParam("/api/audit/10", Map( 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "aNonExistingMail@mail.com" 
+       ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
       
+      testWithParam("/api/score", Map( 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "aNonExistingMail@mail.com" 
+       ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
     }
-    */
    
   }
-
+  
+  
 }
+
+
+object AdminAuditingSpecMain {
+  def main(args: Array[String]) { new AdminAuditingSpec().main(args) }
+}
+
+

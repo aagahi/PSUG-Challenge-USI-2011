@@ -289,7 +289,6 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       case EndGame =>
         sender ! ScoreSlice(scorer.scoreSlice( registredPlayersHistory(userId).user ))
       case _ => 
-        //TODO: error
         log.error("Error: ask for the score or ranking on a non finished game")
         sender ! ScoreSliceUnavailable
     }
@@ -301,14 +300,20 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    * or None if it is not the time to ask
    */
   private def queryScoreSliceAudit(userEmail: String) {
-    val target = sender
-    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
-      case DataPulled( Some( data ) ) => target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
-      case _ => log.warn( "Unexpected repo result for user email " + userEmail )
+    gameState match {
+      case EndGame => 
+        val target = sender
+        userRepositoryService.callback( PullDataByEmail( userEmail ) ){
+          case DataPulled( Some( data ) ) => target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
+          case _ => 
+            log.warn( "Unexpected repo result for user email " + userEmail )
+            target ! GameManagerError
+        }
+      case _ => 
+        log.error("Error: ask for the score or ranking on a non finished game")
+        sender ! ScoreSliceUnavailable
     }
-
   }
-
 
   /**
    * Audit query for user game history
@@ -316,43 +321,49 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    * or None if it is not the time to ask
    */
   private def queryGameHistoryAudit(userEmail: String, questionIndex:Option[Int]) {
-    val target = sender
-    userRepositoryService.callback( PullDataByEmail( userEmail ) ){
-      case DataPulled( Some( data ) ) =>
-        val key = GameUserKey( game.id, data.asInstanceOf[User].id )
-        gameUserHistoryRepositoryService.callback( PullData( key ) ){
+    gameState match {
+      case EndGame => 
+        val target = sender
+        userRepositoryService.callback( PullDataByEmail( userEmail ) ){
           case DataPulled( Some( data ) ) =>
-            val gameUserHistory = data.asInstanceOf[GameUserHistory]
-
-            questionIndex match {
-              case Some( questionIndex ) =>
-
-                val answerVO = AnswerHistoryVO(  user_answer = gameUserHistory.anwsers.find( _.questionIndex == questionIndex ).map( _.answerIndex + 1 ).getOrElse(0),
-                                                 good_answer = game.correctAnswerIndex( questionIndex  ) + 1,
-                                                 question = game.questions( questionIndex ).question )
-                target ! GameAnwserHistory( answerVO )
-
-              case None =>
-                val s = game.questions.size
-                val answersVO = AnswersHistoryVO( new Array(s), new Array(s) )
-                for( i <- 0 until s ){
-                  // here again we assume anwser number starting at 1 (instead of 0)
-                  answersVO.user_answers(i) = gameUserHistory.anwsers.find( _.questionIndex == i ).map( _.answerIndex + 1 ).getOrElse(0)
-                  // here again we assume anwser number starting at 1 (instead of 0)
-                  answersVO.good_answers(i) = game.correctAnswerIndex( i ) + 1
+            val key = GameUserKey( game.id, data.asInstanceOf[User].id )
+            gameUserHistoryRepositoryService.callback( PullData( key ) ){
+              case DataPulled( Some( data ) ) =>
+                val gameUserHistory = data.asInstanceOf[GameUserHistory]
+    
+                questionIndex match {
+                  case Some( questionIndex ) =>
+    
+                    val answerVO = AnswerHistoryVO(  user_answer = gameUserHistory.anwsers.find( _.questionIndex == questionIndex ).map( _.answerIndex + 1 ).getOrElse(0),
+                                                     good_answer = game.correctAnswerIndex( questionIndex  ) + 1,
+                                                     question = game.questions( questionIndex ).question )
+                    target ! GameAnwserHistory( answerVO )
+    
+                  case None =>
+                    val s = game.questions.size
+                    val answersVO = AnswersHistoryVO( new Array(s), new Array(s) )
+                    for( i <- 0 until s ){
+                      // here again we assume anwser number starting at 1 (instead of 0)
+                      answersVO.user_answers(i) = gameUserHistory.anwsers.find( _.questionIndex == i ).map( _.answerIndex + 1 ).getOrElse(0)
+                      // here again we assume anwser number starting at 1 (instead of 0)
+                      answersVO.good_answers(i) = game.correctAnswerIndex( i ) + 1
+                    }
+                    target ! GameAnwsersHistory( answersVO )
                 }
-                target ! GameAnwsersHistory( answersVO )
+              case _ =>
+                log.warn( "Unexpected repo result for GameUserHistory " + key  )
+                target ! GameManagerError
+    
             }
+    
           case _ =>
-            log.warn( "Unexpected repo result for GameUserHistory " + key  )
+            log.warn( "Unexpected repo result for User email " + userEmail )
             target ! GameManagerError
-
         }
-
+        
       case _ =>
-        log.warn( "Unexpected repo result for User email " + userEmail )
-        target ! GameManagerError
-      
+        log.error("Error: ask for the score or ranking on a non finished game")
+        sender ! ScoreSliceUnavailable
     }
   }
 
@@ -372,8 +383,6 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     }
     currentQuestionPlayer.playerActors.clear
     timer.schedule( TimeoutMessage(TimeoutType.QUESTION, currentQuestionIndex, game.questionTimeFrameSec), this )
-
-
   }
 
   /**
