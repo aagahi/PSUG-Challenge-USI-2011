@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Création d'un utilisateur</title>
+    <link rel="stylesheet" href="../css/reset.css" type="text/css" />
+    <link rel="stylesheet" href="../css/style.css" type="text/css" />
+    <style type="text/css">
+    #new_user_panel { display:none; }
+    </style>
+</head>
+<body>
+    <div id="usi_debug"></div>
+    <div id="page">
+      <div id="header">
+        <h2>Enregistrez un nouveau joueur pour le quizz de l'année</h2>
+      </div>
+      <div id="content">	
+        <div id="result_panel"></div>
+        <form action="create_user.html" id="user_form">
+        <div id="messages" class="none"></div>
+            <label for="firstname">Prénom : </label>
+            <input type="text" name="firstname" id="firstname" placeholder="prénom" required="required" />
+            <br />
+            <label for="lastname">Nom : </label>
+            <input type="text" name="lastname" id="lastname" placeholder="nom" required="required" />
+            <br />
+            <label for="mail">Email : </label>
+            <input type="email" name="mail" id="mail" placeholder="email" required="required" />
+            <br />
+            <label for="password">Mot de passe : </label>
+            <input type="password" name="password" id="password" placeholder="mot de passe" required="required" />
+             <br>
+            <input type="submit" name="submit" id="submit" value="valider" />
+            <input type="button" id="new_user" value="Créer un nouvel utilisateur" />
+        </form>
+	</div>
+    </div>
+    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
+    <script type="text/javascript" src="../js/json2.js" ></script>
+    <script type="text/javascript" src="../js/psug.js" ></script>
+    <script type="text/javascript">
+	$(document).ready(function (){
+            var $result_panel=$("#result_panel");
+            $result_panel.hide();
+            $("#new_user").hide();
+	    var usi_log=function(msg){
+                var $dbg=$("#usi_debug");
+    		$dbg.append(msg);
+	    };
+
+	    $("#user_form") .submit(function (event){
+            event.preventDefault();
+            
+            var data=$("#user_form").serializeJSON();
+            var validate=function(key, value){
+                input_class= (value.length<=2?"error":"");
+                $("#"+key).attr("class", input_class);
+            };
+            $.each(data, validate);
+            if ($("input.error").length) {
+                $result_panel.addClass("error");
+                $result_panel.html("Plusieurs champs sont en erreur.");
+                $result_panel.show();
+                return false;
+            }
+            $result_panel.removeClass("error");
+            $result_panel.html("");
+            var success=function(result, status, jqXHR){
+                $result_panel.show();
+                $result_panel.addClass("success")
+                usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
+                if(jqXHR.status===201) {
+                    $result_panel.html("L'utilisateur a bien été créé");
+                } else  {
+                    $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
+                }
+                $("#new_user").show();
+                $("#submit").hide();
+            };
+            var error=function (jqXHR, textStatus, errorThrown) {
+                usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
+                $result_panel.show();
+                $result_panel.addClass("error")
+                if(jqXHR.status===400) {
+                    $result_panel.html("Un utilisateur existe déjà correspondant à ces données");
+                } else {
+                    $result_panel.html("Etat inconnu lors de la création d'un utilisateur.<br />Message : "+textStatus+" : "+errorThrown+"<br />"+"Status: "+ jqXHR.status +"");
+                    var st=jqXHR.serializeJSON();
+                }
+            };
+            $.post('/api/user', JSON.stringify(data), success, "json").error(error);
+            return false;
+            });
+            $("#new_user").click(function (){
+                var cleanField=function(){
+                    $(this).val("");
+                    $(this).removeClass("error");
+                };
+                $.each(["text", "email", "password"], function() {
+                    $("form input[type='"+this+"']").each (cleanField);
+                });
+                $result_panel.html("");
+                $result_panel.removeClass("error")
+                $result_panel.removeClass("success")
+                $result_panel.hide("");
+                $("#new_user").hide();
+                $("#firstname").focus();
+                $("#submit").show();
+	    });
+	});
+    </script>
+</body>
+</html>

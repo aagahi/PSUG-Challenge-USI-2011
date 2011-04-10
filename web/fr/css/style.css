@@ -1,0 +1,63 @@
+.hide { display:none;}
+.show { display:inherit;}
+.none { display:none;}
+.center  { text-align:center;}
+.right {text-align:right;}
+.left {text-align:left;}
+.small { font-size:0.82em }
+div.error { background-color:#fed; color:#f00; border-color: #fed}
+div.success { background-color:#efd; color:#0f0; border-color: #fed; }
+input.error
+{ 
+  border-color:#ff0000; 
+}
+
+#page 
+{ 
+  width:1024px;margin-left:200px;
+}
+#header 
+{ 
+  border:0px solid #Def;
+  height:60px;
+  padding:1em  1.5em;
+}
+#content 
+{ 
+  border:1px solid #Def;
+  height:400px;
+  min-height:400px;
+  padding:1em  1.5em;
+}
+#usi_debug 
+{ 
+  width:500px; height:12em; overflow:auto; border:1px dotted #c00;
+  position:absolute; top:3em; right: 350px; 
+}
+#result_panel 
+{ 
+  font-weight:bold ; border: 1px solid; margin-bottom:1em; padding: 0.5em 20px;
+}
+
+body 
+{
+    font-family: Verdana, sans;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+h2 { font-weight:bold; font-size:1.3em  }
+h3 { font-weight:bold; font-size:1.2em  }
+h4 { font-weight:bold; font-size:1.1em  }
+h4 { font-size:1.1em  }
+
+form label 
+{ 
+  display:inline-block; width:150px; 
+}
+form input[type="submit"]
+{
+  background-color:orange ;
+  width:70px;
+  border-radius: 3em	; -moz-border-radius : 3em ; -webkit-border-radius:3em;
+}

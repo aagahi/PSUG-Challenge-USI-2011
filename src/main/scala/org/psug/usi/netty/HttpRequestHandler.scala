@@ -25,19 +25,36 @@ case class Status( nodeType:String )
 class HttpOutput( channel:Channel ) extends Logging {
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  def sendPage( path:String ){
+  def sendPage( path:String , request:HttpRequest){
+
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
     val contentType = path.substring( path.lastIndexOf(".") + 1 ) match {
       case "html" => "text/html; charset=utf-8"
       case "js" => "text/javascript; charset=utf-8"
+      case "css" => "text/css"
+      case "png" => "image/png"
+      case "jpg" => "image/jpeg"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
         "application/binary"
     }
     response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
 
+    // Hard coded
+    val existingLanguages=List("fr")
+    val defaultLanguage="fr"
 
-    val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
+    val acceptedLangs=request.getHeader("Accept-Language") match {
+      case l if (l!=null) => l.split("[,;]").toList
+      case _ => List("fr")
+    }
+
+    val lang=acceptedLangs.filter(existingLanguages.contains(_) ) match {
+      case Nil   => defaultLanguage
+      case l => l.head
+    }
+    val specificPath=path.replaceAll("web/", "web/"+lang+"/")
+    val content = Source.fromFile( "."+specificPath)(Codec.UTF8).mkString
     response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
@@ -248,16 +265,19 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
 
       case ( HttpMethod.GET, "web"::Nil )  =>
-        out.sendPage( "/web/index.html" )
+        out.sendPage( "/web/index.html", request )
+
+      case ( HttpMethod.GET, List() )  =>
+        out.sendRedirectToWeb("index.html")
 
       case ( HttpMethod.GET, "web"::subPath  )  =>
-        out.sendPage( queryStringDecoder.getPath )
+        out.sendPage( queryStringDecoder.getPath , request)
 
       case ( HttpMethod.GET, page::Nil )  =>
         out.sendRedirectToWeb(page)
 
       case _ =>
-        log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
+        log.warn( "Unknown request ("+method+"): " + path  )
         out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
     }
   }

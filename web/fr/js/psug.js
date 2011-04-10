@@ -7,3 +7,8 @@
     return json;
     };
 })( jQuery );
+
+var usi_log=function(msg){
+    var $dbg=$("#usi_debug");
+    $dbg.append(msg+"<br />");
+};
