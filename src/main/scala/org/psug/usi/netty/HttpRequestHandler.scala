@@ -86,9 +86,10 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.mail)))
     encoder.encode()
   }
-  private def decodeCookieAsAuthenticationToken(cookie:String):Option[AuthenticationToken] = {
+  private def decodeCookieAsAuthenticationToken(request:HttpRequest):Option[AuthenticationToken] = {
+    val cookieStr = request.getHeader( HttpHeaders.Names.COOKIE )
     val decoder = new CookieDecoder()
-    val cookies = decoder.decode(cookie)
+    val cookies = decoder.decode(cookieStr)
     cookies.find( _.getName == "session_key" ).map( cookie => AuthenticationToken.decrypt( cookie.getValue ) )
   }
 
@@ -100,7 +101,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
-    log.debug( "Method: " + method +  " - Path:" + path.mkString(",") )
+    log.info( "Method: " + method +  " - Path:" + path.mkString(",") )
 
 
     ( method, path ) match {
@@ -123,7 +124,13 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.POST, "api"::"login"::Nil ) =>
         val credentials = read[Credentials](content)
         userRepositoryService.callback( AuthenticateUser(credentials) ){
-          case UserAuthenticated (Left(user)) =>  out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
+          case UserAuthenticated (Left(user)) =>
+            gameManagerService.callback( Register( user ) ){
+              case RegisterSuccess => out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+
+
           case UserAuthenticated (Right(message)) => out.sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
         }
 
@@ -136,7 +143,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
               gameManagerService.callback( InitGame (game) ){
-                case InitGameSuccess => log.info( "Game initialized")
+                case InitGameSuccess => log.info( "Game "+game.id+" initialized")
               }
               out.sendResponse( None, HttpResponseStatus.CREATED )
             case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
@@ -151,28 +158,32 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
 
       case ( HttpMethod.GET, "api"::"question"::questionIndex::Nil ) =>
-        decodeCookieAsAuthenticationToken( request.getHeader( HttpHeaders.Names.SET_COOKIE ) ) match
+        decodeCookieAsAuthenticationToken( request ) match
         {
           case Some( AuthenticationToken( userId, mail ) ) =>
+            log.info("Get Q " + questionIndex )
            // api assume question starts at 1 but gamemanager starts at 0
             gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
-              case QuestionResponse( question, score ) => out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
+              case QuestionResponse( question, score ) =>
+                log.info("Reply Q " + questionIndex )
+                out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
               case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
 
           case None =>
+            log.info("Unable to get session cookie")
             out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
       case ( HttpMethod.POST, "api"::"answer"::questionIndex::Nil ) =>
-        decodeCookieAsAuthenticationToken( request.getHeader( HttpHeaders.Names.SET_COOKIE ) ) match
+        decodeCookieAsAuthenticationToken( request ) match
         {
           case Some( AuthenticationToken( userId, mail ) ) =>
             val answerVO = read[AnswerVO](content)
 
-           // api assume question starts at 1 but gamemanager starts at 0
-            gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer ) ){
+           // api assume question & anwser starts at 1 but gamemanager starts at 0
+            gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer-1 ) ){
               case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
               case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
@@ -182,6 +193,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         }
 
 
+      // TODO: refactor / factorize audit code + load last game created for game repo in case of jvm restart
 
 
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>

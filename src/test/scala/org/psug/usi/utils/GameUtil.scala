@@ -119,7 +119,7 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
 
 
     // Register
-    users.map( user => gameManagerService ! Register( user ) )
+    users.map( user => gameManagerService !? Register( user ) )
 
     for( questionIndex <- 0 until game.nbQuestions ){
       val futures = users.map( user => (gameManagerService !! QueryQuestion( user.id, questionIndex )).asInstanceOf[Future[QuestionResponse]] )

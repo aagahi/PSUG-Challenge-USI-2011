@@ -14,7 +14,6 @@ import com.sun.jersey.api.client._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.read
 import org.psug.usi.netty._
-import org.psug.usi.service.SimpleRepositoryServices
 import org.psug.usi.store.ClearRepository
 
 import org.jboss.netty.handler.codec.http.Cookie
@@ -23,6 +22,8 @@ import org.jboss.netty.handler.codec.http.CookieDecoder
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import org.psug.usi.domain.{UserVO, User, AuthenticationToken, Credentials}
+import org.psug.usi.utils.GameGenerator
+import org.psug.usi.service.{InitGameSuccess, InitGame, SimpleRepositoryServices}
 
 @RunWith(classOf[JUnitSuiteRunner])
 class UserRegistrationSpec  extends SpecificationWithJUnit {
@@ -38,18 +39,21 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
   def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
   new SpecContext {
-    val repositories = new SimpleRepositoryServices
-    val webServer : WebServer = new WebServer(listenPort,repositories)
+    val serverServices = new SimpleRepositoryServices
+    val webServer : WebServer = new WebServer(listenPort,serverServices)
 
     // launch/shutdown web server on each Specification
-    beforeSpec { webServer.start; repositories.launch  }
-    afterSpec { webServer.stop ; repositories.shutdown }
+    beforeSpec { webServer.start; serverServices.launch  }
+    afterSpec { webServer.stop ; serverServices.shutdown }
 
     // clear repository on each example
 
 
     before {
-      repositories.userRepositoryService !? ClearRepository
+      serverServices.userRepositoryService !? ClearRepository
+      val game = GameGenerator( 3, 4, 160 )
+      assert( serverServices.gameManagerService !? InitGame(game) == InitGameSuccess )
+
     }
 
 
@@ -122,12 +126,24 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
       registerUser(martinOdersky)
       registerUser(robertOdersky)
 
-      val Some(martinCookie) = getCookieFrom(userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe")))
+      val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe") )
+      response.getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
+      val Some(martinCookie) = getCookieFrom( response )
       martinCookie.getName must be_==("session_key")
       decrypt(martinCookie.getValue) must be_==(AuthenticationToken(1, "m.odersky@scala-lang.org"))
       val Some(robertCookie) = getCookieFrom(userLogsIn(Credentials("r.odersky@scala-lang.org", "0xdeadbeef")))
       decrypt(robertCookie.getValue) must be_==(AuthenticationToken(2, "r.odersky@scala-lang.org"))
     }
+
+    "get error if log twice" in {
+      import AuthenticationToken._
+
+      registerUser(martinOdersky)
+
+      userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe") ).getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
+      userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe") ).getStatus must be_==(ClientResponse.Status.BAD_REQUEST.getStatusCode)
+    }
+
   }
 
 }

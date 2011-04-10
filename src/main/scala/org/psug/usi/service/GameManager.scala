@@ -22,6 +22,10 @@ case object InitGameSuccess extends InitGameReply
 case object ErrorAlreadyStarted extends InitGameReply
 
 case class Register(user: User)
+//reply for game Register
+sealed trait RegisterReply
+case object RegisterSuccess extends RegisterReply
+case object RegisterFailure extends RegisterReply
 
 case object QueryStats
 case object GameManagerError
@@ -119,7 +123,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
 
-
+  // TODO: add trycatch to avoid actor crash
   def receive = {
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
@@ -138,26 +142,23 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
     case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
     case x =>
-      log.warn( "Unhandled message: " + x )
+      log.warn( "Unhandled GameManager message: " + x )
   }
 
 
   /**
-   * Initialize a game if it is not already initialized.
+   * Initialize a game (works as reset)
    */
   private def initGame(game: Game): Unit = {
-    gameState match {
-      case Uninitialized => 
-        this.game = game
-        scorer = new Scorer(game.nbUsersThreshold)
-        currentQuestionIndex = 0
-        registredPlayersHistory.clear()
-        currentQuestionPlayer = new QuestionPlayer
-        nextQuestionPlayer = new QuestionPlayer
-        gameState = Initialized
-        sender ! InitGameSuccess
-      case _ => sender ! ErrorAlreadyStarted
-    }
+    // game state check removed for simplification we assume that init reset the whole game state
+    this.game = game
+    scorer = new Scorer(game.nbUsersThreshold)
+    currentQuestionIndex = 0
+    registredPlayersHistory.clear()
+    currentQuestionPlayer = new QuestionPlayer
+    nextQuestionPlayer = new QuestionPlayer
+    gameState = Initialized
+    sender ! InitGameSuccess
   }
 
   /**
@@ -174,11 +175,12 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       if (registredPlayersHistory.size < game.nbUsersThreshold) {
        if(!registredPlayersHistory.isDefinedAt(user.id)) {
          registredPlayersHistory(user.id) = UserAnswerHistory( user, 0, Nil )
+         sender ! RegisterSuccess
        } else { // user is already registered
-         //nothing ? 
+         sender ! RegisterFailure
        }
       } else {
-        log.error("TODO: error message: max number of user logged-in for that game")
+        sender ! RegisterFailure
       }
     }
     
@@ -192,7 +194,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       case WaitingRegistrationAndQ1 =>
         tryToAddUser
       case _ => 
-        log.error("TODO: error message: Error: cannot add user with mail %s. Registration are closed". format(user.mail))
+        sender ! RegisterFailure
     }
   }
 
