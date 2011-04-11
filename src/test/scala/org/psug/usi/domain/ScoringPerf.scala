@@ -57,7 +57,7 @@ class ScoringPerf extends PerfUtilities{
   }
 
   def runWithNumberOfUsers(num : Int) :(Double,Double)= {
-    val scorer = new Scorer(num)
+    val scorer = new Scorer()
 
     val users  = 0 until num map( i=> User(i, i.toString, "", "", "" ) )
     val values = for(j <- 1 to 30) yield time( singleTest(num, scorer, users ) )

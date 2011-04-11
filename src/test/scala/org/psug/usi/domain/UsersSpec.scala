@@ -1,8 +1,8 @@
 package org.psug.usi.domain
 
 import org.specs._
-import org.psug.usi.store.{ClearRepository, DataPulled, DataStored, StoreData}
 import org.psug.usi.service.{ClientServices, ServerServices}
+import org.psug.usi.store._
 
 class UsersSpec extends SpecificationWithJUnit {
 
@@ -35,6 +35,15 @@ class UsersSpec extends SpecificationWithJUnit {
       val DataStored( Right( u2 ) ) = userRepositoryService !? StoreData(myriamOdersky)
 
       u1.asInstanceOf[User].id must not(be_==(u2.asInstanceOf[User].id))
+
+      val DataPulled( Some( user1 ) ) = userRepositoryService !? PullData( u1.asInstanceOf[User].id )
+      user1 must be_==( u1 )
+
+      val DataPulled( Some( user2 ) ) = userRepositoryService !? PullData( u2.asInstanceOf[User].id )
+      user2 must be_==( u2 )
+
+      val DataPulled( Some( userLast ) ) = userRepositoryService !? PullLast
+      userLast must be_==( u2 )
     }
 
 

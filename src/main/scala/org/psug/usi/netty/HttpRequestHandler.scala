@@ -124,7 +124,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
-    log.info( "Method: " + method +  " - Path:" + path.mkString("/") )
+    log.info( method +  " /" + path.mkString("/") )
 
 
     ( method, path ) match {
@@ -174,7 +174,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           val game: Game = Game(createGame.parameters)
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
-              gameManagerService.callback( InitGame (game) ){
+              gameManagerService.callback( InitGame (data.asInstanceOf[Game]) ){
                 case InitGameSuccess => log.info( "Game "+data.asInstanceOf[Game].id+" initialized")
               }
               out.sendResponse( None, HttpResponseStatus.CREATED )

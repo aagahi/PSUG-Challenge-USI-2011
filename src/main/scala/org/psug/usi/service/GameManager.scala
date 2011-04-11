@@ -6,7 +6,7 @@ import akka.util.Logging
 import org.psug.usi.akka.Receiver
 import java.util.concurrent.TimeUnit
 import akka.actor.{Channel, Scheduler}
-import org.psug.usi.store.{DataStored, PullData, DataPulled, StoreData}
+import org.psug.usi.store._
 
 /**
  * User: alag
@@ -97,12 +97,11 @@ case object EndGame extends GameState
 /**
  * A game manager: handle question/anwser and timeout
  */
-class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositoryService,
-                   userRepositoryService:UserRepositoryService,
+class GameManager( services:Services,
                    timer: GameManagerTimer = new DefaultGameManagerTimer)
   extends Receiver with Logging {
   
-
+  import services._
 
   var gameState : GameState = Uninitialized
   var game: Game = _
@@ -151,7 +150,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   private def initGame(game: Game): Unit = {
     // game state check removed for simplification we assume that init reset the whole game state
     this.game = game
-    scorer = new Scorer(game.nbUsersThreshold)
+    scorer = new Scorer()
     currentQuestionIndex = 0
     registredPlayersHistory.clear()
     currentQuestionPlayer = new QuestionPlayer
@@ -293,18 +292,46 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     }
   }
 
+
+  /*
+    Restore last game and scorer in case of VM restart
+   */
+  private def restoreLastGameState(){
+    gameState match {
+      case Uninitialized => // need to reload last game
+        (gameRepositoryService !? PullLast) match {
+          case DataPulled( Some( lastGame ) ) =>
+            this.game = lastGame.asInstanceOf[Game]
+            scorer = new Scorer()
+            scorer.load( game.id )
+            gameState = EndGame
+
+          case _ => 
+        }
+
+      case EndGame =>  // no need to reload
+
+      case _ => log.warn( "Unexpected restore request")
+    }
+
+  }
+
   /**
    * Audit query for the ranking of the given user.
    * Reply Some(List(scores)) if score are available
    * or None if it is not the time to ask
    */
   private def queryScoreSliceAudit(userEmail: String) {
+    restoreLastGameState()
+
     gameState match {
       case EndGame => 
         val target = sender
         userRepositoryService.callback( PullDataByEmail( userEmail ) ){
-          case DataPulled( Some( data ) ) => target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
-          case _ => 
+          case DataPulled( Some( data ) ) =>
+            target ! ScoreSlice( scorer.scoreSlice( data.asInstanceOf[User] ) )
+
+          case _ =>
             log.warn( "Unexpected repo result for user email " + userEmail )
             target ! GameManagerError
         }
@@ -326,7 +353,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
         userRepositoryService.callback( PullDataByEmail( userEmail ) ){
           case DataPulled( Some( data ) ) =>
             val key = GameUserKey( game.id, data.asInstanceOf[User].id )
-            gameUserHistoryRepositoryService.callback( PullData( key ) ){
+            gameUserHistoryService.callback( PullData( key ) ){
               case DataPulled( Some( data ) ) =>
                 val gameUserHistory = data.asInstanceOf[GameUserHistory]
     
@@ -393,16 +420,15 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     gameState match {
       case InGame =>
         log.info("Ending game: " + game.id )
-        for ( i <- 0 until currentQuestionPlayer.playerIndex ) {
-          val userId = currentQuestionPlayer.players( i )
-          val userAnswerHistory = registredPlayersHistory( userId )
-          val key = GameUserKey(game.id, userId)
-          gameUserHistoryRepositoryService.callback(StoreData(GameUserHistory( key, userAnswerHistory.answersHistory )) ){
-            case DataStored( Right( historyStored ) ) =>
+        for ( userAnswerHistory <- registredPlayersHistory.values ) {
+          val key = GameUserKey(game.id, userAnswerHistory.user.id)
+          gameUserHistoryService.callback(StoreData(GameUserHistory( key, userAnswerHistory.answersHistory )) ){
+            case DataStored( Right( historyStored ) ) => log.info( key + " history saved")
             case _ => log.error("Unable to store GameUserHistory key " + key )
           }
         }
         gameState = EndGame
+        scorer.save( game.id )
       case _ =>
         log.error("Game "+game.id+" already ended" )
     }

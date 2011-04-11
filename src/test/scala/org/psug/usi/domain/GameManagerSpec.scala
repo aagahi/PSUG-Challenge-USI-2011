@@ -168,7 +168,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManager( gameUserHistoryService, serverServices.userRepositoryService, timer )
+      val gameManager = new GameManager( serverServices, timer )
       gameManager.start
       gameManager !? InitGame (game)
       val gamePlayer = new GamePlayer( gameManagerService, game, users )

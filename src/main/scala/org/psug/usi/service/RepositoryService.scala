@@ -102,7 +102,7 @@ class ServerServices extends Services {
       override lazy val env = SingleBDBEnvironment
     }
 
-    _gameManagerService = new GameManager(gameUserHistoryService, userRepositoryService) with Service with GameManagerService {
+    _gameManagerService = new GameManager(this) with Service with GameManagerService {
       override lazy val name = "GameManager"
     }
 
