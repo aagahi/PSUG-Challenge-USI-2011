@@ -17,47 +17,79 @@
           <h3>Authentification</h3>
       </div>
       <div id="content">
-
-    <form id="auth_form">
-        <label for="mail">Mail</label>
-        <input type="email" name="mail" required="required" />
-        <br />
-        <label for="password">Mot de passe</label>
-        <input type="password" name="password" required="required" />
-        <br />
-        <input type="submit" name="submit" value="submit" />
-    </form>
+        <div id="result_panel"></div>
+            <form  action="login.html" id="auth_form">
+                <label for="mail">Mail</label>
+                <input type="email" name="mail" id="mail" required="required" value="" />
+                <br />
+                <label for="password">Mot de passe</label>
+                <input type="password" name="password" id="password" required="required" value="" />
+                <br />
+                <input type="submit" name="submit" value="submit" />
+            </form>
+        </div>
     </div>
-    </div>
+    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
+    <script type="text/javascript" src="../js/json2.js" ></script>
+    <script type="text/javascript" src="../js/psug.js" ></script>
     <script type="text/javascript">
 	$(document).ready(function (){
-	    var $dbg=$("#usi_debug");
-	    var usi_log=function(msg){
-		$dbg.html($dbg.html()+result);
-	    };
-	    $("#auth_form").submit(function (event){
-		event.preventDefault();
-		var datas=$("#auth_form").serializeJSON();
-		console.log(JSON.stringify(datas));
+        var $dbg=$("#usi_debug");
+        var $auth_form=$("#auth_form");
+        var $result_panel=$("#result_panel");
+
+        $result_panel.hide();
+        $auth_form.submit(function (event){
+            event.preventDefault();
+            $result_panel.show() ;
+            $result_panel.removeClass("error")
+            $result_panel.removeClass("success")
+            
+            var data=$auth_form.serializeJSON();
+            var validate=function(key, value){
+                input_class= (value!=null && value.length>=2 && value.length<=50?"":"error");
+                if (input_class==="" && key==="mail") {
+                    input_class=(validateEmail(value)?"":"error");
+                }
+                $("#"+key).attr("class", input_class);
+            };
+            $.each(data, validate);
+
+            if ($("input.error").length) {
+                $result_panel.addClass("error");
+                $result_panel.html("Certains des champs sont en erreur. Chaque champ être renseigné et contenir une valeur d'une logueur entre 2 et 50 caractères.");
+                $result_panel.show();
+                return false;
+            }
+
 		var success=function(result, status, jqXHR){
 		    usi_log("Resultat de la requête ajax:"+result);
-		    if(status==="200") {
-			$("#result_panel").html("L'utilisateur a bien été créé");
-		    } else if(status==="404") {
-			$("#result_panel").html("L'identification a échoué. Veuillez recommencer.");
+		    if(jqXHR.status===200) {
+    		    $result_panel.html('<a id="linkto_game" href="game.html">Bienvenue sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="game.html">Vous pouvez maintenant commencer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+                $result_panel.addClass("success");
+		    } else if(jqXHR.status===400) {
+    		    $result_panel.html('<a id="linkto_game" href="game.html">De retour sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="game.html">Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+                $result_panel.addClass("success");
 		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+                $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+                $result_panel.addClass("error");
 		    }
 		};
-		var error=function () { alert ("erreur...")};
-		$.post('/api/login', JSON.stringify(datas), success, "json").error(error);
+        var error=function (jqXHR, textStatus, errorThrown) {
+            if(jqXHR.status===400) {
+                $result_panel.html('<a id="linkto_game" href="game.html">De retour sur le Quizz de la mort qui tue.<br />Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+                $result_panel.addClass("success");
+            } else if(jqXHR.status===401) {
+                $result_panel.html("L'identification a échoué. Veuillez recommencer.");
+                $result_panel.addClass("error");
+                $result_panel.addClass("error");
+            } else  {
+                $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
+                $result_panel.addClass("error");
+            }
+        };
+		$.post('/api/login', JSON.stringify(data), success, "json").error(error);
 		return false;
-	    });
-	    $("#auth").click(function (){
-		$("form input[type='text']").each (function(){ this.attr("value", ""); });
-		$("form input[type='password']").each (function(){ this.attr("value", ""); });
-		$("#new_user_panel").hide();
-		$("#firstname").focus();
 	    });
 	});
     </script>
