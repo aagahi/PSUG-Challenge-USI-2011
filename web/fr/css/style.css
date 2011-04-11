@@ -5,6 +5,7 @@
 .right {text-align:right;}
 .left {text-align:left;}
 .small { font-size:0.82em }
+.clear { clear:both;}
 div.error { background-color:#fed; color:#f00; border-color: #fed}
 div.error * { background-color:#fed; color:#f00; }
 div.success { background-color:#efd; color:#0f0; border-color: #fed; }
