@@ -5,6 +5,7 @@ import com.sleepycat.je.DatabaseEntry
 import java.io.{ByteArrayOutputStream, ObjectOutputStream, ByteArrayInputStream, ObjectInputStream}
 import com.sleepycat.bind.tuple.{TupleOutput, TupleInput}
 import xml.XML
+import akka.util.Logging
 
 /**
  * User: alag
@@ -48,14 +49,15 @@ trackeduseridmail : ne pas tenir compte de ce paramètre.
 "La valeur d'une question n (Valeur(n)) est 1 pour les 5 premières questions, 5 pour les questions 6 à 10, 10 pour les questions 11 à 15, 15 pour les questions 16 à 20"
 */
 
-object Game{
+object Game extends Logging {
   def apply( xmlParameters:String ) = {
     val xmlStr = xmlParameters.replaceAll("&lt;", "<" ).replaceAll( "&gt;",">" ).replaceAll( "&quot;", "'" ).replaceAll("&amp;", "&" )
     val xml = XML.loadString( xmlStr )
 
     val questions = ( xml \ "questions" \\ "question").zipWithIndex.map {
       case ( xmlQuestion, index )  =>
-        val goodChoice =  ( xmlQuestion \ "@goodchoice" ).text.toInt
+        // index start at 1 in xml but we keep it at 0 internally
+        val goodChoice =  ( xmlQuestion \ "@goodchoice" ).text.toInt - 1
         val answers = ( xmlQuestion \\ "choice" ).zipWithIndex.map {
           case ( xmlAnwer, index ) => Answer( xmlAnwer.text, index == goodChoice )
         }

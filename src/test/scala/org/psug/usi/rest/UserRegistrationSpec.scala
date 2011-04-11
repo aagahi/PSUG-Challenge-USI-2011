@@ -12,7 +12,6 @@ import org.specs._
 import com.sun.jersey.api.client._
 
 import net.liftweb.json._
-import net.liftweb.json.Serialization.read
 import org.psug.usi.netty._
 import org.psug.usi.store.ClearRepository
 
@@ -21,9 +20,10 @@ import org.jboss.netty.handler.codec.http.CookieDecoder
 
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
-import org.psug.usi.domain.{UserVO, User, AuthenticationToken, Credentials}
+import org.psug.usi.domain.{UserVO, AuthenticationToken, Credentials}
 import org.psug.usi.utils.GameGenerator
-import org.psug.usi.service.{InitGameSuccess, InitGame, SimpleRepositoryServices}
+
+import org.psug.usi.service.{InitGameSuccess, InitGame, ServerServices}
 
 @RunWith(classOf[JUnitSuiteRunner])
 class UserRegistrationSpec  extends SpecificationWithJUnit {
@@ -34,30 +34,38 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
   val myriamOdersky = UserVO("Myriam", "Odersky","m.odersky@scala-lang.org","0xbabecafe")
   val robertOdersky = UserVO("Robert", "Odersky","r.odersky@scala-lang.org","0xdeadbeef")
 
-  val listenPort = 12345
 
-  def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
-  new SpecContext {
-    val serverServices = new SimpleRepositoryServices
-    val webServer : WebServer = new WebServer(listenPort,serverServices)
+  val setup = new SpecContext {
+    val serverServices = new ServerServices
+    import serverServices._
 
-    // launch/shutdown web server on each Specification
-    beforeSpec { webServer.start; serverServices.launch  }
-    afterSpec { webServer.stop ; serverServices.shutdown }
+    val webAuthenticationKey = "dummy"
+    val listenPort = 12345
+    val webServer : WebServer = new WebServer( listenPort, serverServices, webAuthenticationKey )
+    def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
+
 
     // clear repository on each example
-
-
-    before {
-      serverServices.userRepositoryService !? ClearRepository
+    before{
+      webServer.start
+      serverServices.launch ;
+      userRepositoryService !? ClearRepository
       val game = GameGenerator( 3, 4, 160 )
       assert( serverServices.gameManagerService !? InitGame(game) == InitGameSuccess )
-
     }
-
-
+    after{
+      webServer.stop
+      userRepositoryService !? ClearRepository
+      serverServices.shutdown
+    }
   }
+
+
+  setSequential()
+
+  import setup._
+
 
   def registerUser(user : UserVO) : ClientResponse = {
      webResource("/api/user/").header("Content-Type","application/json").post(classOf[ClientResponse], Serialization.write(user))
@@ -96,7 +104,9 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
 
 
   "user login" should {
+
     shareVariables()
+    setSequential()
 
     "succeed with returned session cookie if user provide right credentials" in {
       registerUser(martinOdersky).getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
@@ -136,8 +146,6 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
     }
 
     "get error if log twice" in {
-      import AuthenticationToken._
-
       registerUser(martinOdersky)
 
       userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe") ).getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)

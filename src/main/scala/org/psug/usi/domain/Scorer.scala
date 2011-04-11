@@ -1,7 +1,8 @@
 package org.psug.usi.domain
 
-import collection.immutable.TreeSet
 import collection.mutable.HashMap
+import java.util.Properties
+import java.io._
 
 /**
  * Strange structure to match:
@@ -70,20 +71,23 @@ case class ScorerAnwserValue(user: User, answerValue: Int)
 
 // 0 mean wrong answer
 
-class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: Int = 100) {
+class Scorer(val sliceRange: Range = -5 to 5, val topSize: Int = 100) {
 
-  var sortedUserScores = new TreeSet[UserScore]
+  val properties = new Properties()
+  properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
+  val scorerFolder = new File( properties.getProperty("scorer.folder") )
+  scorerFolder.mkdirs
+
+  
   val userIdScoresMap = new HashMap[Int, UserScore]
 
   def scoreAnwser(scorerAnwserValue: ScorerAnwserValue) = {
+
     val user = scorerAnwserValue.user
     val userScore = userIdScoresMap.getOrElse(user.id, UserScore(user, 0))
-    sortedUserScores = sortedUserScores - userScore
-
     val newScore = userScore.update(scorerAnwserValue.answerValue)
-
     userIdScoresMap(user.id) = newScore
-    sortedUserScores = sortedUserScores + newScore
+
     newScore
   }
 
@@ -95,28 +99,46 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
   //retrieve the Top 100. Do the calcul only one time (it has to be called at the end of game
   private[this] lazy val topPlayers: ListScoresVO = ListScoresVO(sortedUserScores.take(topSize))
 
-  /**
-   * a lazily evaluated array filled from the sorted set of users.
-   * Allows more efficient extraction of slices and is only computed at first call.
-   */
-  private[this] lazy val arrayOfScores: Array[UserScore] = {
-    val a: Array[UserScore] = new Array[UserScore](sortedUserScores.size)
-    sortedUserScores.copyToArray(a)
-    a
-  }
 
   def scoreSlice(user: User): RankingVO = {
-    val userScore = userIdScoresMap(user.id)
-    val indexOfUser: Int = arrayOfScores.indexOf(userScore)
+    val indexOfUser: Int = sortedUserScores.indexWhere( _.user.id == user.id )
+    val userScore = sortedUserScores(indexOfUser)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
-    val end = if (numUsers < indexOfUser + sliceRange.end) numUsers else indexOfUser + sliceRange.end
-    val before = ListScoresVO(arrayOfScores.slice(begin, indexOfUser))
-    val after = ListScoresVO(arrayOfScores.slice(indexOfUser + 1, end))
+    val numUsers = sortedUserScores.size
+    val end = if (numUsers < indexOfUser + sliceRange.end+1) numUsers else indexOfUser + sliceRange.end +1
+    val before = ListScoresVO(sortedUserScores.slice(begin, indexOfUser))
+    val after = ListScoresVO(sortedUserScores.slice(indexOfUser + 1, end))
     RankingVO(userScore.score, topPlayers, before, after)
   }
 
   override def toString = {
     "Scores: (" + userIdScoresMap.values.mkString(",") + ")"
+  }
+
+  private var _sortedUserScores:List[UserScore] = null
+  def sortedUserScores = {
+    if( _sortedUserScores == null ) _sortedUserScores = userIdScoresMap.values.toList.sorted
+    _sortedUserScores
+  }
+
+
+  def save( gameId:Int ){
+    val fos = new BufferedOutputStream( new FileOutputStream( new File( scorerFolder, gameId.toString ) ) )
+    val out = new ObjectOutputStream(fos)
+    out.writeObject( sortedUserScores )
+    fos.close
+
+  }
+
+  def load( gameId:Int ){
+    val scorerFile = new File( scorerFolder, gameId.toString )
+    if( scorerFile.exists ){
+      val fis = new BufferedInputStream( new FileInputStream( scorerFile ) )
+      val in = new ObjectInputStream(fis)
+      _sortedUserScores = in.readObject().asInstanceOf[List[UserScore]]
+      fis.close
+    }
+
   }
 
 }

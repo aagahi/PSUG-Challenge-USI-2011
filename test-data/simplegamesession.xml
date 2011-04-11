@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <usi:gamesession xmlns:usi="http://www.usi.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.usi.com gamesession.xsd ">
     <usi:questions>
-        <usi:question goodchoice="0">
+        <usi:question goodchoice="1">
             <usi:label>Q1</usi:label>
             <usi:choice>A11</usi:choice>
             <usi:choice>A12</usi:choice>
             <usi:choice>A13</usi:choice>
             <usi:choice>A14</usi:choice>
         </usi:question>
-        <usi:question goodchoice="1">
+        <usi:question goodchoice="2">
             <usi:label>Q2</usi:label>
             <usi:choice>A21</usi:choice>
             <usi:choice>A22</usi:choice>
             <usi:choice>A23</usi:choice>
             <usi:choice>A24</usi:choice>
         </usi:question>
-        <usi:question goodchoice="2">
+        <usi:question goodchoice="3">
             <usi:label>Q3</usi:label>
             <usi:choice>A31</usi:choice>
             <usi:choice>A32</usi:choice>
             <usi:choice>A33</usi:choice>
             <usi:choice>A34</usi:choice>
         </usi:question>
-        <usi:question goodchoice="3">
+        <usi:question goodchoice="4">
             <usi:label>Q4</usi:label>
             <usi:choice>A41</usi:choice>
             <usi:choice>A42</usi:choice>
             <usi:choice>A43</usi:choice>
             <usi:choice>A44</usi:choice>
         </usi:question>
-        <usi:question goodchoice="0">
+        <usi:question goodchoice="1">
             <usi:label>Q5</usi:label>
             <usi:choice>A51</usi:choice>
             <usi:choice>A52</usi:choice>
             <usi:choice>A53</usi:choice>
             <usi:choice>A54</usi:choice>
         </usi:question>
-        <usi:question goodchoice="1">
+        <usi:question goodchoice="2">
             <usi:label>Q6</usi:label>
             <usi:choice>A61</usi:choice>
             <usi:choice>A62</usi:choice>

@@ -45,7 +45,7 @@ class TestGameManagerTimer extends GameManagerTimer {
 }
 class GameManagerSpec  extends SpecificationWithJUnit {
 
-  val serverServices = new SimpleRepositoryServices
+  val serverServices = new ServerServices
   val services = new ClientServices()
   import services._
 
@@ -88,7 +88,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManagerService ! Register( user ) )
+      users.map( user => gameManagerService !? Register( user ) )
 
       // Ask for Q1
       val futuresQ1 = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
@@ -168,7 +168,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManager( gameUserHistoryService, serverServices.userRepositoryService, timer )
+      val gameManager = new GameManager( serverServices, timer )
       gameManager.start
       gameManager !? InitGame (game)
       val gamePlayer = new GamePlayer( gameManagerService, game, users )
@@ -176,7 +176,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map{ user => gameManager ! Register( user ) }
+      users.map{ user => gameManager !? Register( user ) }
       
       var messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
