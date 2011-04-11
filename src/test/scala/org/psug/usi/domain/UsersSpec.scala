@@ -2,14 +2,14 @@ package org.psug.usi.domain
 
 import org.specs._
 import org.psug.usi.store.{ClearRepository, DataPulled, DataStored, StoreData}
-import org.psug.usi.service.{ClientServices, SimpleRepositoryServices}
+import org.psug.usi.service.{ClientServices, ServerServices}
 
 class UsersSpec extends SpecificationWithJUnit {
 
   val services = new ClientServices()
   import services._
 
-  val serverServices = new SimpleRepositoryServices
+  val serverServices = new ServerServices
 
   def startRepository : Unit = {
     serverServices.launch

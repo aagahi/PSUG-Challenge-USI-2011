@@ -8,7 +8,7 @@ import com.sun.jersey.api.client._
 
 import net.liftweb.json._
 import org.psug.usi.netty._
-import org.psug.usi.service.SimpleRepositoryServices
+import org.psug.usi.service.ServerServices
 import scala.io.Source
 
 import org.junit.runner.RunWith
@@ -24,17 +24,14 @@ class GameRegistrationSpec extends SpecificationWithJUnit {
   def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
   val setup = new SpecContext {
-    val repositories = new SimpleRepositoryServices
+    val repositories = new ServerServices
     val webServer : WebServer = new WebServer(listenPort,repositories,webAuthenticationKey)
 
-    // launch/shutdown web server on each Specification
-    beforeSpec { webServer.start; repositories.launch  }
-    afterSpec { webServer.stop ; repositories.shutdown }
-
-    // clear repository on each example
-    before(repositories.gameRepositoryService !? ClearRepository)
+    before{ webServer.start; repositories.launch; repositories.gameRepositoryService !? ClearRepository }
+    after{ webServer.stop ; repositories.shutdown }
   }
 
+  setSequential()
 
   def registerGame(gameRegistration : RegisterGame ):ClientResponse = {
      webResource("/api/game/").header("Content-Type","application/json").post(classOf[ClientResponse], Serialization.write(gameRegistration))

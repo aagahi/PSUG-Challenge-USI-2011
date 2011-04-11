@@ -20,7 +20,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  val serverServices = new SimpleRepositoryServices
+  val serverServices = new ServerServices
   val services = new ClientServices()
   import services._
 

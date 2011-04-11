@@ -62,7 +62,7 @@ class GamesSpec extends SpecificationWithJUnit {
     setSequential()
 
     def startRepository:Unit = {
-      serverService = new SimpleRepositoryServices()
+      serverService = new ServerServices()
       serverService.launch
       gameRepositoryService !? ClearRepository
 

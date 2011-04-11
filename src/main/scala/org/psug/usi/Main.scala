@@ -3,7 +3,7 @@ package org.psug.usi
 import _root_.akka.util.Logging
 import org.psug.usi.netty.WebServer
 import java.util.Properties
-import service.{ClientServices, ServerServices, SimpleRepositoryServices}
+import service.{ClientServices, ServerServices}
 
 /**
  * 
@@ -44,7 +44,7 @@ class Main extends Logging {
 
   def start( servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
     // Host/port conf is in akka.conf
-    services = new SimpleRepositoryServices
+    services = new ServerServices
     services.launch
     
     val remoteService = new ClientServices( servicesHost, servicesPort )

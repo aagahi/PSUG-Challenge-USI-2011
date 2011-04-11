@@ -3,7 +3,6 @@ package org.psug.usi.service
 import org.psug.usi.domain._
 import collection.mutable.HashMap
 import akka.util.Logging
-import akka.dispatch.Future
 import org.psug.usi.akka.Receiver
 import java.util.concurrent.TimeUnit
 import akka.actor.{Channel, Scheduler}
