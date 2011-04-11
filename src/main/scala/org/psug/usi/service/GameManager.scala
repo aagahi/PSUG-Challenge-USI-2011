@@ -50,7 +50,7 @@ case class GameAnwserHistory(answer:AnswerHistoryVO)
 
 
 case class UserAnswerResponse(answerStatus: Boolean, correctAnwser:String, score: Int)
-case class UserAnswerResponseVO(are_u_right: Boolean, good_answer:String, score: Int)
+case class UserAnswerResponseVO(are_u_right: Boolean, good_answer:String, score:Int )
 
 
 
@@ -215,7 +215,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     questionPlayer.playerIndex += 1
     questionPlayer.playerActors(userId) = sender
 
-    if (nextQuestionPlayer.playerIndex >= registredPlayersHistory.size ) {
+    if (nextQuestionPlayer.playerIndex >= game.nbUsersThreshold ) {
       gameState match {
         case InGame =>
           currentQuestionPlayer = nextQuestionPlayer
@@ -229,7 +229,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
           log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
       }
     }
-    else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= registredPlayersHistory.size) {
+    else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= game.nbUsersThreshold ) {
       gameState match {
         case WaitingRegistrationAndQ1 =>
           gameState = InGame
@@ -269,7 +269,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
     sender ! UserAnswerResponse( answerValue > 0, game.correctAnswer(currentQuestionIndex), userScore.score)
 
 
-    if (currentQuestionIndex == game.nbQuestions - 1 && userAnswerCount == registredPlayersHistory.size ) {
+    if (currentQuestionIndex == game.questions.size - 1 && userAnswerCount == game.nbUsersThreshold ) {
       endGame()
     }
 
@@ -392,7 +392,9 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
   private def endGame(){
     gameState match {
       case InGame =>
-        for (userId <- currentQuestionPlayer.players) {
+        log.info("Ending game: " + game.id )
+        for ( i <- 0 until currentQuestionPlayer.playerIndex ) {
+          val userId = currentQuestionPlayer.players( i )
           val userAnswerHistory = registredPlayersHistory( userId )
           val key = GameUserKey(game.id, userId)
           gameUserHistoryRepositoryService.callback(StoreData(GameUserHistory( key, userAnswerHistory.answersHistory )) ){
@@ -402,7 +404,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
         }
         gameState = EndGame
       case _ =>
-        log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+        log.error("Game "+game.id+" already ended" )
     }
   }
 
@@ -414,7 +416,6 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
    * - after a question (time elapsed for sending answer)
    */
   private def timeout(timeoutType: TimeoutType.Value) {
-
     if (timeoutType == TimeoutType.QUESTION) {
       for ( i <- 0 until currentQuestionPlayer.playerIndex ) {
         val userId = currentQuestionPlayer.players( i )
@@ -437,7 +438,7 @@ class GameManager( gameUserHistoryRepositoryService: GameUserHistoryRepositorySe
       // LOGIN OR SYNCHRO
       //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
       if( gameState == InGame ){
-        if(currentQuestionIndex == game.nbQuestions - 1) endGame()
+        if(currentQuestionIndex == game.questions.size ) endGame()
         else replyQuestion()
       }
 

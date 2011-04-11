@@ -46,7 +46,8 @@ class Main extends Logging {
     // Host/port conf is in akka.conf
     services = new ServerServices
     services.launch
-    
+
+    // TODO: if remote host is same a current host then should use local service instead
     val remoteService = new ClientServices( servicesHost, servicesPort )
     webServer = new WebServer( webPort, remoteService, webAuthenticationKey )
     webServer.start

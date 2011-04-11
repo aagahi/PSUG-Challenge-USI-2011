@@ -78,12 +78,12 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
   }
 
 
-  def expectedScoreSlice(user: User, sliceRange: Range = -10 to 10, topSize:Int = 100 ): RankingVO = {
+  def expectedScoreSlice(user: User, sliceRange: Range = -5 to 5, topSize:Int = 100 ): RankingVO = {
     val userScore = sortedScores.find( _.user == user ).get
 
     val indexOfUser: Int = sortedScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
-    val end = if (sortedScores.size < indexOfUser + sliceRange.end) sortedScores.size else indexOfUser + sliceRange.end
+    val end = if (sortedScores.size < indexOfUser + sliceRange.end+1) sortedScores.size else indexOfUser + sliceRange.end+1
     val before = ListScoresVO(sortedScores.slice(begin, indexOfUser))
     val after = ListScoresVO(sortedScores.slice(indexOfUser + 1, end))
     RankingVO(userScore.score, ListScoresVO(sortedScores.take(topSize)) , before, after)
@@ -153,6 +153,11 @@ class GamePlayer( gameManagerService:GameManagerService, game:Game, users:List[U
       val expectedSlice = expectedScoreSlice( user )
       assert( isSorted( expectedSlice ) )
       assert( isSorted( ranking ))
+      assert( expectedSlice.before.scores.size <= 5 )
+      assert( expectedSlice.after.scores.size <= 5 )
+
+      if( expectedSlice.before.scores.size < 5 ) assert( expectedSlice.after.scores.size == 5 )
+      if( expectedSlice.after.scores.size < 5 ) assert( expectedSlice.before.scores.size == 5 )
 
       ranking.top_scores.mail.foreach{
         mail =>

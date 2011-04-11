@@ -78,6 +78,7 @@ class HttpOutput( channel:Channel ) extends Logging {
     value.foreach{
       data =>
       val str = write( data )
+      //log.debug( "Output: " + str )
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=utf-8")
       response.setContent( ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8) )
     }
@@ -123,7 +124,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
-    log.info( "Method: " + method +  " - Path:" + path.mkString(",") )
+    log.info( "Method: " + method +  " - Path:" + path.mkString("/") )
 
 
     ( method, path ) match {
@@ -155,11 +156,15 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         userRepositoryService.callback( AuthenticateUser(credentials) ){
           case UserAuthenticated (Left(user)) =>
             gameManagerService.callback( Register( user ) ){
-              case RegisterSuccess => out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              case RegisterSuccess =>
+                out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
+              case _ =>
+                out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-          case UserAuthenticated (Right(message)) => out.sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
+          case UserAuthenticated (Right(message)) =>
+            out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
         }
+
 
         
       case ( HttpMethod.POST, "api"::"game"::Nil ) =>
@@ -170,7 +175,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
               gameManagerService.callback( InitGame (game) ){
-                case InitGameSuccess => log.info( "Game "+game.id+" initialized")
+                case InitGameSuccess => log.info( "Game "+data.asInstanceOf[Game].id+" initialized")
               }
               out.sendResponse( None, HttpResponseStatus.CREATED )
             case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
@@ -188,12 +193,10 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         decodeCookieAsAuthenticationToken( request ) match
         {
           case Some( AuthenticationToken( userId, mail ) ) =>
-            log.info("Get Q " + questionIndex )
             // api assume question starts at 1 but gamemanager starts at 0
             try {
               gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
                 case QuestionResponse( question, score ) =>
-                  log.info("Reply Q " + questionIndex )
                   out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
                 case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
               }
@@ -218,7 +221,8 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
             // api assume question & anwser starts at 1 but gamemanager starts at 0
             try {
               gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer-1 ) ){
-                case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
+                case UserAnswerResponse( answerStatus, correctAnwser, score ) =>
+                  out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.CREATED )
                 case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
               }
             } catch {
@@ -231,7 +235,20 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
             out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
+      case ( HttpMethod.GET, "api"::"ranking"::Nil ) =>
+        decodeCookieAsAuthenticationToken( request ) match
+        {
+          case Some( AuthenticationToken( userId, mail ) ) =>
+            gameManagerService.callback( QueryScoreSlice (userId) ){
+              case ScoreSlice(ranking) => out.sendResponse( Some( ranking ), HttpResponseStatus.OK )
+              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
 
+
+
+        
       // TODO: refactor / factorize audit code + load last game created for game repo in case of jvm restart
 
 

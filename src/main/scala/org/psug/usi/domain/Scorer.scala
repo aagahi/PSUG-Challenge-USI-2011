@@ -70,7 +70,7 @@ case class ScorerAnwserValue(user: User, answerValue: Int)
 
 // 0 mean wrong answer
 
-class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: Int = 100) {
+class Scorer(val numUsers: Int, val sliceRange: Range = -5 to 5, val topSize: Int = 100) {
 
   var sortedUserScores = new TreeSet[UserScore]
   val userIdScoresMap = new HashMap[Int, UserScore]
@@ -109,7 +109,7 @@ class Scorer(val numUsers: Int, val sliceRange: Range = -10 to 10, val topSize: 
     val userScore = userIdScoresMap(user.id)
     val indexOfUser: Int = arrayOfScores.indexOf(userScore)
     val begin = if (indexOfUser + sliceRange.start < 0) 0 else (indexOfUser + sliceRange.start)
-    val end = if (numUsers < indexOfUser + sliceRange.end) numUsers else indexOfUser + sliceRange.end
+    val end = if (numUsers < indexOfUser + sliceRange.end+1) numUsers else indexOfUser + sliceRange.end +1
     val before = ListScoresVO(arrayOfScores.slice(begin, indexOfUser))
     val after = ListScoresVO(arrayOfScores.slice(indexOfUser + 1, end))
     RankingVO(userScore.score, topPlayers, before, after)

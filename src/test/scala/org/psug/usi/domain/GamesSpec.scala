@@ -41,7 +41,7 @@ class GamesSpec extends SpecificationWithJUnit {
         question.answers.zipWithIndex.foreach{
           case( answer, answserIndex ) =>
           answer.anwser must be_==( "A"+(questionIndex+1)+(answserIndex+1) )
-          answer.status must be_==( questionIndex % 4 == answserIndex )  
+          answer.status must be_==( (questionIndex % 4) == answserIndex )
         }
       }
 
