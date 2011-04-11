@@ -50,47 +50,53 @@
 	    };
 
 	    $("#user_form") .submit(function (event){
-            event.preventDefault();
+                event.preventDefault();
+                $result_panel.removeClass("error")
+                $result_panel.removeClass("success")
             
-            var data=$("#user_form").serializeJSON();
-            var validate=function(key, value){
-                input_class= (value.length<=2?"error":"");
-                $("#"+key).attr("class", input_class);
-            };
-            $.each(data, validate);
-            if ($("input.error").length) {
-                $result_panel.addClass("error");
-                $result_panel.html("Plusieurs champs sont en erreur.");
-                $result_panel.show();
+                var data=$("#user_form").serializeJSON();
+                var validate=function(key, value){
+                    input_class= (value!=null && value.length>=2 && value.length<=50?"":"error");
+                    if (input_class==="" && key==="mail") {
+                        input_class=(validateEmail(value)?"":"error");
+                    }
+                    $("#"+key).attr("class", input_class);
+                };
+                $.each(data, validate);
+                
+                if ($("input.error").length) {
+                    $result_panel.addClass("error");
+                    $result_panel.html("Certains des champs sont en erreur. Chaque champ être renseigné et contenir une valeur d'une logueur entre 2 et 50 caractères.");
+                    $result_panel.show();
+                    return false;
+                }
+                $result_panel.html("");
+                var success=function(result, status, jqXHR){
+                    $result_panel.show();
+                    $result_panel.addClass("success")
+                    usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
+                    if(jqXHR.status===201) {
+                        $result_panel.html("L'utilisateur a bien été créé");
+                    } else  {
+                        $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
+                    }
+                    $("#new_user").show();
+                    $("#submit").hide();
+                };
+                var error=function (jqXHR, textStatus, errorThrown) {
+                    usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
+                    $result_panel.show();
+                    $result_panel.addClass("error")
+                    if(jqXHR.status===400) {
+                        $result_panel.html("Un utilisateur existe déjà correspondant à cet email");
+                        $("#mail").addClass("error");
+                    } else {
+                        $result_panel.html("Etat inconnu lors de la création d'un utilisateur.<br />Message : "+textStatus+" : "+errorThrown+"<br />"+"Status: "+ jqXHR.status +"");
+                        var st=jqXHR.serializeJSON();
+                    }
+                };
+                $.post('/api/user', JSON.stringify(data), success, "json").error(error);
                 return false;
-            }
-            $result_panel.removeClass("error");
-            $result_panel.html("");
-            var success=function(result, status, jqXHR){
-                $result_panel.show();
-                $result_panel.addClass("success")
-                usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
-                if(jqXHR.status===201) {
-                    $result_panel.html("L'utilisateur a bien été créé");
-                } else  {
-                    $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 201 ni 400)");
-                }
-                $("#new_user").show();
-                $("#submit").hide();
-            };
-            var error=function (jqXHR, textStatus, errorThrown) {
-                usi_log("Resultat de la requête ajax:" + JSON.stringify(jqXHR));
-                $result_panel.show();
-                $result_panel.addClass("error")
-                if(jqXHR.status===400) {
-                    $result_panel.html("Un utilisateur existe déjà correspondant à ces données");
-                } else {
-                    $result_panel.html("Etat inconnu lors de la création d'un utilisateur.<br />Message : "+textStatus+" : "+errorThrown+"<br />"+"Status: "+ jqXHR.status +"");
-                    var st=jqXHR.serializeJSON();
-                }
-            };
-            $.post('/api/user', JSON.stringify(data), success, "json").error(error);
-            return false;
             });
             $("#new_user").click(function (){
                 var cleanField=function(){

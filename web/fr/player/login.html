@@ -20,10 +20,10 @@
 
     <form id="auth_form">
         <label for="mail">Mail</label>
-        <input type="email" name="mail" required="required" t>
+        <input type="email" name="mail" required="required" />
         <br />
         <label for="password">Mot de passe</label>
-        <input type="password" name="password">
+        <input type="password" name="password" required="required" />
         <br />
         <input type="submit" name="submit" value="submit" />
     </form>
@@ -35,7 +35,6 @@
 	    var usi_log=function(msg){
 		$dbg.html($dbg.html()+result);
 	    };
-
 	    $("#auth_form").submit(function (event){
 		event.preventDefault();
 		var datas=$("#auth_form").serializeJSON();
