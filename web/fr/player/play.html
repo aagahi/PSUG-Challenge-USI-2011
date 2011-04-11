@@ -2,57 +2,124 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Bonne chance!</title>
-    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
-    <script type="text/javascript" src="../js/json2.js" ></script>
-    <script type="text/javascript" src="../js/psug.js" ></script>
+    <title>Création d'un utilisateur</title>
+    <link rel="stylesheet" href="../css/reset.css" type="text/css" />
+    <link rel="stylesheet" href="../css/style.css" type="text/css" />
+        <style type="text/css">
+            .answer_recap li { float: left ; width:5em ; padding-left:1em; font-size:1.2em;}
+            .answer_recap li .answer_true  { color:#0F0 ; }
+            .answer_recap li .answer_false { color:#0F0 ; text-decoration:line-through; }
+        </style>
     <script type="text/javascript">
-// TODO v�rifier le cookie
+        // TODO vérifier le cookie
     </script>
 </head>
 <body>
-    <form id="auth_form">
-        <h3>Authentification</h3>
-        <label for="mail">Mail</label>
-        <input name="mail">
-        <br />
-        <label for="password">Mot de passe</label>
-        <input type="password" name="password">
-        <br />
-    </form>
-    <div id="result_panel"></div>
-    <script type="text/javascript">
-	$(document).ready(function (){
-	    var $dbg=$("#usi_debug");
-	    var usi_log=function(msg){
-		$dbg.html($dbg.html()+result);
-	    };
+<div id="usi_debug"></div>
+<div id="page">
+    <div id="header">
+        <h3 class="waiting_to_begin">Nous attendons les autres joueurs</h3>
+        <h3 class="play none">Jouez!</h3>
+    </div>
+    <div id="content">
+        <div id="result_panel"></div>
+        <div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
+        <div class="play none">
+            <ul class="answer_recap">
+                <li id="score_container">Score: <span id="score"></span></li>
+            </ul>
+            <div id="good_answer_container">Bonne réponse : <span id="good_answer"></span></div>
+        </div>
+        <div class="play none">
+            <form action="play.html">
+                <h4>Question no <span id="question_nb"></span></h4>
+                <p>
+                    <strong><span id="question"></span></strong>
+                    <ul id="answers"></ul>
+                </p>
+            </form>
+        </div>
 
-	    $("#auth_form").submit(function (event){
-		event.preventDefault();
-		var datas=$("#auth_form").serializeJSON();
-		console.log(JSON.stringify(datas));
-		var success=function(result, status, jqXHR){
-		    usi_log("Resultat de la requ�te ajax:"+result);
-		    if(status==="200") {
-			$("#result_panel").html("L'utilisateur a bien �t� cr��");
-		    } else if(status==="404") {
-			$("#result_panel").html("L'identification a �chou�. Veuillez recommencer.");
-		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la cr�ation d'un utilisateur (ni 200 ni 404)");
-		    }
-		};
-		var error=function () { alert ("erreur...")};
-		$.post('/api/user', JSON.stringify(datas), success, "json").error(error);
-		return false;
-	    });
-	    $("#auth").click(function (){
-		$("form input[type='text']").each (function(){ this.attr("value", ""); });
-		$("form input[type='password']").each (function(){ this.attr("value", ""); });
-		$("#new_user_panel").hide();
-		$("#firstname").focus();
-	    });
-	});
-    </script>
-    </body>
+        <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
+        <script type="text/javascript" src="../js/json2.js" ></script>
+        <script type="text/javascript" src="../js/psug.js" ></script>
+        <script type="text/javascript" src="../js/mustache.js" ></script>
+        <script type="text/javascript">
+            $(document).ready(function (){
+                var show_this=function(){ $(this).removeClass("none"); };
+                var hide_this=function(){ $(this).addClass("none"); };
+
+                var $question_nb=$("#question_nb");
+                var $question=$("#question");
+                var $answers=$("#answers");
+
+                var question=function(result, status, jqXHR){
+                    if (question_nb===1) {
+                        $(".play").each (  show_this ) ;
+                        $(".waiting_to_begin").each ( hide_this ) ;
+                    }
+                    $question.html(result["question"]);
+                    $question_nb.html(question_nb);
+                    $answers.html("");
+
+                    var answer_index=1;
+                    while (result["answer_"+answer_index]!=null && result["answer_"+answer_index]!="") {
+                        var ans=result["answer_"+answer_index];
+                        var resp_link='<li><a href="#" class="possible_answer" id="answer_"'+answer_index+'">'+ans+'</a></li>'
+                        $answers.append(resp_link);
+                        answer_index++;
+                    }
+
+                    var question_answered=function(answered, status, jqXHR){
+                        usi_log("Resultat de la requête ajax:"+result);
+                        if(jqXHR.status===201) {
+			    var are_u_right=toString(answered["are_u_right"]);
+                            var result_class="answer_"+are_u_right;
+                            var result_li=are_u_right==="true"?"Bravo!":"Désolé";
+                            var good_answer="answer_"+answered["good_answer"];
+                            $("#good_answer").html(good_answer);
+                            $("#score").html(toString(answered["score"]));
+                            $("#score_container").append('<li class="'+result_class+'">'+good_answer+'</li>');
+			    question_nb++ ;
+			    get_question();
+
+                        } else if (jqXHR.status===400) {
+                            $result_panel.html('une erreur est intervenu avec votre dernière réponse. Veuillez recommencer.');
+                            $result_panel.addClass("error");
+			    question_nb++ ;
+			    get_question();
+                        } else if(jqXHR.status===401) {
+                            $result_panel.html('Votre session n'a pas été reconnue. Veuillez recommencer.');
+                            $result_panel.addClass("error");
+			    question_nb++ ;
+			    get_question();
+                        } else  {
+                            $result_panel.html("Etat inconnu lors de l'enregistrement des réponses au quizz");
+                            $result_panel.addClass("error");
+			    question_nb++ ;
+			    get_question();
+                        }
+                    }});
+
+                    $("#answers .possible_answer").bind("click", function (e) {
+                        var d=["answer":result[$(e).id] ];
+                        var data=d.serializeJSON();
+                        $.post("/api/answer/"+question_nb, JSON.stringify(data), question_answered, "json").error(error);
+                    });
+                };
+                var error=function (jqXHR, textStatus, errorThrown) {
+                    alert("Erreur lors de la récupération de la question "+ question_nb +"\nStatus="+jqXHR.status)
+                };
+                var get_question=function () {
+                    // $.get('/api/question/'+question_nb).success(question).error(error);
+                    $.get('/web/mock/question_'+question_nb+".json").success(question).error(error);
+                 };
+
+                // Let's start
+                var question_nb=1;
+                get_question();
+
+            });
+        </script>
+</body>
 </html>

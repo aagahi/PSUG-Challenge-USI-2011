@@ -34,6 +34,7 @@ class HttpOutput( channel:Channel ) extends Logging {
       case "css" => "text/css"
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
+      case "json" => "application/json"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
         "application/binary"

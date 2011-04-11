@@ -65,10 +65,10 @@
 		var success=function(result, status, jqXHR){
 		    usi_log("Resultat de la requête ajax:"+result);
 		    if(jqXHR.status===200) {
-    		    $result_panel.html('<a id="linkto_game" href="game.html">Bienvenue sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="game.html">Vous pouvez maintenant commencer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+    		    $result_panel.html('<a id="linkto_game" href="play.html">Bienvenue sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="play.html">Vous pouvez maintenant commencer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
                 $result_panel.addClass("success");
 		    } else if(jqXHR.status===400) {
-    		    $result_panel.html('<a id="linkto_game" href="game.html">De retour sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="game.html">Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+    		    $result_panel.html('<a id="linkto_game" href="play.html">De retour sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="play.html">Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
                 $result_panel.addClass("success");
 		    } else  {
                 $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
@@ -77,11 +77,10 @@
 		};
         var error=function (jqXHR, textStatus, errorThrown) {
             if(jqXHR.status===400) {
-                $result_panel.html('<a id="linkto_game" href="game.html">De retour sur le Quizz de la mort qui tue.<br />Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
+                $result_panel.html('<a id="linkto_game" href="play.html">De retour sur le Quizz de la mort qui tue.<br />Vous pouvez continuer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
                 $result_panel.addClass("success");
             } else if(jqXHR.status===401) {
                 $result_panel.html("L'identification a échoué. Veuillez recommencer.");
-                $result_panel.addClass("error");
                 $result_panel.addClass("error");
             } else  {
                 $result_panel.html("Etat inconnu lors de la création d'un utilisateur (ni 200 ni 404)");
