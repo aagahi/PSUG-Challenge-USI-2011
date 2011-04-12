@@ -30,13 +30,18 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
   min-height:400px;
   padding:1em  1.5em;
 }
+/* DEBUG 
+A PASSER EN display:none avant la prod
+*/
 #usi_debug 
 { 
-  display:none;
+  display:inherit;
 
   width:500px; height:12em; overflow:auto; border:1px dotted #c00;
   position:absolute; top:3em; right: 350px; 
 }
+#cheat_button { display:inherit;} /* TODO A mettre en display none :) */
+
 #result_panel 
 { 
   font-weight:bold ; border: 1px solid; margin-bottom:1em; padding: 0.5em 20px;
