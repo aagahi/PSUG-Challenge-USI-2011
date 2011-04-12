@@ -30,10 +30,24 @@ object Main {
     val servicesHost = properties.getProperty("services.host")
     val webAuthenticationKey = properties.getProperty("web.authentication.key")
 
+    
+    val currentHost = InetAddress.getLocalHost().getHostName()
+
+    if( currentHost == servicesHost ){
+      // setup http proxy (for twitter client)
+      val proxyHost = properties.getProperty("http.proxy.host")
+      if( proxyHost != null ){
+        System.setProperty("java.net.useSystemProxies", "true");
+        System.setProperty("http.proxyHost", proxyHost )
+        val proxyPort = properties.getProperty("http.proxy.port")
+        if( proxyPort != null ) System.setProperty("http.proxyPort", proxyPort )
+      }
+    }
+    
     val main = new Main
     Runtime.getRuntime().addShutdownHook(new ShutdownHook(main))
 
-    main.start( servicesHost, webPort, servicesPort, webAuthenticationKey )
+    main.start( currentHost, servicesHost, webPort, servicesPort, webAuthenticationKey )
 
    
   }
@@ -52,15 +66,13 @@ class Main extends Logging {
   var services:ServerServices = null
   var webServer:WebServer = null
 
-  def start( servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
+  def start( currentHost:String, servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
     // Host/port conf is in akka.conf
     services = new ServerServices
     services.launch
 
-    val addr = InetAddress.getLocalHost()
-    val hostname = addr.getHostName()
     // if we are on local service host do not use remoting
-    webServer = if( hostname == servicesHost ){
+    webServer = if( currentHost == servicesHost ){
       new WebServer( webPort, services, webAuthenticationKey )
     }
     else{
@@ -69,7 +81,7 @@ class Main extends Logging {
     }
 
     webServer.start
-    log.info("Started PSUG USI2011 Challenge Server on "+hostname+" web port: " + webPort + " service port:" + servicesPort )
+    log.info("Started PSUG USI2011 Challenge Server on "+currentHost+" web port: " + webPort + " service port:" + servicesPort )
 
 
   }

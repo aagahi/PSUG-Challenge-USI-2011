@@ -5,8 +5,10 @@ import collection.mutable.HashMap
 import akka.util.Logging
 import org.psug.usi.akka.Receiver
 import java.util.concurrent.TimeUnit
-import akka.actor.{Channel, Scheduler}
 import org.psug.usi.store._
+import org.psug.usi.twitter.Twitter
+import akka.actor.{Actor, Channel, Scheduler}
+import java.util.Properties
 
 /**
  * User: alag
@@ -428,12 +430,25 @@ class GameManager( services:Services,
           }
         }
         gameState = EndGame
+
+        tweetEndGame()
+
         scorer.save( game.id )
+
       case _ =>
         log.error("Game "+game.id+" already ended" )
     }
   }
 
+
+  private def tweetEndGame(){
+    Actor.spawn{
+      val properties = new Properties()
+      properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
+      if( properties.getProperty("endgame.twitter.enabled").toBoolean )
+        Twitter.update("Notre application supporte "+game.nbUsersThreshold+" joueurs #challengeUSI2011")
+    }
+  }
 
   /**
    * Handle a timeout:

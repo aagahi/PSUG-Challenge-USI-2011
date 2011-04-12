@@ -8,7 +8,7 @@ class TwitterSpec extends SpecificationWithJUnit {
 
     "post a message on twitter and destroy it (if it can connect)" in {
       try {
-        val Some(id) = update("Hello World")
+        val Some(id) = update("Notre application supporte 100000 joueurs #challengeUSI2011")
         id must be_!=(0)
         destroy(id)
       } catch {

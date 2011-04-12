@@ -72,7 +72,7 @@
     <dependency>
       <groupId>org.scribe</groupId>
       <artifactId>scribe</artifactId>
-      <version>1.0.6</version>
+      <version>1.1.2</version>
     </dependency>
 
 
