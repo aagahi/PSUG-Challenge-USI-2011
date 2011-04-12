@@ -1,28 +1,729 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8" />
     <title>Création d'un jeu</title>
-    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
-    <script type="text/javascript" src="../js/json2.js" ></script>
+    <link rel="stylesheet" href="../css/reset.css" type="text/css" />
+    <link rel="stylesheet" href="../css/style.css" type="text/css" />
+    <link rel="stylesheet" href="../css/cupertino/jquery-ui-1.8.11.custom.css" type="text/css" />
+    <style type="text/css">
+    #game_form label { display: inline; width: inherit; }
+    #game_form strong { font-weight: bold; }
+    #game_form p { margin-bottom: 1em; }
+
+	#game_form label.error { float: none; color: red; padding-left: .5em; vertical-align: top; }
+	#game_form p { clear: both; }
+	#game_form select {padding-left: 3em;}
+	#game_form input[type='submit'] {margin-top:1.5em;}
+	#game_form #questions_tabs li a {padding:0.4em 0.55em;}
+	#game_form #questions_tabs input { width:74%;}
+    </style>
 </head>
 <body>
-    <input type="button" id="create_question">
-    <label for="nb_questions">Nombre de questions</label>
-    <input name="nb_questions" id="nb_questions">
-    <br/>
-    <label for="nb_answers">Nombre de réponses par questions</label>
-    <input name="nb_answers" id="nb_answers">
-    <br/>
-    <label for="time">Temps pour répondre à une question (en secondes)</label>
-    <input name="time" id="time">
-    <br/>
-    <label for="threashold">Seuil de déclenchement (en nombre de joueurs)</label>
-    <input name="threashold" id="threashold">
-    <br/>
+	<div id="page">
+		<div id="header">
+			Jury? Créez un Jeu!
+		</div>
+		<div id="content">
+<!-- 
+# logintimeout : durée maximale du long polling (GET /api/question/1) en secondes. Au bout de cette durée, le serveur répond à toutes les requêtes en attente, si il ne l'a pas déjà fait. Voir la page de séquences.
+# synchrotime : durée entre la fin de la période de réponse pour une question N (POST /api/answer/N) et le retour synchrone des appels à une question N+1 (GET /api/question/N+1) en secondes. Voir la page de séquences.
+# nbusersthreshold : le nombre d'utilisateurs qui doit être atteint pour que la partie commence.
+# questiontimeframe : à partir du moment où le serveur répond aux requêtes question, les utilisateurs ont un temps maximum pour répondre à la question. Ce paramètre indique cette durée en secondes. Voir la page de séquences.
+# nbquestions : le nombre de questions à jouer. Doit être inférieur ou égal au nombre de questions présentes dans le fichier (élement &lt;usi:questions&gt;). Ce paramètre est considéré comme inutile. Nous jouerons toujours 20 questions.
+# flushusertable : un booleen indiquant si toutes les données utilisateurs (liste des utilisateurs, scores et historiques) doivent être supprimées.
+-->
+			<form action="create_game.html" id="game_form" name="game_form">
+				<p>
+					<label for="logintimeout">
+						<strong>Durée maximale du long polling</strong>  (GET /api/question/1) en secondes.
+						<br />Au bout de cette durée, le serveur répond à toutes les requêtes en attente, 
+						si il ne l'a pas déjà fait.
+						<br /><a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
+						</label><br />
+					<input type="text" name="logintimeout" id="logintimeout" class="required digits min:0" />
+				</p>
 
+				<p>
+					<label for="synchrotime">
+						<strong>Durée entre la fin de la période de réponse</strong> 
+							pour une question N (POST /api/answer/N) 
+							et le retour synchrone des appels à une question N+1 (GET /api/question/N+1) en secondes.
+							<a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
+					</label><br />
+					<input type="text" name="synchrotime" id="synchrotime" class="required digits min:0" />
+				</p>
+
+				<p>
+					<label for="nbusersthreshold">
+						<strong>Le nombre d'utilisateurs</strong>  qui doit être atteint pour que la partie commence.</label><br />
+					<input type="text" name="nbusersthreshold" id="nbusersthreshold" class="required digits min:0" />
+				</p>
+
+				<p>
+					<label for="questiontimeframe">
+						<strong>Temps maximum pour répondre à la question</strong>
+						<br />
+						&Agrave; partir du moment où le serveur répond aux requêtes question, 
+							les utilisateurs ont un temps maximum pour répondre à la question. 
+						<br />Ce paramètre indique cette durée en secondes.
+						<a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
+					</label><br />
+					<input type="text" name="questiontimeframe" id="questiontimeframe" class="required digits min:0" />
+				</p>
+
+				<p>
+					<label for="nbquestions"><strong>Le nombre de questions à jouer.</strong> 
+					<br />Doit être inférieur ou égal au nombre de questions présentes dans le fichier (élement &lt;usi:questions&gt;). 
+						Ce paramètre est considéré comme inutile. Nous jouerons toujours 20 questions.
+					</label><br />
+					<input name="nbquestions" id="nbquestions" type="text" value="20" readonly="readonly" onfocus="this.blur()" />
+				</p>
+
+				<p>
+					<div>
+						<strong>Suppression des données utilisateur.</strong> 
+						<br />Un booleen indiquant si toutes les données utilisateurs 
+							(liste des utilisateurs, scores et historiques) doivent être supprimées.
+					</div>
+					<select name="flushusertable" id="flushusertable" class="required"/>
+						<option></option>
+						<option value="true">Oui</option>
+						<option value="false">Non</option>
+						</select>
+				</p>
+				<div id="questions_tabs">
+					<ul>
+						<li><a href="#question_1">1</a></li>
+						<li><a href="#question_2">2</a></li>
+						<li><a href="#question_3">3</a></li>
+						<li><a href="#question_4">4</a></li>
+						<li><a href="#question_5">5</a></li>
+						<li><a href="#question_6">6</a></li>
+						<li><a href="#question_7">7</a></li>
+						<li><a href="#question_8">8</a></li>
+						<li><a href="#question_9">9</a></li>
+						<li><a href="#question_10">10</a></li>
+						<li><a href="#question_11">11</a></li>
+						<li><a href="#question_12">12</a></li>
+						<li><a href="#question_13">13</a></li>
+						<li><a href="#question_14">14</a></li>
+						<li><a href="#question_15">15</a></li>
+						<li><a href="#question_16">16</a></li>
+						<li><a href="#question_17">17</a></li>
+						<li><a href="#question_18">18</a></li>
+						<li><a href="#question_19">19</a></li>
+						<li><a href="#question_20">20</a></li>
+					</ul>
+					
+					<div id="question_1">
+							<label for="question_1_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_1_question" id="question_1_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_1_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_1_answer_1" id="question_1_answer_1" value="" class="required" />
+							<br />
+							<label for="question_1_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_1_answer_2" id="question_1_answer_2" value="" class="required" />
+							<br />
+							<label for="question_1_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_1_answer_3" id="question_1_answer_3" value="" class="required" />
+							<br />
+							<label for="question_1_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_1_answer_4" id="question_1_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_2">
+							<label for="question_2_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_2_question" id="question_2_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_2_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_2_answer_1" id="question_2_answer_1" value="" class="required" />
+							<br />
+							<label for="question_2_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_2_answer_2" id="question_2_answer_2" value="" class="required" />
+							<br />
+							<label for="question_2_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_2_answer_3" id="question_2_answer_3" value="" class="required" />
+							<br />
+							<label for="question_2_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_2_answer_4" id="question_2_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_3">
+							<label for="question_3_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_3_question" id="question_3_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_3_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_3_answer_1" id="question_3_answer_1" value="" class="required" />
+							<br />
+							<label for="question_3_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_3_answer_2" id="question_3_answer_2" value="" class="required" />
+							<br />
+							<label for="question_3_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_3_answer_3" id="question_3_answer_3" value="" class="required" />
+							<br />
+							<label for="question_3_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_3_answer_4" id="question_3_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_4">
+							<label for="question_4_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_4_question" id="question_4_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_4_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_4_answer_1" id="question_4_answer_1" value="" class="required" />
+							<br />
+							<label for="question_4_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_4_answer_2" id="question_4_answer_2" value="" class="required" />
+							<br />
+							<label for="question_4_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_4_answer_3" id="question_4_answer_3" value="" class="required" />
+							<br />
+							<label for="question_4_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_4_answer_4" id="question_4_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_5">
+							<label for="question_5_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_5_question" id="question_5_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_5_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_5_answer_1" id="question_5_answer_1" value="" class="required" />
+							<br />
+							<label for="question_5_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_5_answer_2" id="question_5_answer_2" value="" class="required" />
+							<br />
+							<label for="question_5_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_5_answer_3" id="question_5_answer_3" value="" class="required" />
+							<br />
+							<label for="question_5_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_5_answer_4" id="question_5_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_6">
+							<label for="question_6_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_6_question" id="question_6_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_6_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_6_answer_1" id="question_6_answer_1" value="" class="required" />
+							<br />
+							<label for="question_6_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_6_answer_2" id="question_6_answer_2" value="" class="required" />
+							<br />
+							<label for="question_6_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_6_answer_3" id="question_6_answer_3" value="" class="required" />
+							<br />
+							<label for="question_6_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_6_answer_4" id="question_6_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_7">
+							<label for="question_7_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_7_question" id="question_7_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_7_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_7_answer_1" id="question_7_answer_1" value="" class="required" />
+							<br />
+							<label for="question_7_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_7_answer_2" id="question_7_answer_2" value="" class="required" />
+							<br />
+							<label for="question_7_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_7_answer_3" id="question_7_answer_3" value="" class="required" />
+							<br />
+							<label for="question_7_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_7_answer_4" id="question_7_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_8">
+							<label for="question_8_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_8_question" id="question_8_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_8_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_8_answer_1" id="question_8_answer_1" value="" class="required" />
+							<br />
+							<label for="question_8_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_8_answer_2" id="question_8_answer_2" value="" class="required" />
+							<br />
+							<label for="question_8_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_8_answer_3" id="question_8_answer_3" value="" class="required" />
+							<br />
+							<label for="question_8_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_8_answer_4" id="question_8_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_9">
+							<label for="question_9_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_9_question" id="question_9_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_9_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_9_answer_1" id="question_9_answer_1" value="" class="required" />
+							<br />
+							<label for="question_9_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_9_answer_2" id="question_9_answer_2" value="" class="required" />
+							<br />
+							<label for="question_9_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_9_answer_3" id="question_9_answer_3" value="" class="required" />
+							<br />
+							<label for="question_9_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_9_answer_4" id="question_9_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_10">
+							<label for="question_10_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_10_question" id="question_10_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_10_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_10_answer_1" id="question_10_answer_1" value="" class="required" />
+							<br />
+							<label for="question_10_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_10_answer_2" id="question_10_answer_2" value="" class="required" />
+							<br />
+							<label for="question_10_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_10_answer_3" id="question_10_answer_3" value="" class="required" />
+							<br />
+							<label for="question_10_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_10_answer_4" id="question_10_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_11">
+							<label for="question_11_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_11_question" id="question_11_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_11_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_11_answer_1" id="question_11_answer_1" value="" class="required" />
+							<br />
+							<label for="question_11_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_11_answer_2" id="question_11_answer_2" value="" class="required" />
+							<br />
+							<label for="question_11_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_11_answer_3" id="question_11_answer_3" value="" class="required" />
+							<br />
+							<label for="question_11_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_11_answer_4" id="question_11_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_12">
+							<label for="question_12_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_12_question" id="question_12_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_12_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_12_answer_1" id="question_12_answer_1" value="" class="required" />
+							<br />
+							<label for="question_12_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_12_answer_2" id="question_12_answer_2" value="" class="required" />
+							<br />
+							<label for="question_12_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_12_answer_3" id="question_12_answer_3" value="" class="required" />
+							<br />
+							<label for="question_12_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_12_answer_4" id="question_12_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_13">
+							<label for="question_13_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_13_question" id="question_13_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_13_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_13_answer_1" id="question_13_answer_1" value="" class="required" />
+							<br />
+							<label for="question_13_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_13_answer_2" id="question_13_answer_2" value="" class="required" />
+							<br />
+							<label for="question_13_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_13_answer_3" id="question_13_answer_3" value="" class="required" />
+							<br />
+							<label for="question_13_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_13_answer_4" id="question_13_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_14">
+							<label for="question_14_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_14_question" id="question_14_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_14_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_14_answer_1" id="question_14_answer_1" value="" class="required" />
+							<br />
+							<label for="question_14_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_14_answer_2" id="question_14_answer_2" value="" class="required" />
+							<br />
+							<label for="question_14_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_14_answer_3" id="question_14_answer_3" value="" class="required" />
+							<br />
+							<label for="question_14_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_14_answer_4" id="question_14_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_15">
+							<label for="question_15_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_15_question" id="question_15_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_15_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_15_answer_1" id="question_15_answer_1" value="" class="required" />
+							<br />
+							<label for="question_15_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_15_answer_2" id="question_15_answer_2" value="" class="required" />
+							<br />
+							<label for="question_15_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_15_answer_3" id="question_15_answer_3" value="" class="required" />
+							<br />
+							<label for="question_15_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_15_answer_4" id="question_15_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_16">
+							<label for="question_16_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_16_question" id="question_16_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_16_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_16_answer_1" id="question_16_answer_1" value="" class="required" />
+							<br />
+							<label for="question_16_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_16_answer_2" id="question_16_answer_2" value="" class="required" />
+							<br />
+							<label for="question_16_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_16_answer_3" id="question_16_answer_3" value="" class="required" />
+							<br />
+							<label for="question_16_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_16_answer_4" id="question_16_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_17">
+							<label for="question_17_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_17_question" id="question_17_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_17_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_17_answer_1" id="question_17_answer_1" value="" class="required" />
+							<br />
+							<label for="question_17_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_17_answer_2" id="question_17_answer_2" value="" class="required" />
+							<br />
+							<label for="question_17_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_17_answer_3" id="question_17_answer_3" value="" class="required" />
+							<br />
+							<label for="question_17_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_17_answer_4" id="question_17_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_18">
+							<label for="question_18_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_18_question" id="question_18_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_18_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_18_answer_1" id="question_18_answer_1" value="" class="required" />
+							<br />
+							<label for="question_18_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_18_answer_2" id="question_18_answer_2" value="" class="required" />
+							<br />
+							<label for="question_18_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_18_answer_3" id="question_18_answer_3" value="" class="required" />
+							<br />
+							<label for="question_18_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_18_answer_4" id="question_18_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_19">
+							<label for="question_19_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_19_question" id="question_19_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_19_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_19_answer_1" id="question_19_answer_1" value="" class="required" />
+							<br />
+							<label for="question_19_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_19_answer_2" id="question_19_answer_2" value="" class="required" />
+							<br />
+							<label for="question_19_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_19_answer_3" id="question_19_answer_3" value="" class="required" />
+							<br />
+							<label for="question_19_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_19_answer_4" id="question_19_answer_4" value="" class="required" />
+							<br />
+					</div>
+					<div id="question_20">
+							<label for="question_20_question">Libellé de la question</label>
+							<br />
+							<input type="text" name="question_20_question" id="question_20_question" value="" class="required" />
+							<br />
+							<br />
+							<label for="question_20_answer_1">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_20_answer_1" id="question_20_answer_1" value="" class="required" />
+							<br />
+							<label for="question_20_answer_2">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_20_answer_2" id="question_20_answer_2" value="" class="required" />
+							<br />
+							<label for="question_20_answer_3">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_20_answer_3" id="question_20_answer_3" value="" class="required" />
+							<br />
+							<label for="question_20_answer_4">Réponse no 1</label>
+							<br />
+							<input type="text" name="question_20_answer_4" id="question_20_answer_4" value="" class="required" />
+							<br />
+					</div>
+				</div>
+				
+					<input type="submit" name="submit" id="submit" value="Valider" />
+				</p>
+			</form>
+		</div>
+		<div id="footer"></div>
+	</div>
+    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
+    <script type="text/javascript" src="../js/json2.js" ></script>
+    <script type="text/javascript" src="../js/mustache.js" ></script>
+    <script type="text/javascript" src="../js/jquery-ui-1.8.11.custom.min.js" ></script>
+    <script type="text/javascript" src="../js/jquery.validate.min.js" ></script>
+    <script type="text/javascript" src="../js/localization/messages_fr.js" ></script>
+    <script type="text/javascript" src="../js/psug.js" ></script>
     <script type="text/javascript">
+
         $(document).ready(function (){
+        	$form=$("#game_form");
+        	$tabs=$("#questions_tabs");
+			$form.validate({ rules: {
+				question_1_question : { required: true, minlength: 2, maxlength:150 },
+				question_2_question : { required: true, minlength: 2, maxlength:150 },
+				question_3_question : { required: true, minlength: 2, maxlength:150 },
+				question_4_question: { required: true, minlength: 2, maxlength:150 },
+				question_5_question: { required: true, minlength: 2, maxlength:150 },
+				question_6_question: { required: true, minlength: 2, maxlength:150 },
+				question_7_question: { required: true, minlength: 2, maxlength:150 },
+				question_8_question: { required: true, minlength: 2, maxlength:150 },
+				question_9_question: { required: true, minlength: 2, maxlength:150 },
+				question_11_question: { required: true, minlength: 2, maxlength:150 },
+				question_12_question: { required: true, minlength: 2, maxlength:150 },
+				question_13_question: { required: true, minlength: 2, maxlength:150 },
+				question_14_question: { required: true, minlength: 2, maxlength:150 },
+				question_15_question: { required: true, minlength: 2, maxlength:150 },
+				question_16_question: { required: true, minlength: 2, maxlength:150 },
+				question_17_question: { required: true, minlength: 2, maxlength:150 },
+				question_18_question: { required: true, minlength: 2, maxlength:150 },
+				question_19_question: { required: true, minlength: 2, maxlength:150 },
+				question_20_question: { required: true, minlength: 2, maxlength:150 },
+
+				question_1_answer_1 : { required: true, minlength: 2, maxlength:150 },
+				question_2_answer_1 : { required: true, minlength: 2, maxlength:150 },
+				question_3_answer_1 : { required: true, minlength: 2, maxlength:150 },
+				question_4_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_5_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_6_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_7_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_8_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_9_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_11_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_12_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_13_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_14_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_15_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_16_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_17_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_18_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_19_answer_1: { required: true, minlength: 2, maxlength:150 },
+				question_20_answer_1: { required: true, minlength: 2, maxlength:150 },
+
+				question_1_answer_2 : { required: true, minlength: 2, maxlength:150 },
+				question_2_answer_2 : { required: true, minlength: 2, maxlength:150 },
+				question_3_answer_2 : { required: true, minlength: 2, maxlength:150 },
+				question_4_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_5_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_6_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_7_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_8_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_9_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_11_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_12_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_13_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_14_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_15_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_16_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_17_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_18_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_19_answer_2: { required: true, minlength: 2, maxlength:150 },
+				question_20_answer_2: { required: true, minlength: 2, maxlength:150 },
+
+				question_1_answer_3 : { required: true, minlength: 2, maxlength:150 },
+				question_2_answer_3 : { required: true, minlength: 2, maxlength:150 },
+				question_3_answer_3 : { required: true, minlength: 2, maxlength:150 },
+				question_4_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_5_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_6_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_7_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_8_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_9_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_11_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_12_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_13_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_14_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_15_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_16_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_17_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_18_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_19_answer_3: { required: true, minlength: 2, maxlength:150 },
+				question_20_answer_3: { required: true, minlength: 2, maxlength:150 },
+
+				question_1_answer_4 : { required: true, minlength: 2, maxlength:150 },
+				question_2_answer_4 : { required: true, minlength: 2, maxlength:150 },
+				question_3_answer_4 : { required: true, minlength: 2, maxlength:150 },
+				question_4_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_5_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_6_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_7_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_8_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_9_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_11_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_12_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_13_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_14_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_15_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_16_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_17_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_18_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_19_answer_4: { required: true, minlength: 2, maxlength:150 },
+				question_20_answer_3: { required: true, minlength: 2, maxlength:150 }
+}});
+			$tabs.tabs({
+				select: function(event, ui) {
+					var selected = $tabs.tabs('option', 'selected') +1;
+					var isValid = true ; // form validation returning true or false
+			        
+					$("#question_"+selected+" input").each(function (e) {
+						var val=$(this).val();
+						isValid=isValid && (val!="" && val.length>=2 && val.length<=150);
+					})
+			        return isValid;
+			    }
+			});
+			
+			
+			$form.submit(function (event){
+	            event.preventDefault();
+	            return false;
+	            /*
+	            $result_panel.removeClass("error");
+	            $result_panel.removeClass("success");
+				*/
+
+				var data=$form.serializeJSON();
+	            
+        	});
+		        	
         });
-    </script>
+        </script>
 </body>
 </html>

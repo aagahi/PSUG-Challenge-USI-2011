@@ -35,24 +35,28 @@
             <input type="button" id="new_user" value="Créer un nouvel utilisateur" />
         </form>
 	</div>
-    </div>
+	<div id="footer" class="small">
+		  <strong>Vous êtes jury? C'est par ici pour</strong>
+		  <a href="../jury/create_user.html">créer un utilisateur</a>
+		  ou <a href="../jury/create_game.html">créer une nouvelle partie</a>
+		  <br />
+		  <strong>Vous êtes un joueur ? </strong>
+		  <a href="../player/login.html">Authentifiez vous</a>
+		  ou <a href="../player/play.html">rejoignez la partie</a>
+	</div>
+	</div>
     <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
     <script type="text/javascript" src="../js/json2.js" ></script>
     <script type="text/javascript" src="../js/psug.js" ></script>
     <script type="text/javascript">
 	$(document).ready(function (){
-            var $result_panel=$("#result_panel");
-            $result_panel.hide();
-            $("#new_user").hide();
-	    var usi_log=function(msg){
-                var $dbg=$("#usi_debug");
-    		$dbg.append(msg);
-	    };
-
-	    $("#user_form") .submit(function (event){
+        var $result_panel=$("#result_panel");
+        $result_panel.hide();
+        $("#new_user").hide();
+		$("#user_form") .submit(function (event){
                 event.preventDefault();
-                $result_panel.removeClass("error")
-                $result_panel.removeClass("success")
+                $result_panel.removeClass("error");
+                $result_panel.removeClass("success");
             
                 var data=$("#user_form").serializeJSON();
                 var validate=function(key, value){
