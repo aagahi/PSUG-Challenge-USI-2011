@@ -10,13 +10,20 @@
     #game_form label { display: inline; width: inherit; }
     #game_form strong { font-weight: bold; }
     #game_form p { margin-bottom: 1em; }
-
-	#game_form label.error { float: none; color: red; padding-left: .5em; vertical-align: top; }
+	#game_form #authentication_key { width:40em; }
+	#game_form label.error { float: right; color: red; padding-left: .5em; vertical-align: top; }
+	#game_form input.error { border-color: red;  }
+	#game_form input[type='radio'].error { background-color: red;  }
 	#game_form p { clear: both; }
 	#game_form select {padding-left: 3em;}
 	#game_form input[type='submit'] {margin-top:1.5em;}
+	#game_form h3 { margin: 1em 0 0.7em 0 };
+	
+    #game_form #questions_tabs label { padding-left: 2em; }
+	#game_form #questions_tabs div input.question { margin-left: 1.7em; }
 	#game_form #questions_tabs li a {padding:0.4em 0.55em;}
 	#game_form #questions_tabs input { width:74%;}
+	
     </style>
 </head>
 <body>
@@ -32,554 +39,568 @@
 # questiontimeframe : à partir du moment où le serveur répond aux requêtes question, les utilisateurs ont un temps maximum pour répondre à la question. Ce paramètre indique cette durée en secondes. Voir la page de séquences.
 # nbquestions : le nombre de questions à jouer. Doit être inférieur ou égal au nombre de questions présentes dans le fichier (élement &lt;usi:questions&gt;). Ce paramètre est considéré comme inutile. Nous jouerons toujours 20 questions.
 # flushusertable : un booleen indiquant si toutes les données utilisateurs (liste des utilisateurs, scores et historiques) doivent être supprimées.
+# trackeduseridmail : ne pas tenir compte de ce paramètre.
 -->
+			<div id="result_panel"></div>
 			<form action="create_game.html" id="game_form" name="game_form">
-				<p>
-					<label for="logintimeout">
-						<strong>Durée maximale du long polling</strong>  (GET /api/question/1) en secondes.
-						<br />Au bout de cette durée, le serveur répond à toutes les requêtes en attente, 
-						si il ne l'a pas déjà fait.
-						<br /><a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
-						</label><br />
-					<input type="text" name="logintimeout" id="logintimeout" class="required digits min:0" />
-				</p>
-
-				<p>
-					<label for="synchrotime">
-						<strong>Durée entre la fin de la période de réponse</strong> 
-							pour une question N (POST /api/answer/N) 
-							et le retour synchrone des appels à une question N+1 (GET /api/question/N+1) en secondes.
-							<a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
-					</label><br />
-					<input type="text" name="synchrotime" id="synchrotime" class="required digits min:0" />
-				</p>
-
-				<p>
-					<label for="nbusersthreshold">
-						<strong>Le nombre d'utilisateurs</strong>  qui doit être atteint pour que la partie commence.</label><br />
-					<input type="text" name="nbusersthreshold" id="nbusersthreshold" class="required digits min:0" />
-				</p>
-
-				<p>
-					<label for="questiontimeframe">
-						<strong>Temps maximum pour répondre à la question</strong>
+				<fieldset>
+					<p>
+						<label for="authentication_key"> <strong>Entrez votre clé d'authentification</strong>
 						<br />
-						&Agrave; partir du moment où le serveur répond aux requêtes question, 
-							les utilisateurs ont un temps maximum pour répondre à la question. 
-						<br />Ce paramètre indique cette durée en secondes.
-						<a target="_blank" href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir la page de séquences.</a>
-					</label><br />
-					<input type="text" name="questiontimeframe" id="questiontimeframe" class="required digits min:0" />
-				</p>
-
-				<p>
-					<label for="nbquestions"><strong>Le nombre de questions à jouer.</strong> 
-					<br />Doit être inférieur ou égal au nombre de questions présentes dans le fichier (élement &lt;usi:questions&gt;). 
-						Ce paramètre est considéré comme inutile. Nous jouerons toujours 20 questions.
-					</label><br />
-					<input name="nbquestions" id="nbquestions" type="text" value="20" readonly="readonly" onfocus="this.blur()" />
-				</p>
-
-				<p>
+						<input type="text" name="authentication_key" id="authentication_key"
+							class="required" />
+					</p>
+				</fieldset>				
+				<fieldset title="Paramètres du jeu">
+					<h3>Paramètres du jeu</h3>
+					<p>
+						<label for="logintimeout"> <strong>Durée maximale du long polling</strong> (GET
+							/api/question/1) en secondes. <br />Au bout de cette durée, le serveur répond à toutes les
+							requêtes en attente, si il ne l'a pas déjà fait. <br />
+						<a target="_blank"
+							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
+								la page de séquences.</a> </label><br /> <input type="text" name="logintimeout" id="logintimeout"
+							class="required digits min:0" />
+					</p>
+					<p>
+						<label for="synchrotime"> <strong>Durée entre la fin de la période de réponse</strong>
+							pour une question N (POST /api/answer/N) et le retour synchrone des appels à une question N+1
+							(GET /api/question/N+1) en secondes. <a target="_blank"
+							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
+								la page de séquences.</a> </label><br /> <input type="text" name="synchrotime" id="synchrotime"
+							class="required digits min:0" />
+					</p>
+					<p>
+						<label for="nbusersthreshold"> <strong>Le nombre d'utilisateurs</strong> qui doit être
+							atteint pour que la partie commence.</label><br /> <input type="text" name="nbusersthreshold"
+							id="nbusersthreshold" class="required digits min:0" />
+					</p>
+					<p>
+						<label for="questiontimeframe"> <strong>Temps maximum pour répondre à la
+								question</strong> <br /> &Agrave; partir du moment où le serveur répond aux requêtes question, les
+							utilisateurs ont un temps maximum pour répondre à la question. <br />Ce paramètre indique
+							cette durée en secondes. <a target="_blank"
+							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
+								la page de séquences.</a> </label><br /> <input type="text" name="questiontimeframe"
+							id="questiontimeframe" class="required digits min:0" />
+					</p>
+					<p>
+						<label for="nbquestions"><strong>Le nombre de questions à jouer.</strong> <br />Doit
+							être inférieur ou égal au nombre de questions présentes dans le fichier (élement
+							&lt;usi:questions&gt;). Ce paramètre est considéré comme inutile. Nous jouerons toujours 20
+							questions. </label><br /> <input name="nbquestions" id="nbquestions" type="text" value="20"
+							readonly="readonly" onfocus="this.blur()" />
+					</p>
 					<div>
-						<strong>Suppression des données utilisateur.</strong> 
-						<br />Un booleen indiquant si toutes les données utilisateurs 
-							(liste des utilisateurs, scores et historiques) doivent être supprimées.
+						<strong>Suppression des données utilisateur.</strong> <br />Un booleen indiquant si toutes
+						les données utilisateurs (liste des utilisateurs, scores et historiques) doivent être
+						supprimées.
 					</div>
-					<select name="flushusertable" id="flushusertable" class="required"/>
-						<option></option>
+					<select name="flushusertable" id="flushusertable" class="required">
+						<option value=""></option>
 						<option value="true">Oui</option>
 						<option value="false">Non</option>
-						</select>
-				</p>
+					</select> 
+					<input type="hidden" name="trackeduseridmail" value="ne pas tenir compte de ce paramètre." />
+					<br /> <br />
+				</fieldset>
+				<h3>Les questions</h3>
+				<strong>Renseignez les quatre réponses possibles et indiquez avec le bouton radio à gauche des champs
+							quel est la bonne réponse.
+				</strong>
+				<br />
+				<strong>N'oubliez pas de renseigner tous les onglets!</strong>
+				
 				<div id="questions_tabs">
 					<ul>
-						<li><a href="#question_1">1</a></li>
-						<li><a href="#question_2">2</a></li>
-						<li><a href="#question_3">3</a></li>
-						<li><a href="#question_4">4</a></li>
-						<li><a href="#question_5">5</a></li>
-						<li><a href="#question_6">6</a></li>
-						<li><a href="#question_7">7</a></li>
-						<li><a href="#question_8">8</a></li>
-						<li><a href="#question_9">9</a></li>
-						<li><a href="#question_10">10</a></li>
-						<li><a href="#question_11">11</a></li>
-						<li><a href="#question_12">12</a></li>
-						<li><a href="#question_13">13</a></li>
-						<li><a href="#question_14">14</a></li>
-						<li><a href="#question_15">15</a></li>
-						<li><a href="#question_16">16</a></li>
-						<li><a href="#question_17">17</a></li>
-						<li><a href="#question_18">18</a></li>
-						<li><a href="#question_19">19</a></li>
-						<li><a href="#question_20">20</a></li>
+						<li><a href="#question_0">1</a></li>
+						<li><a href="#question_1">2</a></li>
+						<li><a href="#question_2">3</a></li>
+						<li><a href="#question_3">4</a></li>
+						<li><a href="#question_4">5</a></li>
+						<li><a href="#question_5">6</a></li>
+						<li><a href="#question_6">7</a></li>
+						<li><a href="#question_7">8</a></li>
+						<li><a href="#question_8">9</a></li>
+						<li><a href="#question_9">10</a></li>
+						<li><a href="#question_10">11</a></li>
+						<li><a href="#question_11">12</a></li>
+						<li><a href="#question_12">13</a></li>
+						<li><a href="#question_13">14</a></li>
+						<li><a href="#question_14">15</a></li>
+						<li><a href="#question_15">16</a></li>
+						<li><a href="#question_16">17</a></li>
+						<li><a href="#question_17">18</a></li>
+						<li><a href="#question_18">19</a></li>
+						<li><a href="#question_19">20</a></li>
 					</ul>
 					
+					<div id="question_0">
+							<label for="questions[0].question">Libellé de la question</label>
+							<br />
+							<input type="text" name="questions[0].question" id="questions[0].question" value="XXX" class="question required" />
+							<br />
+							<br />
+							<label for="questions[0].answer_1">Réponse no 1</label>
+							<br />
+							<input type="radio" name="questions[0].good_answer" value="1" class="required" /><input type="text" name="questions[0].answer_1" id="questions[0].answer_1" value="XXX" class="required" />
+							<br />
+							<label for="questions[0].answer_2">Réponse no 2</label>
+							<br />
+							<input type="radio" name="questions[0].good_answer" value="2" checked="checked" /><input type="text" name="questions[0].answer_2" id="questions[0].answer_2" value="XXX" class="required" />
+							<br />
+							<label for="questions[0].answer_3">Réponse no 3</label>
+							<br />
+							<input type="radio" name="questions[0].good_answer" value="3" /><input type="text" name="questions[0].answer_3" id="questions[0].answer_3" value="XXX" class="required" />
+							<br />
+							<label for="questions[0].answer_4">Réponse no 4</label>
+							<br />
+							<input type="radio" name="questions[0].good_answer" value="4" /><input type="text" name="questions[0].answer_4" id="questions[0].answer_4" value="XXX" class="required" />
+							<br />
+					</div>
 					<div id="question_1">
-							<label for="question_1_question">Libellé de la question</label>
+							<label for="questions[1].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_1_question" id="question_1_question" value="" class="required" />
+							<input type="text" name="questions[1].question" id="questions[1].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_1_answer_1">Réponse no 1</label>
+							<label for="questions[1].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_1_answer_1" id="question_1_answer_1" value="" class="required" />
+							<input type="radio" name="questions[1].good_answer" value="1" class="required" />
+							<input type="text" name="questions[1].answer_1" id="questions[1].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_1_answer_2">Réponse no 1</label>
+							<label for="questions[1].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_1_answer_2" id="question_1_answer_2" value="" class="required" />
+							<input type="radio" name="questions[1].good_answer" value="2" checked="checked" />
+							<input type="text" name="questions[1].answer_2" id="questions[1].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_1_answer_3">Réponse no 1</label>
+							<label for="questions[1].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_1_answer_3" id="question_1_answer_3" value="" class="required" />
+							<input type="radio" name="questions[1].good_answer" value="3" />
+							<input type="text" name="questions[1].answer_3" id="questions[1].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_1_answer_4">Réponse no 1</label>
+							<label for="questions[1].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_1_answer_4" id="question_1_answer_4" value="" class="required" />
+							<input type="radio" name="questions[1].good_answer" value="4" />
+							<input type="text" name="questions[1].answer_4" id="questions[1].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_2">
-							<label for="question_2_question">Libellé de la question</label>
+							<label for="questions[2].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_2_question" id="question_2_question" value="" class="required" />
+							<input type="text" name="questions[2].question" id="questions[2].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_2_answer_1">Réponse no 1</label>
+							<label for="questions[2].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_2_answer_1" id="question_2_answer_1" value="" class="required" />
+							<input type="radio" name="questions[2].good_answer" value="1" class="required" /><input type="text" name="question_22_answer_1" id="questions[2].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_2_answer_2">Réponse no 1</label>
+							<label for="questions[2].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_2_answer_2" id="question_2_answer_2" value="" class="required" />
+							<input type="radio" name="questions[2].good_answer" value="2" checked="checked" /><input type="text" name="questions[2].answer_2" id="questions[2].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_2_answer_3">Réponse no 1</label>
+							<label for="questions[2].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_2_answer_3" id="question_2_answer_3" value="" class="required" />
+							<input type="radio" name="questions[2].good_answer" value="3" /><input type="text" name="questions[2].answer_3" id="questions[2].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_2_answer_4">Réponse no 1</label>
+							<label for="questions[2].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_2_answer_4" id="question_2_answer_4" value="" class="required" />
+							<input type="radio" name="questions[2].good_answer" value="4" /><input type="text" name="questions[2].answer_4" id="questions[2].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_3">
-							<label for="question_3_question">Libellé de la question</label>
+							<label for="questions[3].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_3_question" id="question_3_question" value="" class="required" />
+							<input type="text" name="questions[3].question" id="questions[3].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_3_answer_1">Réponse no 1</label>
+							<label for="questions[3].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_3_answer_1" id="question_3_answer_1" value="" class="required" />
+							<input type="radio" name="questions[3].good_answer" value="1" class="required" /><input type="text" name="questions[3].answer_1" id="questions[3].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_3_answer_2">Réponse no 1</label>
+							<label for="questions[3].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_3_answer_2" id="question_3_answer_2" value="" class="required" />
+							<input type="radio" name="questions[3].good_answer" value="2" checked="checked" /><input type="text" name="questions[3].answer_2" id="questions[3].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_3_answer_3">Réponse no 1</label>
+							<label for="questions[3].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_3_answer_3" id="question_3_answer_3" value="" class="required" />
+							<input type="radio" name="questions[3].good_answer" value="3" /><input type="text" name="questions[3].answer_3" id="questions[3].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_3_answer_4">Réponse no 1</label>
+							<label for="questions[3].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_3_answer_4" id="question_3_answer_4" value="" class="required" />
+							<input type="radio" name="questions[3].good_answer" value="4" /><input type="text" name="questions[3].answer_4" id="questions[3].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_4">
-							<label for="question_4_question">Libellé de la question</label>
+							<label for="questions[4].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_4_question" id="question_4_question" value="" class="required" />
+							<input type="text" name="questions[4].question" id="questions[4].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_4_answer_1">Réponse no 1</label>
+							<label for="questions[4].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_4_answer_1" id="question_4_answer_1" value="" class="required" />
+							<input type="radio" name="questions[4].good_answer" value="1"  class="required" /><input type="text" name="questions[4].answer_1" id="questions[4].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_4_answer_2">Réponse no 1</label>
+							<label for="questions[4].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_4_answer_2" id="question_4_answer_2" value="" class="required" />
+							<input type="radio" name="questions[4].good_answer" value="2" checked="checked" /><input type="text" name="questions[4].answer_2" id="questions[4].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_4_answer_3">Réponse no 1</label>
+							<label for="questions[4].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_4_answer_3" id="question_4_answer_3" value="" class="required" />
+							<input type="radio" name="questions[4].good_answer" value="3" /><input type="text" name="questions[4].answer_3" id="questions[4].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_4_answer_4">Réponse no 1</label>
+							<label for="questions[4].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_4_answer_4" id="question_4_answer_4" value="" class="required" />
+							<input type="radio" name="questions[4].good_answer" value="4" /><input type="text" name="questions[4].answer_4" id="questions[4].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_5">
-							<label for="question_5_question">Libellé de la question</label>
+							<label for="questions[5].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_5_question" id="question_5_question" value="" class="required" />
+							<input type="text" name="questions[5].question" id="questions[5].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_5_answer_1">Réponse no 1</label>
+							<label for="questions[5].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_5_answer_1" id="question_5_answer_1" value="" class="required" />
+							<input type="radio" name="questions[5].good_answer" value="1"  class="required" /><input type="text" name="questions[5].answer_1" id="questions[5].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_5_answer_2">Réponse no 1</label>
+							<label for="questions[5].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_5_answer_2" id="question_5_answer_2" value="" class="required" />
+							<input type="radio" name="questions[5].good_answer" value="2" checked="checked" /><input type="text" name="questions[5].answer_2" id="questions[5].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_5_answer_3">Réponse no 1</label>
+							<label for="questions[5].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_5_answer_3" id="question_5_answer_3" value="" class="required" />
+							<input type="radio" name="questions[5].good_answer" value="3" /><input type="text" name="questions[5].answer_3" id="questions[5].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_5_answer_4">Réponse no 1</label>
+							<label for="questions[5].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_5_answer_4" id="question_5_answer_4" value="" class="required" />
+							<input type="radio" name="questions[5].good_answer" value="4" /><input type="text" name="questions[5].answer_4" id="questions[5].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_6">
-							<label for="question_6_question">Libellé de la question</label>
+							<label for="questions[6].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_6_question" id="question_6_question" value="" class="required" />
+							<input type="text" name="questions[6].question" id="questions[6].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_6_answer_1">Réponse no 1</label>
+							<label for="questions[6].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_6_answer_1" id="question_6_answer_1" value="" class="required" />
+							<input type="radio" name="questions[6].good_answer" value="1"  class="required" /><input type="text" name="questions[6].answer_1" id="questions[6].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_6_answer_2">Réponse no 1</label>
+							<label for="questions[6].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_6_answer_2" id="question_6_answer_2" value="" class="required" />
+							<input type="radio" name="questions[6].good_answer" value="2" checked="checked" /><input type="text" name="questions[6].answer_2" id="questions[6].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_6_answer_3">Réponse no 1</label>
+							<label for="questions[6].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_6_answer_3" id="question_6_answer_3" value="" class="required" />
+							<input type="radio" name="questions[6].good_answer" value="3" /><input type="text" name="questions[6].answer_3" id="questions[6].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_6_answer_4">Réponse no 1</label>
+							<label for="questions[6].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_6_answer_4" id="question_6_answer_4" value="" class="required" />
+							<input type="radio" name="questions[6].good_answer" value="4" /><input type="text" name="questions[6].answer_4" id="questions[6].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_7">
-							<label for="question_7_question">Libellé de la question</label>
+							<label for="questions[7].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_7_question" id="question_7_question" value="" class="required" />
+							<input type="text" name="questions[7].question" id="questions[7].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_7_answer_1">Réponse no 1</label>
+							<label for="questions[7].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_7_answer_1" id="question_7_answer_1" value="" class="required" />
+							<input type="radio" name="questions[7].good_answer" value="1"  class="required" /><input type="text" name="questions[7].answer_1" id="questions[7].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_7_answer_2">Réponse no 1</label>
+							<label for="questions[7].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_7_answer_2" id="question_7_answer_2" value="" class="required" />
+							<input type="radio" name="questions[7].good_answer" value="2" checked="checked" /><input type="text" name="questions[7].answer_2" id="questions[7].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_7_answer_3">Réponse no 1</label>
+							<label for="questions[7].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_7_answer_3" id="question_7_answer_3" value="" class="required" />
+							<input type="radio" name="questions[7].good_answer" value="3" /><input type="text" name="questions[7].answer_3" id="questions[7].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_7_answer_4">Réponse no 1</label>
+							<label for="questions[7].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_7_answer_4" id="question_7_answer_4" value="" class="required" />
+							<input type="radio" name="questions[7].good_answer" value="4" /><input type="text" name="questions[7].answer_4" id="questions[7].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_8">
-							<label for="question_8_question">Libellé de la question</label>
+							<label for="questions[8].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_8_question" id="question_8_question" value="" class="required" />
+							<input type="text" name="questions[8].question" id="questions[8].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_8_answer_1">Réponse no 1</label>
+							<label for="questions[8].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_8_answer_1" id="question_8_answer_1" value="" class="required" />
+							<input type="radio" name="questions[8].good_answer" value="1"  class="required" /><input type="text" name="questions[8].answer_1" id="questions[8].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_8_answer_2">Réponse no 1</label>
+							<label for="questions[8].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_8_answer_2" id="question_8_answer_2" value="" class="required" />
+							<input type="radio" name="questions[8].good_answer" value="2" checked="checked" /><input type="text" name="questions[8].answer_2" id="questions[8].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_8_answer_3">Réponse no 1</label>
+							<label for="questions[8].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_8_answer_3" id="question_8_answer_3" value="" class="required" />
+							<input type="radio" name="questions[8].good_answer" value="3" /><input type="text" name="questions[8].answer_3" id="questions[8].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_8_answer_4">Réponse no 1</label>
+							<label for="questions[8].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_8_answer_4" id="question_8_answer_4" value="" class="required" />
+							<input type="radio" name="questions[8].good_answer" value="4" /><input type="text" name="questions[8].answer_4" id="questions[8].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_9">
-							<label for="question_9_question">Libellé de la question</label>
+							<label for="questions[9].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_9_question" id="question_9_question" value="" class="required" />
+							<input type="text" name="questions[9].question" id="questions[9].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_9_answer_1">Réponse no 1</label>
+							<label for="questions[9].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_9_answer_1" id="question_9_answer_1" value="" class="required" />
+							<input type="radio" name="questions[9].good_answer" value="1"  class="required" /><input type="text" name="questions[9].answer_1" id="questions[9].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_9_answer_2">Réponse no 1</label>
+							<label for="questions[9].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_9_answer_2" id="question_9_answer_2" value="" class="required" />
+							<input type="radio" name="questions[9].good_answer" value="2" checked="checked" /><input type="text" name="questions[9].answer_2" id="questions[9].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_9_answer_3">Réponse no 1</label>
+							<label for="questions[9].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_9_answer_3" id="question_9_answer_3" value="" class="required" />
+							<input type="radio" name="questions[9].good_answer" value="3" /><input type="text" name="questions[9].answer_3" id="questions[9].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_9_answer_4">Réponse no 1</label>
+							<label for="questions[9].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_9_answer_4" id="question_9_answer_4" value="" class="required" />
+							<input type="radio" name="questions[9].good_answer" value="4" /><input type="text" name="questions[9].answer_4" id="questions[9].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_10">
-							<label for="question_10_question">Libellé de la question</label>
+							<label for="questions[10].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_10_question" id="question_10_question" value="" class="required" />
+							<input type="text" name="questions[10].question" id="questions[10].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_10_answer_1">Réponse no 1</label>
+							<label for="questions[10].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_10_answer_1" id="question_10_answer_1" value="" class="required" />
+							<input type="radio" name="questions[10].good_answer" value="1"  class="required" /><input type="text" name="questions[10].answer_1" id="questions[10].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_10_answer_2">Réponse no 1</label>
+							<label for="questions[10].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_10_answer_2" id="question_10_answer_2" value="" class="required" />
+							<input type="radio" name="questions[10].good_answer" value="2" checked="checked" /><input type="text" name="questions[10].answer_2" id="questions[10].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_10_answer_3">Réponse no 1</label>
+							<label for="questions[10].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_10_answer_3" id="question_10_answer_3" value="" class="required" />
+							<input type="radio" name="questions[10].good_answer" value="3" /><input type="text" name="questions[10].answer_3" id="questions[10].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_10_answer_4">Réponse no 1</label>
+							<label for="questions[10].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_10_answer_4" id="question_10_answer_4" value="" class="required" />
+							<input type="radio" name="questions[10].good_answer" value="4" /><input type="text" name="questions[10].answer_4" id="questions[10].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_11">
-							<label for="question_11_question">Libellé de la question</label>
+							<label for="questions[11].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_11_question" id="question_11_question" value="" class="required" />
+							<input type="text" name="questions[11].question" id="questions[11].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_11_answer_1">Réponse no 1</label>
+							<label for="questions[11].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_11_answer_1" id="question_11_answer_1" value="" class="required" />
+							<input type="radio" name="questions[11].good_answer" value="1"  class="required" /><input type="text" name="questions[11].answer_1" id="questions[11].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_11_answer_2">Réponse no 1</label>
+							<label for="questions[11].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_11_answer_2" id="question_11_answer_2" value="" class="required" />
+							<input type="radio" name="questions[11].good_answer" value="2" checked="checked" /><input type="text" name="questions[11].answer_2" id="questions[11].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_11_answer_3">Réponse no 1</label>
+							<label for="questions[11].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_11_answer_3" id="question_11_answer_3" value="" class="required" />
+							<input type="radio" name="questions[11].good_answer" value="3" /><input type="text" name="questions[11].answer_3" id="questions[11].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_11_answer_4">Réponse no 1</label>
+							<label for="questions[11].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_11_answer_4" id="question_11_answer_4" value="" class="required" />
+							<input type="radio" name="questions[11].good_answer" value="4" /><input type="text" name="questions[11].answer_4" id="questions[11].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_12">
-							<label for="question_12_question">Libellé de la question</label>
+							<label for="questions[12].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_12_question" id="question_12_question" value="" class="required" />
+							<input type="text" name="questions[12].question" id="questions[12].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_12_answer_1">Réponse no 1</label>
+							<label for="questions[12].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_12_answer_1" id="question_12_answer_1" value="" class="required" />
+							<input type="radio" name="questions[12].good_answer" value="1"  class="required" /><input type="text" name="questions[12].answer_1" id="questions[12].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_12_answer_2">Réponse no 1</label>
+							<label for="questions[12].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_12_answer_2" id="question_12_answer_2" value="" class="required" />
+							<input type="radio" name="questions[12].good_answer" value="2" checked="checked" /><input type="text" name="questions[12].answer_2" id="questions[12].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_12_answer_3">Réponse no 1</label>
+							<label for="questions[12].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_12_answer_3" id="question_12_answer_3" value="" class="required" />
+							<input type="radio" name="questions[12].good_answer" value="3" /><input type="text" name="questions[12].answer_3" id="questions[12].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_12_answer_4">Réponse no 1</label>
+							<label for="questions[12].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_12_answer_4" id="question_12_answer_4" value="" class="required" />
+							<input type="radio" name="questions[12].good_answer" value="4" /><input type="text" name="questions[12].answer_4" id="questions[12].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_13">
-							<label for="question_13_question">Libellé de la question</label>
+							<label for="questions[13].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_13_question" id="question_13_question" value="" class="required" />
+							<input type="text" name="questions[13].question" id="questions[13].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_13_answer_1">Réponse no 1</label>
+							<label for="questions[13].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_13_answer_1" id="question_13_answer_1" value="" class="required" />
+							<input type="radio" name="questions[13].good_answer" value="1"  class="required" /><input type="text" name="questions[13].answer_1" id="questions[13].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_13_answer_2">Réponse no 1</label>
+							<label for="questions[13].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_13_answer_2" id="question_13_answer_2" value="" class="required" />
+							<input type="radio" name="questions[13].good_answer" value="2" checked="checked" /><input type="text" name="questions[13].answer_2" id="questions[13].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_13_answer_3">Réponse no 1</label>
+							<label for="questions[13].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_13_answer_3" id="question_13_answer_3" value="" class="required" />
+							<input type="radio" name="questions[13].good_answer" value="3" /><input type="text" name="questions[13].answer_3" id="questions[13].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_13_answer_4">Réponse no 1</label>
+							<label for="questions[13].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_13_answer_4" id="question_13_answer_4" value="" class="required" />
+							<input type="radio" name="questions[13].good_answer" value="4" /><input type="text" name="questions[13].answer_4" id="questions[13].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_14">
-							<label for="question_14_question">Libellé de la question</label>
+							<label for="questions[14].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_14_question" id="question_14_question" value="" class="required" />
+							<input type="text" name="questions[14].question" id="questions[14].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_14_answer_1">Réponse no 1</label>
+							<label for="questions[14].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_14_answer_1" id="question_14_answer_1" value="" class="required" />
+							<input type="radio" name="questions[14].good_answer" value="1"  class="required" /><input type="text" name="questions[14].answer_1" id="questions[14].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_14_answer_2">Réponse no 1</label>
+							<label for="questions[14].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_14_answer_2" id="question_14_answer_2" value="" class="required" />
+							<input type="radio" name="questions[14].good_answer" value="2" checked="checked" /><input type="text" name="questions[14].answer_2" id="questions[14].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_14_answer_3">Réponse no 1</label>
+							<label for="questions[14].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_14_answer_3" id="question_14_answer_3" value="" class="required" />
+							<input type="radio" name="questions[14].good_answer" value="3" /><input type="text" name="questions[14].answer_3" id="questions[14].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_14_answer_4">Réponse no 1</label>
+							<label for="questions[14].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_14_answer_4" id="question_14_answer_4" value="" class="required" />
+							<input type="radio" name="questions[14].good_answer" value="4" /><input type="text" name="questions[14].answer_4" id="questions[14].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_15">
-							<label for="question_15_question">Libellé de la question</label>
+							<label for="questions[15].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_15_question" id="question_15_question" value="" class="required" />
+							<input type="text" name="questions[15].question" id="questions[15].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_15_answer_1">Réponse no 1</label>
+							<label for="questions[15].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_15_answer_1" id="question_15_answer_1" value="" class="required" />
+							<input type="radio" name="questions[15].good_answer" value="1"  class="required" /><input type="text" name="questions[15].answer_1" id="questions[15].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_15_answer_2">Réponse no 1</label>
+							<label for="questions[15].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_15_answer_2" id="question_15_answer_2" value="" class="required" />
+							<input type="radio" name="questions[15].good_answer" value="2" checked="checked" /><input type="text" name="questions[15].answer_2" id="questions[15].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_15_answer_3">Réponse no 1</label>
+							<label for="questions[15].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_15_answer_3" id="question_15_answer_3" value="" class="required" />
+							<input type="radio" name="questions[15].good_answer" value="3" /><input type="text" name="questions[15].answer_3" id="questions[15].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_15_answer_4">Réponse no 1</label>
+							<label for="questions[15].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_15_answer_4" id="question_15_answer_4" value="" class="required" />
+							<input type="radio" name="questions[15].good_answer" value="4" /><input type="text" name="questions[15].answer_4" id="questions[15].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_16">
-							<label for="question_16_question">Libellé de la question</label>
+							<label for="questions[16].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_16_question" id="question_16_question" value="" class="required" />
+							<input type="text" name="questions[16].question" id="questions[16].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_16_answer_1">Réponse no 1</label>
+							<label for="questions[16].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_16_answer_1" id="question_16_answer_1" value="" class="required" />
+							<input type="radio" name="questions[16].good_answer" value="1"  class="required" /><input type="text" name="questions[16].answer_1" id="questions[16].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_16_answer_2">Réponse no 1</label>
+							<label for="questions[16].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_16_answer_2" id="question_16_answer_2" value="" class="required" />
+							<input type="radio" name="questions[16].good_answer" value="2" checked="checked" /><input type="text" name="questions[16].answer_2" id="questions[16].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_16_answer_3">Réponse no 1</label>
+							<label for="questions[16].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_16_answer_3" id="question_16_answer_3" value="" class="required" />
+							<input type="radio" name="questions[16].good_answer" value="3" /><input type="text" name="questions[16].answer_3" id="questions[16].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_16_answer_4">Réponse no 1</label>
+							<label for="questions[16].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_16_answer_4" id="question_16_answer_4" value="" class="required" />
+							<input type="radio" name="questions[16].good_answer" value="4" /><input type="text" name="questions[16].answer_4" id="questions[16].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_17">
-							<label for="question_17_question">Libellé de la question</label>
+							<label for="questions[17].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_17_question" id="question_17_question" value="" class="required" />
+							<input type="text" name="questions[17].question" id="questions[17].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_17_answer_1">Réponse no 1</label>
+							<label for="questions[17].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_17_answer_1" id="question_17_answer_1" value="" class="required" />
+							<input type="radio" name="questions[17].good_answer" value="1"  class="required" /><input type="text" name="questions[17].answer_1" id="questions[17].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_17_answer_2">Réponse no 1</label>
+							<label for="questions[17].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_17_answer_2" id="question_17_answer_2" value="" class="required" />
+							<input type="radio" name="questions[17].good_answer" value="2" checked="checked" /><input type="text" name="questions[17].answer_2" id="questions[17].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_17_answer_3">Réponse no 1</label>
+							<label for="questions[17].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_17_answer_3" id="question_17_answer_3" value="" class="required" />
+							<input type="radio" name="questions[17].good_answer" value="3" /><input type="text" name="questions[17].answer_3" id="questions[17].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_17_answer_4">Réponse no 1</label>
+							<label for="questions[17].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_17_answer_4" id="question_17_answer_4" value="" class="required" />
+							<input type="radio" name="questions[17].good_answer" value="4" /><input type="text" name="questions[17].answer_4" id="questions[17].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_18">
-							<label for="question_18_question">Libellé de la question</label>
+							<label for="questions[18].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_18_question" id="question_18_question" value="" class="required" />
+							<input type="text" name="questions[18].question" id="questions[18].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_18_answer_1">Réponse no 1</label>
+							<label for="questions[18].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_18_answer_1" id="question_18_answer_1" value="" class="required" />
+							<input type="radio" name="questions[18].good_answer" value="1"  class="required" /><input type="text" name="questions[18].answer_1" id="questions[18].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_18_answer_2">Réponse no 1</label>
+							<label for="questions[18].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_18_answer_2" id="question_18_answer_2" value="" class="required" />
+							<input type="radio" name="questions[18].good_answer" value="2" checked="checked" /><input type="text" name="questions[18].answer_2" id="questions[18].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_18_answer_3">Réponse no 1</label>
+							<label for="questions[18].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_18_answer_3" id="question_18_answer_3" value="" class="required" />
+							<input type="radio" name="questions[18].good_answer" value="3" /><input type="text" name="questions[18].answer_3" id="questions[18].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_18_answer_4">Réponse no 1</label>
+							<label for="questions[18].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_18_answer_4" id="question_18_answer_4" value="" class="required" />
+							<input type="radio" name="questions[18].good_answer" value="4" /><input type="text" name="questions[18].answer_4" id="questions[18].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 					<div id="question_19">
-							<label for="question_19_question">Libellé de la question</label>
+							<label for="questions[19].question">Libellé de la question</label>
 							<br />
-							<input type="text" name="question_19_question" id="question_19_question" value="" class="required" />
-							<br />
-							<br />
-							<label for="question_19_answer_1">Réponse no 1</label>
-							<br />
-							<input type="text" name="question_19_answer_1" id="question_19_answer_1" value="" class="required" />
-							<br />
-							<label for="question_19_answer_2">Réponse no 1</label>
-							<br />
-							<input type="text" name="question_19_answer_2" id="question_19_answer_2" value="" class="required" />
-							<br />
-							<label for="question_19_answer_3">Réponse no 1</label>
-							<br />
-							<input type="text" name="question_19_answer_3" id="question_19_answer_3" value="" class="required" />
-							<br />
-							<label for="question_19_answer_4">Réponse no 1</label>
-							<br />
-							<input type="text" name="question_19_answer_4" id="question_19_answer_4" value="" class="required" />
-							<br />
-					</div>
-					<div id="question_20">
-							<label for="question_20_question">Libellé de la question</label>
-							<br />
-							<input type="text" name="question_20_question" id="question_20_question" value="" class="required" />
+							<input type="text" name="questions[19].question" id="questions[19].question" value="XXX" class="question required" />
 							<br />
 							<br />
-							<label for="question_20_answer_1">Réponse no 1</label>
+							<label for="questions[19].answer_1">Réponse no 1</label>
 							<br />
-							<input type="text" name="question_20_answer_1" id="question_20_answer_1" value="" class="required" />
+							<input type="radio" name="questions[19].good_answer" value="1" class="required" /><input type="text" name="questions[19].answer_1" id="questions[19].answer_1" value="XXX" class="required" />
 							<br />
-							<label for="question_20_answer_2">Réponse no 1</label>
+							<label for="questions[19].answer_2">Réponse no 2</label>
 							<br />
-							<input type="text" name="question_20_answer_2" id="question_20_answer_2" value="" class="required" />
+							<input type="radio" name="questions[19].good_answer" value="2" checked="checked" /><input type="text" name="questions[19].answer_2" id="questions[19].answer_2" value="XXX" class="required" />
 							<br />
-							<label for="question_20_answer_3">Réponse no 1</label>
+							<label for="questions[19].answer_3">Réponse no 3</label>
 							<br />
-							<input type="text" name="question_20_answer_3" id="question_20_answer_3" value="" class="required" />
+							<input type="radio" name="questions[19].good_answer" value="3" /><input type="text" name="questions[19].answer_3" id="questions[19].answer_3" value="XXX" class="required" />
 							<br />
-							<label for="question_20_answer_4">Réponse no 1</label>
+							<label for="questions[19].answer_4">Réponse no 4</label>
 							<br />
-							<input type="text" name="question_20_answer_4" id="question_20_answer_4" value="" class="required" />
+							<input type="radio" name="questions[19].good_answer" value="4" /><input type="text" name="questions[19].answer_4" id="questions[19].answer_4" value="XXX" class="required" />
 							<br />
 					</div>
 				</div>
-				
-					<input type="submit" name="submit" id="submit" value="Valider" />
-				</p>
+				<input type="submit" name="submit" id="submit" value="Valider" />
 			</form>
 		</div>
 		<div id="footer"></div>
@@ -596,130 +617,192 @@
         $(document).ready(function (){
         	$form=$("#game_form");
         	$tabs=$("#questions_tabs");
-			$form.validate({ rules: {
-				question_1_question : { required: true, minlength: 2, maxlength:150 },
-				question_2_question : { required: true, minlength: 2, maxlength:150 },
-				question_3_question : { required: true, minlength: 2, maxlength:150 },
-				question_4_question: { required: true, minlength: 2, maxlength:150 },
-				question_5_question: { required: true, minlength: 2, maxlength:150 },
-				question_6_question: { required: true, minlength: 2, maxlength:150 },
-				question_7_question: { required: true, minlength: 2, maxlength:150 },
-				question_8_question: { required: true, minlength: 2, maxlength:150 },
-				question_9_question: { required: true, minlength: 2, maxlength:150 },
-				question_11_question: { required: true, minlength: 2, maxlength:150 },
-				question_12_question: { required: true, minlength: 2, maxlength:150 },
-				question_13_question: { required: true, minlength: 2, maxlength:150 },
-				question_14_question: { required: true, minlength: 2, maxlength:150 },
-				question_15_question: { required: true, minlength: 2, maxlength:150 },
-				question_16_question: { required: true, minlength: 2, maxlength:150 },
-				question_17_question: { required: true, minlength: 2, maxlength:150 },
-				question_18_question: { required: true, minlength: 2, maxlength:150 },
-				question_19_question: { required: true, minlength: 2, maxlength:150 },
-				question_20_question: { required: true, minlength: 2, maxlength:150 },
+        	$result_panel=$("#result_panel");
+        	$result_panel.hide();
+        	
+        	
+        	$form.validate({ rules: {
+				"questions[1].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[2].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[3].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[4].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[5].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[6].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[7].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[8].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[9].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[11].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[12].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[13].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[14].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[15].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[16].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[17].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[18].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[19].question": { required: true, minlength: 2, maxlength:150 },
+				"questions[0].question": { required: true, minlength: 2, maxlength:150 },
 
-				question_1_answer_1 : { required: true, minlength: 2, maxlength:150 },
-				question_2_answer_1 : { required: true, minlength: 2, maxlength:150 },
-				question_3_answer_1 : { required: true, minlength: 2, maxlength:150 },
-				question_4_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_5_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_6_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_7_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_8_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_9_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_11_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_12_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_13_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_14_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_15_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_16_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_17_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_18_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_19_answer_1: { required: true, minlength: 2, maxlength:150 },
-				question_20_answer_1: { required: true, minlength: 2, maxlength:150 },
+				"questions[1].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[2].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[3].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[4].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[5].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[6].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[7].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[8].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[9].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[11].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[12].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[13].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[14].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[15].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[16].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[17].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[18].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[19].answer_1": { required: true, minlength: 2, maxlength:150 },
+				"questions[0].answer_1": { required: true, minlength: 2, maxlength:150 },
 
-				question_1_answer_2 : { required: true, minlength: 2, maxlength:150 },
-				question_2_answer_2 : { required: true, minlength: 2, maxlength:150 },
-				question_3_answer_2 : { required: true, minlength: 2, maxlength:150 },
-				question_4_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_5_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_6_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_7_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_8_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_9_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_11_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_12_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_13_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_14_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_15_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_16_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_17_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_18_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_19_answer_2: { required: true, minlength: 2, maxlength:150 },
-				question_20_answer_2: { required: true, minlength: 2, maxlength:150 },
+				"questions[1].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[2].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[3].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[4].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[5].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[6].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[7].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[8].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[9].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[11].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[12].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[13].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[14].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[15].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[16].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[17].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[18].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[19].answer_2": { required: true, minlength: 2, maxlength:150 },
+				"questions[0].answer_2": { required: true, minlength: 2, maxlength:150 },
 
-				question_1_answer_3 : { required: true, minlength: 2, maxlength:150 },
-				question_2_answer_3 : { required: true, minlength: 2, maxlength:150 },
-				question_3_answer_3 : { required: true, minlength: 2, maxlength:150 },
-				question_4_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_5_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_6_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_7_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_8_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_9_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_11_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_12_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_13_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_14_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_15_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_16_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_17_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_18_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_19_answer_3: { required: true, minlength: 2, maxlength:150 },
-				question_20_answer_3: { required: true, minlength: 2, maxlength:150 },
+				"questions[1].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[2].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[3].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[4].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[5].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[6].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[7].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[8].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[9].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[11].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[12].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[13].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[14].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[15].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[16].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[17].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[18].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[19].answer_3": { required: true, minlength: 2, maxlength:150 },
+				"questions[0].answer_3": { required: true, minlength: 2, maxlength:150 },
 
-				question_1_answer_4 : { required: true, minlength: 2, maxlength:150 },
-				question_2_answer_4 : { required: true, minlength: 2, maxlength:150 },
-				question_3_answer_4 : { required: true, minlength: 2, maxlength:150 },
-				question_4_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_5_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_6_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_7_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_8_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_9_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_11_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_12_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_13_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_14_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_15_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_16_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_17_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_18_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_19_answer_4: { required: true, minlength: 2, maxlength:150 },
-				question_20_answer_3: { required: true, minlength: 2, maxlength:150 }
+				"questions[1].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[2].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[3].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[4].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[5].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[6].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[7].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[8].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[9].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[11].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[12].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[13].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[14].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[15].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[16].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[17].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[18].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[19].answer_4": { required: true, minlength: 2, maxlength:150 },
+				"questions[0].answer_4": { required: true, minlength: 2, maxlength:150 }
 }});
-			$tabs.tabs({
-				select: function(event, ui) {
-					var selected = $tabs.tabs('option', 'selected') +1;
-					var isValid = true ; // form validation returning true or false
-			        
-					$("#question_"+selected+" input").each(function (e) {
-						var val=$(this).val();
-						isValid=isValid && (val!="" && val.length>=2 && val.length<=150);
-					})
-			        return isValid;
-			    }
-			});
-			
+			$tabs.tabs();
 			
 			$form.submit(function (event){
-	            event.preventDefault();
-	            return false;
+		        event.preventDefault();
+				$result_panel.hide();
+				$result_panel.attr("class", "");
+				
+	            var template ='<?xml version="1.0" encoding="UTF-8"?>'
+				+'<usi:gamesession xmlns:usi="http://www.usi.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.usi.com gamesession.xsd ">'
+				+'  <usi:questions>'
+				+'    {{#questions}}'
+				+'    <usi:question goodchoice="{{good_answer}}">'
+				+'      <usi:label>{{question}}</usi:label>'
+				+'      <usi:choice>{{answer_1}}</usi:choice>'
+				+'      <usi:choice>{{answer_2}}</usi:choice>'
+				+'      <usi:choice>{{answer_3}}</usi:choice>'
+				+'      <usi:choice>{{answer_4}}</usi:choice>'
+				+'    </usi:question>'
+				+'    {{/questions}}'
+				+'    </usi:questions>'
+				+'    <usi:parameters>'
+				+'      <usi:logintimeout>{{logintimeout}}</usi:logintimeout>'
+				+'      <usi:synchrotime>{{synchrotime}}</usi:synchrotime>'
+				+'      <usi:nbusersthreshold>{{nbusersthreshold}}</usi:nbusersthreshold>'
+				+'      <usi:questiontimeframe>{{questiontimeframe}}</usi:questiontimeframe>'
+				+'      <usi:nbquestions>{{nbquestions}}</usi:nbquestions>'
+				+'      <usi:flushusertable>{{flushusertable}}</usi:flushusertable>'
+				+'      <usi:trackeduseridmail>{{trackeduseridmail}}</usi:trackeduseridmail>'
+				+'    </usi:parameters>'
+				+'</usi:gamesession>';
+				var questions=[];
+				for (var i=0; i<20; i++) {
+					questions[i]=[];
+				}
+		        var json = {};
+				$.map($form.serializeArray(), function(n, i){
+					var name=n['name'];
+					var value=n['value'];
+					var is_q=name.indexOf("questions["); 
+					if (is_q===0) {
+						var end_brace=name.indexOf("]");
+						var nb=parseInt(name.substr(10, end_brace-10));
+						var arg=name.substr(end_brace+2, name.length);
+						//						var question=questions[nb];
+						questions[nb][arg]=value;
+					} else if (name!='authentication_key'){
+						json[name]=value
+					}
+			      });
+				json["questions"]=questions;
+				var xml_file=Mustache.to_html(template, json);
+				var data ={};
+				data['authentication_key']=$('#authentication_key').val();
+				data['parameters']=xml_file
+
+				var success=function (data, textStatus, jqXHR) {
+					$result_panel.addClass("success");
+					if (jqXHR.status===201) {
+						$result_panel.html("Le jeu a bien été créé.");
+					} else {
+						$result_panel.html("Le jeu a bien été créé. Status="+jqXHR.status);
+					}
+					$result_panel.show();
+				};
+
+		        var error=function (jqXHR, textStatus, errorThrown) {
+					$result_panel.addClass("error");
+					if (jqXHR.status===401) {
+						$result_panel.html("Clé d'authentification non reconnue.");
+					} else if (jqXHR.status===400) {
+						$result_panel.html("Erreurlors de l'enregistrement du jeu.");
+					} else {
+						$result_panel.html("Erreur lors de l'enregistrement du jeu. status="+jqXHR.status);
+					}
+					$result_panel.show();
+				};
+		        $.post('/api/game', JSON.stringify(data), success, "json").error(error);
 	            /*
 	            $result_panel.removeClass("error");
 	            $result_panel.removeClass("success");
 				*/
-
-				var data=$form.serializeJSON();
 	            
         	});
 		        	

@@ -16,7 +16,7 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
 
 #page 
 { 
-  width:1024px;margin-left:200px;
+  width:1200px;margin-left:200px;
 }
 #header 
 { 
@@ -27,12 +27,13 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
 #content 
 { 
   border:1px solid #Def;
-  height:400px;
   min-height:400px;
   padding:1em  1.5em;
 }
 #usi_debug 
 { 
+  display:none;
+
   width:500px; height:12em; overflow:auto; border:1px dotted #c00;
   position:absolute; top:3em; right: 350px; 
 }
