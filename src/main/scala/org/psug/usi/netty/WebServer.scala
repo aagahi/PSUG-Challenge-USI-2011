@@ -22,9 +22,9 @@ object WebServer{
   lazy val defaultWebServer = new WebServer
 
   val ioBufferSize = 1024*8
-  val keepAlive = true
+  val keepAlive = false
   val backLog = 5000
-  val tcpNoDelay = true
+  val tcpNoDelay = false
 }
 
 

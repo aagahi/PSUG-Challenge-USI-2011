@@ -4,6 +4,7 @@ import _root_.akka.util.Logging
 import org.psug.usi.netty.WebServer
 import java.util.Properties
 import service.{ClientServices, ServerServices}
+import java.net.InetAddress
 
 /**
  * 
@@ -28,13 +29,22 @@ object Main {
     val servicesPort = properties.getProperty("services.port").toInt
     val servicesHost = properties.getProperty("services.host")
     val webAuthenticationKey = properties.getProperty("web.authentication.key")
+
     val main = new Main
+    Runtime.getRuntime().addShutdownHook(new ShutdownHook(main))
+
     main.start( servicesHost, webPort, servicesPort, webAuthenticationKey )
 
-    while(System.in.read() == -1) wait(500)
-    main.stop
+   
   }
 
+
+  class ShutdownHook(main:Main)  extends Thread with Logging{
+    override def run( ) {
+      log.info("Shutting down server")
+      main.stop()
+    }
+  }
 }
 
 class Main extends Logging {
@@ -47,18 +57,28 @@ class Main extends Logging {
     services = new ServerServices
     services.launch
 
-    // TODO: if remote host is same a current host then should use local service instead
-    val remoteService = new ClientServices( servicesHost, servicesPort )
-    webServer = new WebServer( webPort, remoteService, webAuthenticationKey )
+    val addr = InetAddress.getLocalHost()
+    val hostname = addr.getHostName()
+    // if we are on local service host do not use remoting
+    webServer = if( hostname == servicesHost ){
+      new WebServer( webPort, services, webAuthenticationKey )
+    }
+    else{
+      val remoteService = new ClientServices( servicesHost, servicesPort )
+      new WebServer( webPort, remoteService, webAuthenticationKey )
+    }
+
     webServer.start
-    log.info("Started PSUG USI2011 Challenge Server at 0.0.0.0 web port: " + webPort + " service port:" + servicesPort )
+    log.info("Started PSUG USI2011 Challenge Server on "+hostname+" web port: " + webPort + " service port:" + servicesPort )
+
+
   }
 
   def stop() = {
     if( webServer != null ) webServer.stop
     if( services != null ) services.shutdown
 
-    log.info("Stopped PSUG USI2011 Challenge at 0.0.0.0" )
+    log.info("Stopped PSUG USI2011 Challenge" )
   }
 
 }
