@@ -34,6 +34,7 @@ class HttpOutput( channel:Channel ) extends Logging {
       case "css" => "text/css"
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
+      case "json" => "application/json"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
         "application/binary"
@@ -309,6 +310,22 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.GET, "admin"::"status"::Nil ) =>
         out.sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
 
+
+/**
+TODO!!
+      case ( HttpMethod.GET, "api"::"game"::Nil )  =>
+        try {
+          userRepositoryService.callback( PullData( userId.toInt ) ){
+            case DataPulled( Some( data ) )	=>  out.sendResponse( Some( data ), HttpResponseStatus.OK )
+            case DataPulled( None )	=> out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user/%s".format(userId)); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          }
+        } catch {
+          case e:NumberFormatException =>
+            log.debug("Bad UserId in /api/user/%s : was expecting an integer".format(userId))
+            out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        }
+*/
 
       case ( HttpMethod.GET, "web"::Nil )  =>
         out.sendPage( "/web/index.html", request )

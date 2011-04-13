@@ -5,6 +5,7 @@
 .right {text-align:right;}
 .left {text-align:left;}
 .small { font-size:0.82em }
+.clear { clear:both;}
 div.error { background-color:#fed; color:#f00; border-color: #fed}
 div.error * { background-color:#fed; color:#f00; }
 div.success { background-color:#efd; color:#0f0; border-color: #fed; }
@@ -15,7 +16,7 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
 
 #page 
 { 
-  width:1024px;margin-left:200px;
+  width:1200px;margin-left:200px;
 }
 #header 
 { 
@@ -26,15 +27,23 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
 #content 
 { 
   border:1px solid #Def;
-  height:400px;
   min-height:400px;
   padding:1em  1.5em;
 }
+/* DEBUG 
+A PASSER EN display:none avant la prod
+*/
 #usi_debug 
 { 
-  width:500px; height:12em; overflow:auto; border:1px dotted #c00;
+  display:none;
+
+  width:500px; height:7em; overflow:auto; border:1px dotted #c00;
   position:absolute; top:3em; right: 350px; 
+  background-color:Cornsilk;
+  opacity:0.35;
 }
+#cheat_button { display:inherit;} /* TODO A mettre en display none :) */
+
 #result_panel 
 { 
   font-weight:bold ; border: 1px solid; margin-bottom:1em; padding: 0.5em 20px;
@@ -43,6 +52,7 @@ div.success * { background-color:#efd; color:#0f0; line-height:1.24em}
 body 
 {
     font-family: Verdana, sans;
+    font-size:96%;
     margin-top: 10px;
     margin-bottom: 10px;
 }

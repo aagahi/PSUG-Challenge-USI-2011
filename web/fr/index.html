@@ -1,25 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>index</title>
+	<meta charset="utf-8" />
+	<title>Le plus grand quizz du monde</title>
+	<link rel="stylesheet" href="./css/reset.css" type="text/css" />
+	<link rel="stylesheet" href="./css/style.css" type="text/css" />
+	<style type="text/css">
+	  #content {
+		height:200px;
+		min-height:200px;
+	  }
+	</style>
 </head>
 <body>
-    <h3>Jury USI</h3>
-    <ul>
-        <li>
-            <a href="jury/create_user.html">Créer un utilisateur</a>
-        </li>
-        <!--
-        <li>
-            <a href="jury/create_user.html">Créer une nouvelle partie</a>
-        </li>
--->
-    </ul>
-    <h3>Joueur</h3>
-    <ul>
-        <li><a href="player/login.html">Authentification</a></li>
-<!--        <li><a href="player/play.html">Commencer à jouer</a></li>-->
-    </ul>
+	<div id="page">
+	  <div id="header">
+		  <h2>Le plus grand quizz du monde</h2>
+	  </div>
+	  <div id="content">
+		  Vous êtes inscrit au Quizz? 
+		  Rejoignez nous pour le plus grand quizz du monde il va démarrer!
+		  <br /><a href="player/login.html">Commencez à jouer!</a>
+		  <br />
+		  <br />Vous êtes identifiés comme joueur d'une partie ? <a href="player/play.html">Rejoignez la partie en cours</a>
+	  </div>
+	  <div id="footer">
+		<div class="small">
+		  <strong>Vous êtes jury? C'est par ici pour</strong>
+		  <a href="jury/create_user.html">créer un utilisateur</a>
+		  ou <a href="jury/create_game.html">créer une nouvelle partie</a>
+		</div>
+	  </div>
+  </div>
 </body>
 </html>

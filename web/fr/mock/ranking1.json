@@ -1,0 +1,21 @@
+{
+    "score" : 100,
+    "top_scores" : {
+        "mail" : [ "string1", "string2", "...3"],
+        "scores" : [ 300, 200, 190],
+        "firstname" : ["f1", "f2", "f3"],
+        "lastname" : ["l1", "l2", "l3"]
+    },
+    "before" : {
+        "mail" : [ "string21", "string22", "...32", "...mail4"],
+        "scores" : [ 300, 200, 190, 180],
+        "firstname" : ["f12", "f22", "f32", "f4"],
+        "lastname" : ["l12", "l22", "l32", "laslsa"]
+    },
+    "after" : {
+        "mail" : [ "string31", "string32", "string32"],
+        "scores" : [ 300, 200, 190],
+        "firstname" : ["f1", "f2", "f3"],
+        "lastname" : ["l1", "l2", "l3"]
+    }
+}

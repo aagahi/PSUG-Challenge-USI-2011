@@ -1,58 +1,268 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
-    <title>Bonne chance!</title>
-    <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
-    <script type="text/javascript" src="../js/json2.js" ></script>
-    <script type="text/javascript" src="../js/psug.js" ></script>
-    <script type="text/javascript">
-// TODO v�rifier le cookie
-    </script>
+	<meta charset="utf-8" />
+	<title>Play! ;)</title>
+	<link rel="stylesheet" href="../css/reset.css" type="text/css" />
+	<link rel="stylesheet" href="../css/style.css" type="text/css" />
+		<style type="text/css">
+				.answer_recap li { float: left ; width:5em ; padding-left:1em; font-size:1.2em;}
+				.answer_recap li .answer_true  { color:#0F0 ; }
+				.answer_recap li .answer_false { color:#0F0 ; text-decoration:line-through; }
+				#answers li { line-height:1.3em;}
+				
+				.finish {
+					clear:both;
+					width:70%; 
+				 	margin-top:2em;
+				 	margin-left:50px;
+				 	}
+				 #ranking_panel {margin-top:2em;}
+				#ranking_panel h3{ 
+					margin:1em 0 0.3em 0px; 
+					padding-left:210px;
+					font-size: 1.4em; color:#2779AA; font-weight: bold;}
+				#ranking_panel .score_panel { 
+					margin:0 0 2em 0px;
+					line-height:2em;
+					background-color: #DEEDF7; color:#2779AA; font-weight: bold;  }
+
+				.ranking { width:100%; margin-left:0px; border:1px solid #DEEDF7 ;}
+				.ranking .success { background-color:#efd; color:#0f0; border-color: #fed; font-weight:bold; }
+				.ranking th { background-color: #DEEDF7; color:#2779AA; font-weight: bold; }
+				.ranking td, .ranking th { border-color: #DEEDF7; border-bottom-width:1px ; border-style: solid; }
+				.ranking th { border-color: #DEEDF7; border-top-width:1px ; border-style: solid; }
+		</style>
+	<script type="text/javascript">
+		// TODO vérifier le cookie
+	</script>
 </head>
 <body>
-    <form id="auth_form">
-        <h3>Authentification</h3>
-        <label for="mail">Mail</label>
-        <input name="mail">
-        <br />
-        <label for="password">Mot de passe</label>
-        <input type="password" name="password">
-        <br />
-    </form>
-    <div id="result_panel"></div>
-    <script type="text/javascript">
-	$(document).ready(function (){
-	    var $dbg=$("#usi_debug");
-	    var usi_log=function(msg){
-		$dbg.html($dbg.html()+result);
-	    };
+<div id="usi_debug"></div>
+<div id="page">
+	<div id="header">
+		<h3 class="waiting_to_begin">Nous attendons les autres joueurs</h3>
+		<h3 class="play none">Jouez!</h3>
+	</div>
+	<div id="content">
+		<div id="result_panel"></div>
+		<div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
+		<div class="play none">
+				<ul class="answer_recap clear">
+					<li id="score_container">Score: <span id="score">0</span></li>
+				</ul>
+				<br class="clear" />
+				<div id="good_answer_container">Bonne réponse : <span id="good_answer">...</span></div>
+		</div>
+		<div class="play none">
+				<form action="play.html">
+					<h4>Question no <span id="question_nb"></span></h4>
+					<p>
+						<strong><span id="question"></span></strong>
+						<br />
+						<br />
+						<ul id="answers"></ul>
+					</p>
+				</form>
+		</div>
+<!--  		
+<div class="finish">
+ -->
+  		<div class="finish">
+			<input 	type="button" name="see_ranking" id="see_ranking" 
+					value="Vous pouvez maintenant voir en ligne votre classement" />
+			<div id="ranking_panel" class="none">
+				<h3 class="score_panel">Votre score : <strong id="my_score"></strong></h3>
 
-	    $("#auth_form").submit(function (event){
-		event.preventDefault();
-		var datas=$("#auth_form").serializeJSON();
-		console.log(JSON.stringify(datas));
-		var success=function(result, status, jqXHR){
-		    usi_log("Resultat de la requ�te ajax:"+result);
-		    if(status==="200") {
-			$("#result_panel").html("L'utilisateur a bien �t� cr��");
-		    } else if(status==="404") {
-			$("#result_panel").html("L'identification a �chou�. Veuillez recommencer.");
-		    } else  {
-			$("#result_panel").html("Etat inconnu lors de la cr�ation d'un utilisateur (ni 200 ni 404)");
-		    }
-		};
-		var error=function () { alert ("erreur...")};
-		$.post('/api/user', JSON.stringify(datas), success, "json").error(error);
-		return false;
-	    });
-	    $("#auth").click(function (){
-		$("form input[type='text']").each (function(){ this.attr("value", ""); });
-		$("form input[type='password']").each (function(){ this.attr("value", ""); });
-		$("#new_user_panel").hide();
-		$("#firstname").focus();
-	    });
-	});
-    </script>
-    </body>
+				<h3>Votre classement</h3>
+				<table class="ranking">
+					<thead>
+						<th>Nom</th>
+						<th>Mail</th>
+						<th>Score</th>
+					</thead>
+					<tbody id="my_rank_tab"></tbody>
+				</table>
+
+				<h3>Les meilleurs scores</h3>
+				<table class="ranking">
+					<thead>
+						<th>Nom</th>
+						<th>Mail</th>
+						<th>Score</th>
+					</thead>
+					<tbody id="top_scores_tab"></tbody>
+				</table>
+			</div>
+		</div>
+
+		<script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
+		<script type="text/javascript" src="../js/json2.js" ></script>
+		<script type="text/javascript" src="../js/psug.js" ></script>
+		<script type="text/javascript">
+				$(document).ready(function (){
+					var show_this=function(){ $(this).removeClass("none"); };
+					var hide_this=function(){ $(this).addClass("none"); };
+
+					var $question_nb=$("#question_nb");
+					var $question=$("#question");
+					var $answers=$("#answers");
+					var $result_panel=$("#result_panel");
+					var $see_ranking=$("#see_ranking");
+					var $ranking_panel=$("#ranking_panel");
+					$result_panel.addClass("none");
+
+					
+					/* See ranking */
+					
+					var display_ranking=function (data, status, jqXHR){
+						$ranking_panel.addClass("none");
+
+						var $my_rank=$("#my_rank_tab");
+						var $top_scores=$("#top_scores_tab");
+						var $my_score=$("#my_score");
+						
+						$my_rank.html("");
+						$top_scores.html("");
+						
+						$my_score.html(data["score"]);
+						var before=data["before"];
+						var after=data["after"];
+						var top_scores=data["top_scores"];
+						
+						var tab_line=function(tab, index) {
+							var mail=tab["mail"][index];
+							var score=tab["scores"][index];
+							var firstname=tab["firstname"][index];
+							var lastname=tab["lastname"][index];
+							return "<tr><td>"+firstname+" "+lastname+"</td>"+"<td>"+mail+"</td>"+"<td>"+mail+"</td></tr>";
+						};
+						var before_length=before["scores"].length
+						var after_length=after["scores"].length
+						var top_scores_length=top_scores["scores"].length
+						
+						for (var i=0; i<before_length; i++) {
+							$my_rank.append(tab_line(before, i));							
+						}
+						$my_rank.append('<tr><td class="success center" colspan="3" >Vous!!</td></tr>');
+						for (var i=0; i<after_length; i++) {
+							$my_rank.append(tab_line(after, i));					
+						}
+						for (var i=0; i<top_scores_length; i++) {
+							$top_scores.append(tab_line(top_scores, i));							
+						}
+						$ranking_panel.removeClass("none");
+					};
+
+					var error_ranking=function (jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status===400) {
+							$result_panel.html("Une erreur est intervenue lors de la récupération du classement...");
+						} else if(jqXHR.status===401) {
+							$result_panel.html("Votre session n'a pas été reconnue.");
+						} else  {
+							$result_panel.html("Etat inconnu lors de la récupération du classement.<br /> Status:"+jqXHR.status);
+						}
+						$result_panel.addClass("error");
+						$result_panel.removeClass("none");
+					};
+
+					var see_ranking=function(){
+						$.get("/api/ranking").success(display_ranking).error(error_ranking);
+//						$.get("/web/mock/ranking1.json").success(display_ranking).error(error_ranking);
+					};				
+					
+					
+					/* Ask a new question */
+					var question=function(result, status, jqXHR){
+						if (question_nb===1) {
+								$(".play").each (  show_this ) ;
+								$(".waiting_to_begin").each ( hide_this ) ;
+						}
+						$question.html(result["question"]);
+						$question_nb.html(question_nb);
+						$answers.html("");
+
+						var answer_index=1;
+						while (result["answer_"+answer_index]!=null && result["answer_"+answer_index]!="") {
+								var ans=result["answer_"+answer_index];
+								var resp_link='<li><a href="#" class="possible_answer" id="answer_'+answer_index+'>'+ans+'</a></li>'
+								$answers.append(resp_link);
+								answer_index++;
+						}
+
+						var question_answered=function(answered, status, jqXHR){
+								$result_panel.attr("class", "none");
+								usi_log("Resultat de la requête ajax:"+JSON.stringify(answered));
+								if(jqXHR.status===201 || jqXHR.status===200) {
+									var are_u_right=toString(answered["are_u_right"]);
+									var result_class="answer_"+are_u_right;
+									var result_li=are_u_right==="true"?"Bravo!":"Désolé";
+									var good_answer="answer_"+answered["good_answer"];
+									$("#good_answer").html(good_answer);
+									$("#score").html(toString(answered["score"]));
+									$("#score_container").append('<li class="'+result_class+'">'+good_answer+'</li>');
+
+									get_next_question();
+
+								} else  {
+									$result_panel.html("Etat inconnu lors de l'enregistrement des réponses au quizz.");
+									$result_panel.addClass("error");
+									$result_panel.removeClass("none");
+									get_next_question();
+								}
+						};
+						var error_answer=function (jqXHR, textStatus, errorThrown) {
+							if (jqXHR.status===400) {
+								$result_panel.html("Une erreur est intervenu lors de l'envoi de la réponse...).");
+							} else if(jqXHR.status===401) {
+								$result_panel.html("Votre session n'a pas été reconnue.");
+							} else  {
+								$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz.<br /> Status:"+jqXHR.status);
+							}
+							$result_panel.addClass("error");
+							$result_panel.removeClass("none");
+						};
+
+						$("#answers .possible_answer").click ( function (e) {
+								var data={};
+								var nb=e.target.id.split("_")[1];
+								data["answer"]=nb;
+								usi_log(JSON.stringify(data));
+								$answers.html("");
+								$.post("/api/answer/"+question_nb, JSON.stringify(data), question_answered, "json").error(error_answer);
+						});
+					};
+					var error_get_next_question=function (jqXHR, textStatus, errorThrown) {
+						if (jqXHR.status===400) {
+							$result_panel.html("Non respect de la séquence de questions.<br /><a href='#' onclick='get_next_question()'>Voir la question suivante</a>");
+						} else if(jqXHR.status===401) {
+							$result_panel.html("Votre session n'a pas été reconnue.");
+						} else  {
+							$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz. <br /> Status:"+jqXHR.status);
+						}
+						$result_panel.addClass("error");
+						$result_panel.removeClass("none");
+					};
+					var get_next_question=function () {
+						if (question_nb===20) {
+							// The end!!
+							$("#finish").removeClass("none");
+							
+						} else {
+							question_nb++;
+							$.get('/api/question/'+question_nb).success(question).error(error_get_next_question);
+//							$.get('/web/mock/question_'+question_nb+".json").success(question).error(error_get_next_question);
+							
+						}
+					};
+
+					// Let's start
+					$see_ranking.click(see_ranking);
+					
+					var question_nb=0;
+					get_next_question();
+
+				});
+		</script>
+</body>
 </html>
