@@ -234,7 +234,7 @@
 					};
 					var error_get_next_question=function (jqXHR, textStatus, errorThrown) {
 						if (jqXHR.status===400) {
-							$result_panel.html("Non respect de la séquence de questions (ou autre erreur...).");
+							$result_panel.html("Non respect de la séquence de questions.<br /><a href='#' onclick='get_next_question()'>Voir la question suivante</a>");
 						} else if(jqXHR.status===401) {
 							$result_panel.html("Votre session n'a pas été reconnue.");
 						} else  {
