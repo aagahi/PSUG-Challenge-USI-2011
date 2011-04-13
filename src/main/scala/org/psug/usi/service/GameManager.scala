@@ -159,6 +159,7 @@ class GameManager( services:Services,
     currentQuestionPlayer = new QuestionPlayer
     nextQuestionPlayer = new QuestionPlayer
     gameState = Initialized
+    if( game.flushUserTable ) userRepositoryService ! ClearRepository
     sender ! InitGameSuccess
   }
 

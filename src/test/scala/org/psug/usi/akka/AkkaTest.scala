@@ -103,7 +103,7 @@ class AkkaTest extends Logging {
 
     val t2 = System.currentTimeMillis
     val count = new AtomicInteger(0)
-    val numFutures = 10000
+    val numFutures = 100
     (0 until numFutures).map( i=> new LightEventReceiverClient )
                 .map( _.callback( Query("OK") ){
                   case Response( "K0" ) => count.incrementAndGet; Unit

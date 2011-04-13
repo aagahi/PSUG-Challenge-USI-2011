@@ -73,7 +73,18 @@ class GameManagerSpec  extends SpecificationWithJUnit {
     startRepository.before
     exitRepository.after
 
+    "remove all existing player if initialized with a game with flushing data" in {
+      val game = GameGenerator( 3, 4, 160, flushUserTable = true )
+      val users = UserGenerator( userRepositoryService, 160 )
+      val DataPulled( data ) = userRepositoryService !? PullLast
+      data.isDefined must beTrue
 
+      gameManagerService !? InitGame(game)
+
+      val DataPulled( noData ) = userRepositoryService !? PullLast
+      noData.isEmpty must beTrue
+
+    }
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 

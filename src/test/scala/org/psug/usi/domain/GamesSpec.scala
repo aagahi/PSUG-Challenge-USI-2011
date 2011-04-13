@@ -51,7 +51,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
 
 
-  "in-memory game repository" should {
+  "game repository" should {
     val services = new ClientServices()
     import services._
 

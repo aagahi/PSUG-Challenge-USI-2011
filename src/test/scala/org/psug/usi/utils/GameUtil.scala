@@ -27,7 +27,7 @@ object UserGenerator {
 
 object GameGenerator {
 
-  def apply( nbQuestion:Int, nbAnswer:Int, nbUsersThreshold:Int, loginTimeoutSec:Int = 5, synchroTimeSec:Int = 7, questionTimeFrameSec:Int = 11 ):Game =
+  def apply( nbQuestion:Int, nbAnswer:Int, nbUsersThreshold:Int, loginTimeoutSec:Int = 5, synchroTimeSec:Int = 7, questionTimeFrameSec:Int = 11, flushUserTable:Boolean = false ):Game =
   {
     val questions = for( i <- 1 to nbQuestion ) yield {
       val correctAnswer = Random.nextInt( nbQuestion )
@@ -46,7 +46,7 @@ object GameGenerator {
          , synchroTimeSec = synchroTimeSec
          , questionTimeFrameSec = questionTimeFrameSec
          , nbQuestions = nbQuestion
-         , flushUserTable = false
+         , flushUserTable = flushUserTable
          , nbUsersThreshold = nbUsersThreshold
          )
 

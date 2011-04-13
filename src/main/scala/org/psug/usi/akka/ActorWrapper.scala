@@ -12,21 +12,12 @@ import akka.actor.Actor._
 import akka.dispatch.Future
 import akka.util.Logging
 
-case class CallbackQuery( msg:AnyRef, target:ActorRef, f: PartialFunction[Any,Unit] )
+case class CallbackQuery( callback:()=>Unit )
 
 class Callback extends Actor{
 
     def receive = {
-      case CallbackQuery( msg, target, f ) =>
-        val future:Future[AnyRef] = target.!!!( msg, 20000 )( None )
-        future.onComplete( {
-          future:Future[AnyRef] =>
-          future.result match {
-            case Some( v ) => f( v )
-            case None => log.error("Unexpected empty futur for callback message: "+ msg )
-          }
-        } )
-
+      case CallbackQuery( callback ) => callback()
     }
   }
 
@@ -42,22 +33,29 @@ trait ActorWrapper extends Logging {
   
   def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg, 20000 )( senderActor )
 
-
-
-  lazy val callbacker = actorOf[Callback]
-  def callback( msg:AnyRef )( f: PartialFunction[Any,Unit] ){
-    if( callbacker.isUnstarted ) callbacker.start()
-    callbacker ! CallbackQuery( msg, actorRef, f )
+  def callbackFunction( msg:AnyRef, target:ActorRef, f: PartialFunction[Any,Unit] )()
+  {
+    val future:Future[AnyRef] = target.!!!( msg, 20000 )( None )
+    future.onComplete( {
+      future:Future[AnyRef] =>
+        future.result match {
+          case Some( v ) => f( v )
+          case None => log.error("Unexpected empty futur for callback message: "+ msg )
+        }
+    } )
   }
 
-  
+
+  def callback( msg:AnyRef )( f: PartialFunction[Any,Unit] ){
+    callbackFunction( msg, actorRef, f )()
+  }
+
+
   def sender = actorRef.channel
   def start() = actorRef.start
   def reply( msg:Any ) = sender ! msg 
-  def stop() = {
-    actorRef.stop()
-    if( callbacker.isRunning ) callbacker.stop()
-  }
+  def stop(){ actorRef.stop() }
+
 }
 
 class ReceiverAkkaActor( reciever:Receiver ) extends Actor {
@@ -87,6 +85,20 @@ trait Receiver extends ActorWrapper {
 
 class RemoteReceiver( id:String, host:String, port:Int) extends ActorWrapper {
   val actorRef:ActorRef = remote.actorFor( id, host, port )
+
+  lazy val callbacker = actorOf[Callback]
+  override def callback( msg:AnyRef )( f: PartialFunction[Any,Unit] ){
+    if( callbacker.isUnstarted ) callbacker.start()
+    callbacker ! CallbackQuery( callbackFunction( msg, actorRef, f ) )
+  }
+
+  override def stop(){
+    super.stop()
+    if( callbacker.isRunning ) callbacker.stop()
+  }
+
+
+
 }
 
 
