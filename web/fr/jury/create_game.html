@@ -57,17 +57,18 @@
 						<label for="logintimeout"> <strong>Durée maximale du long polling</strong> (GET
 							/api/question/1) en secondes. <br />Au bout de cette durée, le serveur répond à toutes les
 							requêtes en attente, si il ne l'a pas déjà fait. <br />
-						<a target="_blank"
+<!-- 						<a target="_blank"
 							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
-								la page de séquences.</a> </label><br /> <input type="text" name="logintimeout" id="logintimeout"
+								la page de séquences.</a> --> </label><br /> <input type="text" name="logintimeout" id="logintimeout"
 							class="required digits min:0" />
 					</p>
 					<p>
 						<label for="synchrotime"> <strong>Durée entre la fin de la période de réponse</strong>
 							pour une question N (POST /api/answer/N) et le retour synchrone des appels à une question N+1
-							(GET /api/question/N+1) en secondes. <a target="_blank"
+							(GET /api/question/N+1) en secondes. 
+							<!-- <a target="_blank"
 							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
-								la page de séquences.</a> </label><br /> <input type="text" name="synchrotime" id="synchrotime"
+								la page de séquences.</a>  --></label><br /> <input type="text" name="synchrotime" id="synchrotime"
 							class="required digits min:0" />
 					</p>
 					<p>
@@ -79,9 +80,9 @@
 						<label for="questiontimeframe"> <strong>Temps maximum pour répondre à la
 								question</strong> <br /> &Agrave; partir du moment où le serveur répond aux requêtes question, les
 							utilisateurs ont un temps maximum pour répondre à la question. <br />Ce paramètre indique
-							cette durée en secondes. <a target="_blank"
+							cette durée en secondes. <!-- <a target="_blank"
 							href="https://sites.google.com/a/octo.com/challengeusi2011/l-application-de-quiz/sequences-d-appels">Voir
-								la page de séquences.</a> </label><br /> <input type="text" name="questiontimeframe"
+								la page de séquences.</a> --> </label><br /> <input type="text" name="questiontimeframe"
 							id="questiontimeframe" class="required digits min:0" />
 					</p>
 					<p>
@@ -605,7 +606,12 @@
 				<input type="submit" name="submit" id="submit" value="Valider" />
 			</form>
 		</div>
-		<div id="footer"></div>
+		<div id="footer" class="small">
+			<strong>Vous êtes jury? C'est par ici pour</strong> <a href="../jury/create_user.html">créer
+				un utilisateur</a> ou <a href="../jury/create_game.html">créer une nouvelle partie</a> <br /> <strong>Vous
+				êtes un joueur ? </strong> <a href="../player/login.html">Authentifiez vous</a> ou <a
+				href="../player/play.html">rejoignez la partie</a>
+		</div>
 	</div>
     <script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
     <script type="text/javascript" src="../js/json2.js" ></script>

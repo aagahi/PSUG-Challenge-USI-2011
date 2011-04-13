@@ -50,6 +50,7 @@ A PASSER EN display:none avant la prod
 body 
 {
     font-family: Verdana, sans;
+    font-size:96%;
     margin-top: 10px;
     margin-bottom: 10px;
 }

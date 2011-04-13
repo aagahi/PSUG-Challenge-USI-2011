@@ -29,15 +29,11 @@
 				</form>
 		</div>
 		<div id="footer" class="small">
-			<strong>Vous êtes jury? C'est par ici pour</strong>
-			<a href="../jury/create_user.html">créer un utilisateur</a>
-			ou <a href="../jury/create_game.html">créer une nouvelle partie</a>
-			<br />
-			<strong>Vous êtes un joueur ? </strong>
-			<a href="../player/login.html">Authentifiez vous</a>
-			ou <a href="../player/play.html">rejoignez la partie</a>
-	  </div>
-
+			<strong>Vous êtes jury? C'est par ici pour</strong> <a href="../jury/create_user.html">créer
+				un utilisateur</a> ou <a href="../jury/create_game.html">créer une nouvelle partie</a> <br /> <strong>Vous
+				êtes un joueur ? </strong> <a href="../player/login.html">Authentifiez vous</a> ou <a
+				href="../player/play.html">rejoignez la partie</a>
+		</div>
 	</div>
 	<script type="text/javascript" src="../js/jquery-1.5.2.min.js" ></script>
 	<script type="text/javascript" src="../js/json2.js" ></script>
@@ -73,8 +69,8 @@
 				}
 
 		var success=function(result, status, jqXHR){
-			usi_log("Resultat de la requête ajax:"+result);
-			if(jqXHR.status===200) {
+			usi_log("Resultat de la requête ajax:"+JSON.stringify(result));
+			if(jqXHR.status===200 || jqXHR.status===201) {
 				$result_panel.html('<a id="linkto_game" href="play.html">Bienvenue sur le Quizz de la mort qui tue.</a><br /><a id="linkto_game" href="play.html">Vous pouvez maintenant commencer à jouer</a><br /><br /><span class="small">May the async force be with you.</span>');
 					$result_panel.addClass("success");
 			} else if(jqXHR.status===400) {

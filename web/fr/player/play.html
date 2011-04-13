@@ -2,13 +2,14 @@
 <html>
 <head>
 	<meta charset="utf-8" />
-	<title>Création d'un utilisateur</title>
+	<title>Play! ;)</title>
 	<link rel="stylesheet" href="../css/reset.css" type="text/css" />
 	<link rel="stylesheet" href="../css/style.css" type="text/css" />
 		<style type="text/css">
 				.answer_recap li { float: left ; width:5em ; padding-left:1em; font-size:1.2em;}
 				.answer_recap li .answer_true  { color:#0F0 ; }
 				.answer_recap li .answer_false { color:#0F0 ; text-decoration:line-through; }
+				#answers li { line-height:1.3em;}
 		</style>
 	<script type="text/javascript">
 		// TODO vérifier le cookie
@@ -36,6 +37,8 @@
 					<h4>Question no <span id="question_nb"></span></h4>
 					<p>
 						<strong><span id="question"></span></strong>
+						<br />
+						<br />
 						<ul id="answers"></ul>
 					</p>
 				</form>
@@ -53,6 +56,8 @@
 					var $question_nb=$("#question_nb");
 					var $question=$("#question");
 					var $answers=$("#answers");
+					var $result_panel=$("#result_panel");
+					$result_panel.addClass("none");
 
 					var question=function(result, status, jqXHR){
 						if (question_nb===1) {
@@ -72,7 +77,8 @@
 						}
 
 						var question_answered=function(answered, status, jqXHR){
-								usi_log("Resultat de la requête ajax:"+result);
+								$result_panel.attr("class", "none");
+								usi_log("Resultat de la requête ajax:"+JSON.stringify(answered));
 								if(jqXHR.status===201 || jqXHR.status===200) {
 									var are_u_right=toString(answered["are_u_right"]);
 									var result_class="answer_"+are_u_right;
@@ -87,33 +93,41 @@
 								} else if (jqXHR.status===400) {
 									$result_panel.html('une erreur est intervenu avec votre dernière réponse. Veuillez recommencer.');
 									$result_panel.addClass("error");
+									$result_panel.removeClass("none");
 									question_nb++ ;
 									get_question();
 								} else if(jqXHR.status===401) {
 									$result_panel.html("Votre session n'a pas été reconnue. Veuillez recommencer.");
 									$result_panel.addClass("error");
+									$result_panel.removeClass("none");
 									question_nb++ ;
 									get_question();
 								} else  {
 									$result_panel.html("Etat inconnu lors de l'enregistrement des réponses au quizz");
 									$result_panel.addClass("error");
+									$result_panel.removeClass("none");
 									question_nb++ ;
 									get_question();
 								}
 						};
 
 						$("#answers .possible_answer").bind("click", function (e) {
-								var data=new Array();
-								data["answer"]=result[e.target.id];
+								var data={};
+								var nb=e.target.id.split("_")[1];
+								data["answer"]=nb;
+								usi_log(JSON.stringify(data));
+								$answers.html("");
 								$.post("/api/answer/"+question_nb, JSON.stringify(data), question_answered, "json").error(error);
 						});
 					};
 					var error=function (jqXHR, textStatus, errorThrown) {
-						alert("Erreur lors de la récupération de la question "+ question_nb +"\nStatus="+jqXHR.status)
+						$result_panel.addClass("error");
+						$result_panel.html("Erreur lors de la récupération de la question "+ question_nb +"<br />Status="+jqXHR.status)
+						$result_panel.removeClass("none");
 					};
 					var get_question=function () {
-						// $.get('/api/question/'+question_nb).success(question).error(error);
-						$.get('/web/mock/question_'+question_nb+".json").success(question).error(error);
+						$.get('/api/question/'+question_nb).success(question).error(error);
+						//$.get('/web/mock/question_'+question_nb+".json").success(question).error(error);
 					};
 
 					// Let's start
