@@ -12,6 +12,23 @@ import akka.actor.Actor._
 import akka.dispatch.Future
 import akka.util.Logging
 
+case class CallbackQuery( msg:AnyRef, target:ActorRef, f: PartialFunction[Any,Unit] )
+
+class Callback extends Actor{
+
+    def receive = {
+      case CallbackQuery( msg, target, f ) =>
+        val future:Future[AnyRef] = target.!!!( msg, 20000 )( None )
+        future.onComplete( {
+          future:Future[AnyRef] =>
+          future.result match {
+            case Some( v ) => f( v )
+            case None => log.error("Unexpected empty futur for callback message: "+ msg )
+          }
+        } )
+
+    }
+  }
 
 trait ActorWrapper extends Logging {
   val actorRef:ActorRef
@@ -25,22 +42,22 @@ trait ActorWrapper extends Logging {
   
   def !! [T]( msg:Any )(implicit senderActor: Option[ActorRef] =None):Future[T] = actorRef.!!!( msg, 20000 )( senderActor )
 
-  def callback( msg:Any )( f: PartialFunction[Any,Unit] )(implicit senderActor: Option[ActorRef] =None){
-    val future:Future[Any] = actorRef.!!!( msg )( senderActor )
-    future.onComplete( {
-      future:Future[Any] =>
-        future.result match {
-          case Some( v ) => f( v )
-          case None => log.error("Unexpected empty futur for callback message: "+ msg )
-        }
-    } )
+
+
+  lazy val callbacker = actorOf[Callback]
+  def callback( msg:AnyRef )( f: PartialFunction[Any,Unit] ){
+    if( callbacker.isUnstarted ) callbacker.start()
+    callbacker ! CallbackQuery( msg, actorRef, f )
   }
 
-
+  
   def sender = actorRef.channel
   def start() = actorRef.start
   def reply( msg:Any ) = sender ! msg 
-  def stop() = actorRef.stop()
+  def stop() = {
+    actorRef.stop()
+    if( callbacker.isRunning ) callbacker.stop()
+  }
 }
 
 class ReceiverAkkaActor( reciever:Receiver ) extends Actor {

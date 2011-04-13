@@ -130,7 +130,7 @@ class GameManager( services:Services,
     case QueryStats => 
       sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex,gameState)
     case QueryQuestion(userId, questionIndex) 
-      if(registredPlayersHistory.isDefinedAt(userId)) 
+      if( questionIndex >= currentQuestionIndex && questionIndex <= currentQuestionIndex+1 && registredPlayersHistory.isDefinedAt(userId) )
       => queryQuestion(userId, questionIndex)
     case UserAnswer(userId, questionIndex, answerIndex) 
       if (registredPlayersHistory.isDefinedAt(userId) && questionIndex == currentQuestionIndex)
@@ -143,6 +143,7 @@ class GameManager( services:Services,
     case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
     case x =>
       log.warn( "Unhandled GameManager message: " + x )
+      sender ! GameManagerError
   }
 
 
@@ -446,7 +447,7 @@ class GameManager( services:Services,
       val properties = new Properties()
       properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
       if( properties.getProperty("endgame.twitter.enabled").toBoolean )
-        Twitter.update("Notre application supporte "+game.nbUsersThreshold+" joueurs #challengeUSI2011")
+        Twitter.update("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
     }
   }
 

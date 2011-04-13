@@ -39,7 +39,7 @@ start_server () {
 
     ntpdate 10.50.80.7
 
-    echo "65535" > /proc/sys/fs/file-max
+    #echo "65535" > /proc/sys/fs/file-max
     ulimit -n 65535
     iptables -t nat -F
 
