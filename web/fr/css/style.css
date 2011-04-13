@@ -35,10 +35,12 @@ A PASSER EN display:none avant la prod
 */
 #usi_debug 
 { 
-  display:inherit;
+  display:none;
 
-  width:500px; height:12em; overflow:auto; border:1px dotted #c00;
+  width:500px; height:7em; overflow:auto; border:1px dotted #c00;
   position:absolute; top:3em; right: 350px; 
+  background-color:Cornsilk;
+  opacity:0.35;
 }
 #cheat_button { display:inherit;} /* TODO A mettre en display none :) */
 
