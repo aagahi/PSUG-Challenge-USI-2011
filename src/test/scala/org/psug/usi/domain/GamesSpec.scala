@@ -31,9 +31,8 @@ class GamesSpec extends SpecificationWithJUnit {
       game.nbUsersThreshold must be_==( 7 )
       game.flushUserTable must be_==( true )
 
-      game.questions.size must be_==( 6 )
+      game.questions.size must be_==( 20 )
       0 to 4 foreach{ i => game.questions(i).value must be_==( 1 ) }
-      game.questions( 5 ).value must be_==( 5 )
 
       game.questions.zipWithIndex.foreach{
         case( question, questionIndex ) =>
@@ -44,6 +43,13 @@ class GamesSpec extends SpecificationWithJUnit {
           answer.status must be_==( (questionIndex % 4) == answserIndex )
         }
       }
+
+
+      for( i <- 0 until 5) game.questions(i).value must be( 1 )
+      for( i <- 5 until 10) game.questions(i).value must be( 5 )
+      for( i <- 10 until 15) game.questions(i).value must be( 10 )
+      for( i <- 15 until 20) game.questions(i).value must be( 15 )
+
 
 
     }

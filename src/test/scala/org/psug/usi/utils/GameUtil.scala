@@ -35,8 +35,9 @@ object GameGenerator {
         Answer( "A"+i+"-"+j, j-1 == correctAnswer )
       }
 
-      var questionValue = ((i)/5)*5
+      var questionValue = i/5
       if( questionValue == 0 ) questionValue = 1
+      else questionValue *= 5
 
       Question( "Q"+i, answers, questionValue )
     }

@@ -62,11 +62,15 @@ object Game extends Logging {
           case ( xmlAnwer, index ) => Answer( xmlAnwer.text, index == goodChoice )
         }
 
-        var questionValue = ((index)/5)*5
+        var questionValue = index/5
         if( questionValue == 0 ) questionValue = 1
+        else questionValue *= 5
+
         Question( ( xmlQuestion \ "label" ).text, answers, questionValue )
 
     }
+
+    
 
     new Game( 0,
               questions,

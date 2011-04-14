@@ -43,6 +43,104 @@
             <usi:choice>A63</usi:choice>
             <usi:choice>A64</usi:choice>
         </usi:question>
+        <usi:question goodchoice="3">
+            <usi:label>Q7</usi:label>
+            <usi:choice>A71</usi:choice>
+            <usi:choice>A72</usi:choice>
+            <usi:choice>A73</usi:choice>
+            <usi:choice>A74</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="4">
+            <usi:label>Q8</usi:label>
+            <usi:choice>A81</usi:choice>
+            <usi:choice>A82</usi:choice>
+            <usi:choice>A83</usi:choice>
+            <usi:choice>A84</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="1">
+            <usi:label>Q9</usi:label>
+            <usi:choice>A91</usi:choice>
+            <usi:choice>A92</usi:choice>
+            <usi:choice>A93</usi:choice>
+            <usi:choice>A94</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="2">
+            <usi:label>Q10</usi:label>
+            <usi:choice>A101</usi:choice>
+            <usi:choice>A102</usi:choice>
+            <usi:choice>A103</usi:choice>
+            <usi:choice>A104</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="3">
+            <usi:label>Q11</usi:label>
+            <usi:choice>A111</usi:choice>
+            <usi:choice>A112</usi:choice>
+            <usi:choice>A113</usi:choice>
+            <usi:choice>A114</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="4">
+            <usi:label>Q12</usi:label>
+            <usi:choice>A121</usi:choice>
+            <usi:choice>A122</usi:choice>
+            <usi:choice>A123</usi:choice>
+            <usi:choice>A124</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="1">
+            <usi:label>Q13</usi:label>
+            <usi:choice>A131</usi:choice>
+            <usi:choice>A132</usi:choice>
+            <usi:choice>A133</usi:choice>
+            <usi:choice>A134</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="2">
+            <usi:label>Q14</usi:label>
+            <usi:choice>A141</usi:choice>
+            <usi:choice>A142</usi:choice>
+            <usi:choice>A143</usi:choice>
+            <usi:choice>A144</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="3">
+            <usi:label>Q15</usi:label>
+            <usi:choice>A151</usi:choice>
+            <usi:choice>A152</usi:choice>
+            <usi:choice>A153</usi:choice>
+            <usi:choice>A154</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="4">
+            <usi:label>Q16</usi:label>
+            <usi:choice>A161</usi:choice>
+            <usi:choice>A162</usi:choice>
+            <usi:choice>A163</usi:choice>
+            <usi:choice>A164</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="1">
+            <usi:label>Q17</usi:label>
+            <usi:choice>A171</usi:choice>
+            <usi:choice>A172</usi:choice>
+            <usi:choice>A173</usi:choice>
+            <usi:choice>A174</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="2">
+            <usi:label>Q18</usi:label>
+            <usi:choice>A181</usi:choice>
+            <usi:choice>A182</usi:choice>
+            <usi:choice>A183</usi:choice>
+            <usi:choice>A184</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="3">
+            <usi:label>Q19</usi:label>
+            <usi:choice>A191</usi:choice>
+            <usi:choice>A192</usi:choice>
+            <usi:choice>A193</usi:choice>
+            <usi:choice>A194</usi:choice>
+        </usi:question>
+        <usi:question goodchoice="4">
+            <usi:label>Q20</usi:label>
+            <usi:choice>A201</usi:choice>
+            <usi:choice>A202</usi:choice>
+            <usi:choice>A203</usi:choice>
+            <usi:choice>A204</usi:choice>
+        </usi:question>
     </usi:questions>
     <usi:parameters>
         <usi:logintimeout>3</usi:logintimeout>
