@@ -264,9 +264,10 @@ class GameManager( services:Services,
 
     val currentQuestion = game.questions(currentQuestionIndex)
 
+
     val answerValue = if (currentQuestion.answers(answerIndex).status){
         val bonus = userAnswerHistory.answerBonus
-        userAnswerHistory.answerBonus = bonus + 1
+        userAnswerHistory.answerBonus += 1
         currentQuestion.value + bonus
       } else {
         userAnswerHistory.answerBonus = 0
@@ -471,7 +472,8 @@ class GameManager( services:Services,
         if (!currentQuestionPlayer.playerActors.contains( userId ) ) {
           val userAnswerHistory = registredPlayersHistory( userId )
 
-          userAnswerHistory.answerBonus = 0
+          if( userAnswerHistory.answersHistory.find( _.questionIndex == currentQuestionIndex ).isEmpty )
+            userAnswerHistory.answerBonus = 0
         }
       }
 
