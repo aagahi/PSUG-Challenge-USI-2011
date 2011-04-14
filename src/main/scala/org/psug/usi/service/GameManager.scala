@@ -141,6 +141,9 @@ class GameManager( services:Services,
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
     case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
+
+    case msg:RepositoryCleared => // noop
+      
     case x =>
       log.warn( "Unhandled GameManager message: " + x )
       sender ! GameManagerError

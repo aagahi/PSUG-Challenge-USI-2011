@@ -5,7 +5,7 @@ import org.scribe.builder.api.TwitterApi
 import org.scribe.model.{Verb, OAuthRequest, Token, Verifier}
 import java.util.Scanner
 
-import net.liftweb.json.JsonAST.{JInt, JField}
+import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonParser._
 import akka.util.Logging
 

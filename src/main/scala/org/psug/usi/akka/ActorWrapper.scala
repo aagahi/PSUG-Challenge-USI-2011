@@ -11,15 +11,15 @@ import akka.actor.{ActorRef, Actor}
 import akka.actor.Actor._
 import akka.dispatch.Future
 import akka.util.Logging
-
 case class CallbackQuery( callback:()=>Unit )
 
 class Callback extends Actor{
 
-    def receive = {
-      case CallbackQuery( callback ) => callback()
-    }
+  def receive = {
+    case CallbackQuery( callback ) => callback()
   }
+  
+}
 
 trait ActorWrapper extends Logging {
   val actorRef:ActorRef
@@ -97,8 +97,19 @@ class RemoteReceiver( id:String, host:String, port:Int) extends ActorWrapper {
     if( callbacker.isRunning ) callbacker.stop()
   }
 
-
-
+  /*
+  remote.addListener( actorOf(new Actor {
+  def receive = {
+    case RemoteServerStarted(server)                           => log.debug( "RemoteServerStarted")
+    case RemoteServerShutdown(server)                          => log.warn( "RemoteServerShutdown")
+    case RemoteServerError(cause, server)                      => log.warn( "RemoteServerShutdown")
+    case RemoteServerClientConnected(server, clientAddress)    => log.info( "RemoteServerClientConnected")
+    case RemoteServerClientDisconnected(server, clientAddress) => log.info( "RemoteServerClientDisconnected")
+    case RemoteServerClientClosed(server, clientAddress)       => log.info( "RemoteServerClientClosed")
+    case RemoteServerWriteFailed(request, casue, server, clientAddress) => log.warn( "RemoteServerWriteFailed")
+  }
+  }).start)
+  */
 }
 
 

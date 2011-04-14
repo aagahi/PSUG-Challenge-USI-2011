@@ -33,10 +33,35 @@ trait Services {
  * client instances of services viewed remotely as define in akka conf.
  */
 class ClientServices( host:String = "localhost", servicesPort: Int = 2552) extends Services {
-  override def userRepositoryService = new RemoteReceiver( "UserRepositoryService", host, servicesPort ) with UserRepositoryService
-  override def gameRepositoryService = new RemoteReceiver( "GameRepositoryService", host, servicesPort ) with GameRepositoryService
-  override def gameUserHistoryService = new RemoteReceiver( "GameUserHistoryRepositoryService", host, servicesPort ) with GameUserHistoryRepositoryService
-  override def gameManagerService = new RemoteReceiver( "GameManager", host, servicesPort ) with GameManagerService
+
+  private var _userRepositoryService:RemoteReceiver with UserRepositoryService = null
+  override def userRepositoryService = {
+    if( _userRepositoryService == null || !_userRepositoryService.actorRef.isRunning )
+      _userRepositoryService = new RemoteReceiver( "UserRepositoryService", host, servicesPort ) with UserRepositoryService
+    _userRepositoryService
+  }
+  
+
+  private var _gameRepositoryService:RemoteReceiver with GameRepositoryService = null
+  override def gameRepositoryService = {
+    if( _gameRepositoryService == null || !_gameRepositoryService.actorRef.isRunning )
+      _gameRepositoryService = new RemoteReceiver( "GameRepositoryService", host, servicesPort ) with GameRepositoryService    
+     _gameRepositoryService
+  }
+
+  private var _gameUserHistoryService:RemoteReceiver with GameUserHistoryRepositoryService = null
+  override def gameUserHistoryService = {
+    if( _gameUserHistoryService == null || !_gameUserHistoryService.actorRef.isRunning )
+      _gameUserHistoryService = new RemoteReceiver( "GameUserHistoryRepositoryService", host, servicesPort ) with GameUserHistoryRepositoryService
+    _gameUserHistoryService
+  }
+
+  private var _gameManagerService:RemoteReceiver with GameManagerService = null
+  override def gameManagerService = {
+    if( _gameManagerService == null || !_gameManagerService.actorRef.isRunning )
+      _gameManagerService = new RemoteReceiver( "GameManager", host, servicesPort ) with GameManagerService
+    _gameManagerService
+  }
 }
 
 

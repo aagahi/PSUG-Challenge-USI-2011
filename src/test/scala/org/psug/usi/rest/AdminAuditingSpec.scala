@@ -14,7 +14,6 @@ import net.liftweb.json.Serialization.read
 import org.psug.usi.utils.{UserGenerator, GameGenerator, GamePlayer}
 import scala.util.Random
 import org.jboss.netty.handler.codec.http.HttpResponseStatus
-
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
 
@@ -78,7 +77,6 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       webServer.stop
       serverServices.shutdown
     }
-
 
 
     "provide user score if good auth key is provided, a game was played" in {
@@ -224,10 +222,8 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
 
 
-
-
     "works even if service are restarted" in {
-      val DataStored( Right( game ) ) = serverServices.gameRepositoryService !? StoreData( GameGenerator( 3, 4, 64 ) )
+      val DataStored( Right( game ) ) = gameRepositoryService !? StoreData( GameGenerator( 3, 4, 64 ) )
       val users = UserGenerator( userRepositoryService, 64 )
 
       val gamePlayer = new GamePlayer( gameManagerService, game.asInstanceOf[Game], users )
@@ -235,7 +231,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
       users.foreach{
         user =>
-        val ScoreSlice( ranking ) = (serverServices.gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
+        val ScoreSlice( ranking ) = ( gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
         val expectedRanking = gamePlayer.expectedScoreSlice( user )
         ranking.deepEquals( expectedRanking ) must beTrue
 
@@ -244,9 +240,11 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       serverServices.shutdown
       serverServices.launch
 
+
       users.foreach{
         user =>
-        val ScoreSlice( ranking ) = (serverServices.gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
+
+        val ScoreSlice( ranking ) = ( gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
         val expectedRanking = gamePlayer.expectedScoreSlice( user )
         ranking.deepEquals( expectedRanking ) must beTrue
 

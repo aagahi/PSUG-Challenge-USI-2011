@@ -121,6 +121,15 @@ object deploy {
       exit(1)
     } else
       println("Distribution archive exists OK")
+    val script = new File("script/challenge-usi-server")
+    if (!script.exists) {
+      println("Script file for project challenge-usi does not exist!")
+      exit(1)
+    } else
+      println("Script exists OK")
+
+    println( "Did you check?\nakka.conf: hostname should be vfabric1\nconfiguration.properties: services.host should be vfabric1\nlogback.xml root level should be warn" )
+
 
     // assume public key is set up and ssh is in path
     run("ssh", user + "@" + host, "mkdir -p " + deploymentDirectory )("fail to create remote directory " + host + ":" + deploymentDirectory + ". Check credentials, network and other usual suspects for SSH related stuff",
@@ -128,12 +137,6 @@ object deploy {
 
     run("scp", dist.getPath, user + "@" + host + ":" + deploymentDirectory + "/challenge-usi-dist.zip")("Cannot remote copy distribution archive to " + host + ". Check credentials, network and other usual suspects for SSH related stuff", "remote copy archive " + dist + " to " + host + ":" + deploymentDirectory + " OK")
 
-    val script = new File("script/challenge-usi-server")
-    if (!script.exists) {
-      println("Script file for project challenge-usi does not exist!")
-      exit(1)
-    } else
-      println("Script exists OK")
 
     run("scp", script.getPath, user + "@" + host + ":" + deploymentDirectory )("Cannot remote copy script to " + host + ". Check credentials, network and other usual suspects for SSH related stuff", "Remote copy archive " + dist + " to " + host + ":" + deploymentDirectory + " OK")
 
