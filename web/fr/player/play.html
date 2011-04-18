@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8" />
@@ -46,8 +45,9 @@
 	</div>
 	<div id="content">
 		<div id="result_panel">
-			<span id="bad_sequence" class="error none">
-				Non respect de la séquence de questions.<br /><br /><a href='#' id='get_next_question'>Voir la question suivante</a>
+			<span id="result_panel_text"></span>
+			<span id="bad_sequence" class="error play none">
+				<br /><br /><a href='#' id='get_next_question'>Voir la question suivante</a>
 			</span>
 		</div>
 		<div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
@@ -109,6 +109,7 @@
 					var $question=$("#question");
 					var $answers=$("#answers");
 					var $result_panel=$("#result_panel");
+					var $result_panel_text=$("#result_panel_text");
 					var $see_ranking=$("#see_ranking");
 					var $ranking_panel=$("#ranking_panel");
 					var $bad_sequence=$("#bad_sequence");
@@ -120,7 +121,8 @@
 					
 					var display_ranking=function (data, status, jqXHR){
 						$ranking_panel.addClass("none");
-
+						$bad_sequence.addClass("none");
+						
 						var $my_rank=$("#my_rank_tab");
 						var $top_scores=$("#top_scores_tab");
 						var $my_score=$("#my_score");
@@ -159,13 +161,14 @@
 
 					var error_ranking=function (jqXHR, textStatus, errorThrown) {
 						if (jqXHR.status===400) {
-							$result_panel.html("Une erreur est intervenue lors de la récupération du classement...");
+							$result_panel_text.html("Une erreur est intervenue lors de la récupération du classement...");
 						} else if(jqXHR.status===401) {
-							$result_panel.html("Votre session n'a pas été reconnue.");
+							$result_panel_text.html("Votre session n'a pas été reconnue.");
 						} else  {
-							$result_panel.html("Etat inconnu lors de la récupération du classement.<br /> Status:"+jqXHR.status);
+							$result_panel_text.html("Etat inconnu lors de la récupération du classement.<br /> Status:"+jqXHR.status);
 						}
 						$result_panel.addClass("error");
+						$bad_sequence.addClass("none");
 						$result_panel.removeClass("none");
 					};
 
@@ -206,30 +209,32 @@
 						}
 
 						var question_answered=function(answered, status, jqXHR){
-								$result_panel.attr("class", "none");
+								$result_panel.addClass("none");
 								usi_log("Resultat de la requête ajax:"+JSON.stringify(answered));
 								if(jqXHR.status===201 || jqXHR.status===200) {
 									add_answer_to_tab(answered);
 									get_next_question();
 								} else  {
-									$result_panel.html("Etat inconnu lors de l'enregistrement des réponses au quizz.");
+									$result_panel_text.html("Etat inconnu lors de l'enregistrement des réponses au quizz.");
 									$result_panel.addClass("error");
 									$result_panel.removeClass("none");
-									get_next_question();
+									var answered={"are_u_right":false, "good_answer":"-", score:"-"};
+									add_answer_to_tab(answered);
 								}
 						};
 						var error_answer=function (jqXHR, textStatus, errorThrown) {
-							if (jqXHR.status===400) {
-								$result_panel.html("Une erreur est intervenu lors de l'envoi de la réponse...");
-								var answered={"are_u_right":false, "good_answer":"-", score:"-"};
-								add_answer_to_tab(answered);
-								get_next_question();
-							} else if(jqXHR.status===401) {
-								$result_panel.html("Votre session n'a pas été reconnue.");
-							} else  {
-								$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz.<br /> Status:"+jqXHR.status);
-								get_next_question();
+							if(jqXHR.status===401) {
+								$result_panel_text.html("Votre session n'a pas été reconnue.");
+								$result_panel.addClass("error");
+								$result_panel.removeClass("none");
+								return;
+							} else if (jqXHR.status===400) {
+								$result_panel_text.html("Time out! Votre réponse est arrivée trop tard...");
+							} else   {
+								$result_panel_text.html("Etat inconnu lors de la récupération d'une question du quizz.<br /> Status:"+jqXHR.status);
 							}
+							var answered={"are_u_right":false, "good_answer":"-", score:"-"};
+							add_answer_to_tab(answered);
 							$result_panel.addClass("error");
 							$result_panel.removeClass("none");
 						};
@@ -253,7 +258,6 @@
 						}
 					};
 					var get_next_question=function () {
-						$bad_sequence.addClass("none");
 						$result_panel.click(null);
 						if (question_nb===20) {
 							// The end!!
@@ -264,21 +268,19 @@
 							var error_get_next_question=function (jqXHR, textStatus, errorThrown) {
 								let_the_show_begin();
 								if (jqXHR.status===401) {
-									$result_panel.html("Votre session n'a pas été reconnue.");
+									$result_panel_text.html("Votre session n'a pas été reconnue.");
 									$result_panel.addClass("error");
 									$result_panel.removeClass("none");
 									return;
 								} else if (jqXHR.status===400) {
-									$bad_sequence.removeClass("none");
+									$result_panel_text.html("Dans notre qgrna quizz nous n'en sommes déjà plus à cette question...");
 								} else  {
-									$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz. <br /> Status:"+jqXHR.status);
-									$bad_sequence.addClass("none");
+									$result_panel_text.html("Etat inconnu lors de la récupération d'une question du quizz. <br /> Status:"+jqXHR.status);
 								}
 								$result_panel.addClass("error");
 								$result_panel.removeClass("none");
 								var answered={"are_u_right":false, "good_answer":"-", score:"-"};
 								add_answer_to_tab(answered);
-								$result_panel.click(get_next_version);
 							};
 
 							question_nb++;
