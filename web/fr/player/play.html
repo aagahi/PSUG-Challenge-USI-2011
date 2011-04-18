@@ -8,7 +8,7 @@
 		<style type="text/css">
 				.answer_recap li { float: left ; width:5em ; padding-left:1em; font-size:1.2em;}
 				.answer_recap li .answer_true  { color:#0F0 ; }
-				.answer_recap li .answer_false { color:#0F0 ; text-decoration:line-through; }
+				.answer_recap li .answer_false { color:#F00 ; text-decoration:line-through; }
 				#answers li { line-height:1.3em;}
 				
 				.finish {
@@ -42,19 +42,21 @@
 <div id="page">
 	<div id="header">
 		<h3 class="waiting_to_begin">Nous attendons les autres joueurs</h3>
-		<h3 class="play none">Jouez!</h3>
+		<h3 class="play none">Il est temps de répondre aux questions...</h3>
 	</div>
 	<div id="content">
-		<div id="result_panel"></div>
+		<div id="result_panel">
+			<span id="bad_sequence" class="error none">
+				Non respect de la séquence de questions.<br /><br /><a href='#' id='get_next_question'>Voir la question suivante</a>
+			</span>
+		</div>
 		<div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
 		<div class="play none">
-				<ul class="answer_recap clear">
-					<li id="score_container">Score: <span id="score">0</span></li>
+				<ul id="score_container" class="answer_recap">
+					<li>Score: <span id="score">0</span></li>
 				</ul>
 				<br class="clear" />
 				<div id="good_answer_container">Bonne réponse : <span id="good_answer">...</span></div>
-		</div>
-		<div class="play none">
 				<form action="play.html">
 					<h4>Question no <span id="question_nb"></span></h4>
 					<p>
@@ -65,10 +67,7 @@
 					</p>
 				</form>
 		</div>
-<!--  		
-<div class="finish">
- -->
-  		<div class="finish">
+  		<div class="finish none">
 			<input 	type="button" name="see_ranking" id="see_ranking" 
 					value="Vous pouvez maintenant voir en ligne votre classement" />
 			<div id="ranking_panel" class="none">
@@ -77,9 +76,11 @@
 				<h3>Votre classement</h3>
 				<table class="ranking">
 					<thead>
-						<th>Nom</th>
-						<th>Mail</th>
-						<th>Score</th>
+						<tr>
+							<th>Nom</th>
+							<th>Mail</th>
+							<th>Score</th>
+						</tr>
 					</thead>
 					<tbody id="my_rank_tab"></tbody>
 				</table>
@@ -87,9 +88,11 @@
 				<h3>Les meilleurs scores</h3>
 				<table class="ranking">
 					<thead>
-						<th>Nom</th>
-						<th>Mail</th>
-						<th>Score</th>
+						<tr>
+							<th>Nom</th>
+							<th>Mail</th>
+							<th>Score</th>
+						</tr>
 					</thead>
 					<tbody id="top_scores_tab"></tbody>
 				</table>
@@ -101,8 +104,6 @@
 		<script type="text/javascript" src="../js/psug.js" ></script>
 		<script type="text/javascript">
 				$(document).ready(function (){
-					var show_this=function(){ $(this).removeClass("none"); };
-					var hide_this=function(){ $(this).addClass("none"); };
 
 					var $question_nb=$("#question_nb");
 					var $question=$("#question");
@@ -110,6 +111,8 @@
 					var $result_panel=$("#result_panel");
 					var $see_ranking=$("#see_ranking");
 					var $ranking_panel=$("#ranking_panel");
+					var $bad_sequence=$("#bad_sequence");
+					
 					$result_panel.addClass("none");
 
 					
@@ -135,7 +138,7 @@
 							var score=tab["scores"][index];
 							var firstname=tab["firstname"][index];
 							var lastname=tab["lastname"][index];
-							return "<tr><td>"+firstname+" "+lastname+"</td>"+"<td>"+mail+"</td>"+"<td>"+mail+"</td></tr>";
+							return "<tr><td>"+firstname+" "+lastname+"</td>"+"<td>"+mail+"</td>"+"<td>"+score+"</td></tr>";
 						};
 						var before_length=before["scores"].length
 						var after_length=after["scores"].length
@@ -170,14 +173,26 @@
 						$.get("/api/ranking").success(display_ranking).error(error_ranking);
 //						$.get("/web/mock/ranking1.json").success(display_ranking).error(error_ranking);
 					};				
+
+					var add_answer_to_tab=function(answered) {
+						var are_u_right=answered["are_u_right"]?"true":"false";
+						var good_answer=answered["good_answer"];
+						var score=answered["score"];
+
+						var result_class="answer_"+are_u_right;
+						var result_li=are_u_right==="true"?"Bravo!":"Désolé";
+						$("#good_answer").html(good_answer);
+						if (score!="-") {
+							$("#score").html(score);
+						}
+						$("#score_container").append('<li class="'+result_class+'">'+good_answer+'</li>');
+					};
 					
 					
 					/* Ask a new question */
 					var question=function(result, status, jqXHR){
-						if (question_nb===1) {
-								$(".play").each (  show_this ) ;
-								$(".waiting_to_begin").each ( hide_this ) ;
-						}
+						let_the_show_begin();
+
 						$question.html(result["question"]);
 						$question_nb.html(question_nb);
 						$answers.html("");
@@ -194,16 +209,8 @@
 								$result_panel.attr("class", "none");
 								usi_log("Resultat de la requête ajax:"+JSON.stringify(answered));
 								if(jqXHR.status===201 || jqXHR.status===200) {
-									var are_u_right=toString(answered["are_u_right"]);
-									var result_class="answer_"+are_u_right;
-									var result_li=are_u_right==="true"?"Bravo!":"Désolé";
-									var good_answer="answer_"+answered["good_answer"];
-									$("#good_answer").html(good_answer);
-									$("#score").html(toString(answered["score"]));
-									$("#score_container").append('<li class="'+result_class+'">'+good_answer+'</li>');
-
+									add_answer_to_tab(answered);
 									get_next_question();
-
 								} else  {
 									$result_panel.html("Etat inconnu lors de l'enregistrement des réponses au quizz.");
 									$result_panel.addClass("error");
@@ -213,11 +220,15 @@
 						};
 						var error_answer=function (jqXHR, textStatus, errorThrown) {
 							if (jqXHR.status===400) {
-								$result_panel.html("Une erreur est intervenu lors de l'envoi de la réponse...).");
+								$result_panel.html("Une erreur est intervenu lors de l'envoi de la réponse...");
+								var answered={"are_u_right":false, "good_answer":"-", score:"-"};
+								add_answer_to_tab(answered);
+								get_next_question();
 							} else if(jqXHR.status===401) {
 								$result_panel.html("Votre session n'a pas été reconnue.");
 							} else  {
 								$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz.<br /> Status:"+jqXHR.status);
+								get_next_question();
 							}
 							$result_panel.addClass("error");
 							$result_panel.removeClass("none");
@@ -226,39 +237,58 @@
 						$("#answers .possible_answer").click ( function (e) {
 								var data={};
 								var nb=e.target.id.split("_")[1];
-								data["answer"]=nb;
+								data["answer"]=parseInt(nb);
 								usi_log(JSON.stringify(data));
 								$answers.html("");
 								$.post("/api/answer/"+question_nb, JSON.stringify(data), question_answered, "json").error(error_answer);
 						});
 					};
-					var error_get_next_question=function (jqXHR, textStatus, errorThrown) {
-						if (jqXHR.status===400) {
-							$result_panel.html("Non respect de la séquence de questions.<br /><a href='#' onclick='get_next_question()'>Voir la question suivante</a>");
-						} else if(jqXHR.status===401) {
-							$result_panel.html("Votre session n'a pas été reconnue.");
-						} else  {
-							$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz. <br /> Status:"+jqXHR.status);
+
+					var show_this=function(){ $(this).removeClass("none"); };
+					var hide_this=function(){ $(this).addClass("none"); };
+					var let_the_show_begin=function(){
+						if(question_nb===1){
+							$(".play").each (  show_this ) ;
+							$(".waiting_to_begin").each ( hide_this ) ;
 						}
-						$result_panel.addClass("error");
-						$result_panel.removeClass("none");
 					};
 					var get_next_question=function () {
+						$bad_sequence.addClass("none");
+						$result_panel.click(null);
 						if (question_nb===20) {
 							// The end!!
-							$("#finish").removeClass("none");
+							$(".play").each(hide_this);
+							$(".finish").each(show_this);
 							
 						} else {
+							var error_get_next_question=function (jqXHR, textStatus, errorThrown) {
+								let_the_show_begin();
+								if (jqXHR.status===401) {
+									$result_panel.html("Votre session n'a pas été reconnue.");
+									$result_panel.addClass("error");
+									$result_panel.removeClass("none");
+									return;
+								} else if (jqXHR.status===400) {
+									$bad_sequence.removeClass("none");
+								} else  {
+									$result_panel.html("Etat inconnu lors de la récupération d'une question du quizz. <br /> Status:"+jqXHR.status);
+									$bad_sequence.addClass("none");
+								}
+								$result_panel.addClass("error");
+								$result_panel.removeClass("none");
+								var answered={"are_u_right":false, "good_answer":"-", score:"-"};
+								add_answer_to_tab(answered);
+								$result_panel.click(get_next_version);
+							};
+
 							question_nb++;
-							$.get('/api/question/'+question_nb).success(question).error(error_get_next_question);
-//							$.get('/web/mock/question_'+question_nb+".json").success(question).error(error_get_next_question);
-							
+							$.get('/api/question/'+question_nb).success(question).error(error_get_next_question);	
 						}
 					};
 
 					// Let's start
 					$see_ranking.click(see_ranking);
-					
+					$bad_sequence.click(get_next_question)					
 					var question_nb=0;
 					get_next_question();
 
