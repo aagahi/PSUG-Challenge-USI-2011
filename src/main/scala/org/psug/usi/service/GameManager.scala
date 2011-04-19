@@ -454,6 +454,7 @@ class GameManager( services:Services,
     Actor.spawn{
       val properties = new Properties()
       properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
+      log.info("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
       if( properties.getProperty("endgame.twitter.enabled").toBoolean )
         Twitter.update("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
     }
