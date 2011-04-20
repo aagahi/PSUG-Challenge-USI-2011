@@ -123,7 +123,8 @@ class GameManager( services:Services,
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
 
-  // TODO: add trycatch to avoid actor crash
+
+
   def receive = {
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
