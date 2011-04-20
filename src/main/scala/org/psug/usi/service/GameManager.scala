@@ -235,7 +235,8 @@ class GameManager( services:Services,
           replyQuestion()
 
         case _ =>
-          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+          log.error("Not supposed to query question in current game state " + gameState )
+          sender ! GameManagerError
       }
     }
     else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= game.nbUsersThreshold ) {
@@ -246,10 +247,11 @@ class GameManager( services:Services,
         case InGame =>
           replyQuestion()
         case _ =>
-          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+          log.error("Not supposed to query question in current game state " + gameState )
+          sender ! GameManagerError
       }
-
     }
+
   }
 
   /**
