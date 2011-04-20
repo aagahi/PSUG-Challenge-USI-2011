@@ -11,8 +11,9 @@ import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import io.{Codec, Source}
 import akka.util.Logging
 import org.psug.usi.service._
-import java.io.File
 import scala.collection.JavaConversions._
+import java.io.{FileInputStream, File}
+import org.apache.commons.io.FileUtils
 
 /**
  * User: alag
@@ -34,6 +35,7 @@ class HttpOutput( channel:Channel ) extends Logging {
       case "css" => "text/css"
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
+      case "ico" => "image/vnd.microsoft.icon"
       case "json" => "application/json"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
@@ -65,9 +67,16 @@ class HttpOutput( channel:Channel ) extends Logging {
     if( status == HttpResponseStatus.OK )
     {
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
-      val content = Source.fromFile( "."+specificPath)(Codec.UTF8).mkString
-      response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+      if( contentType.startsWith("image") ){
+        val content = FileUtils.readFileToByteArray( new File( "."+specificPath ) )
+        response.setContent(ChannelBuffers.copiedBuffer( content ))
+      }
+      else {
+        val content = Source.fromFile( "."+specificPath)(Codec.UTF8).mkString
+        response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+      }
     }
+    else log.info( "File not found: ." + specificPath )
 
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
