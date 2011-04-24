@@ -196,17 +196,28 @@
 										error_ranking);
 							};
 
-							var last_answer = " "
 
+
+                            /** the game **/
+							var last_answer = " ";
+                            var displayed_question=[];
 							var add_answer_to_tab = function(answered) {
 								var are_u_right = answered["are_u_right"] ? "true" : "false";
-								var good_answer = answered["good_answer"] ;
+								var good_answer_lit = answered["good_answer"] ;
+                                var good_answer =good_answer_lit;
 								var score = answered["score"];
-
+                                var i=1;
+                                while (r=displayed_question["answer_" + i]) {
+                                    if (displayed_question["answer_" + i]===good_answer) {
+                                        good_answer=i;
+                                        break;
+                                    }
+                                    i++;
+                                }
 								var result_class = "answer_" + are_u_right;
 								// var result_li=(are_u_right==="true"?"Bravo!":"Désolé");
 								$("#good_answer").html(good_answer);
-								if (score != "-") {
+                                if (score != "-") {
 									$("#score").html(score);
 								}
 								var result_html = [];
@@ -228,15 +239,16 @@
 							/* Ask a new question */
 							var question = function(result, status, jqXHR) {
 								let_the_show_begin();
+                                displayed_question=result;
 
-								$question.html(result["question"]);
+								$question.html(displayed_question["question"]);
 								$question_nb.html(question_nb);
 								$answers.html("");
 
 								var answer_index = 1;
-								while (result["answer_" + answer_index] != null
-										&& result["answer_" + answer_index] != "") {
-									var ans = result["answer_" + answer_index];
+								while (displayed_question["answer_" + answer_index] != null
+										&& displayed_question["answer_" + answer_index] != "") {
+									var ans = displayed_question["answer_" + answer_index];
 									var resp_link = '<li><a href="#" class="possible_answer" id="answer_'+answer_index+'>'
 											+ ans + '</a></li>'
 									$answers.append(resp_link);
@@ -301,7 +313,7 @@
 										});
 							};
 
-							var show_this = function() {
+							var show_this = function(){
 								$(this).removeClass("none");
 							};
 							var hide_this = function() {
