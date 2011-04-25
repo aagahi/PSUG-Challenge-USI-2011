@@ -87,11 +87,11 @@ class DefaultGameManagerTimer extends GameManagerTimer {
 trait GameState
 case object Uninitialized extends GameState
 //init done, and no user requested /api/login yet
-case object Initialized extends GameState 
+case object Initialized extends GameState
 case object WaitingRegistrationAndQ1 extends GameState
 //could be a couple of ProcessingQueryQuestion(i) / ProcessingReplyQuestion(i)
 //in place of GameManager.currentQuestionIndex
-case object InGame extends GameState 
+case object InGame extends GameState
 //case class ProcessingQueryQuestion(number:Int) extends GameState
 //case class ProcessingReplyQuestion(number:Int) extends GameState
 case object EndGame extends GameState
@@ -204,7 +204,7 @@ class GameManager( services:Services,
         tryToAddUser
       case WaitingRegistrationAndQ1 =>
         tryToAddUser
-      case _ => 
+      case _ =>
         sender ! RegisterFailure
     }
   }
@@ -458,7 +458,7 @@ class GameManager( services:Services,
     Actor.spawn{
       val properties = new Properties()
       properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
-      log.info("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
+      log.error("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
       if( properties.getProperty("endgame.twitter.enabled").toBoolean )
         Twitter.update("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
     }

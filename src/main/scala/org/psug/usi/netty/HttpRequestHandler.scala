@@ -35,6 +35,7 @@ class HttpOutput( channel:Channel ) extends Logging {
       case "css" => "text/css"
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
+      case "gif" => "image/gif"
       case "ico" => "image/vnd.microsoft.icon"
       case "json" => "application/json"
       case x =>
@@ -183,6 +184,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
       case ( HttpMethod.POST, "api"::"login"::Nil ) =>
         val credentials = read[Credentials](content)
+        val now=System.currentTimeMillis
         userRepositoryService.callback( AuthenticateUser(credentials) ){
           case UserAuthenticated (Left(user)) =>
             gameManagerService.callback( Register( user ) ){
@@ -198,14 +200,13 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
         
       case ( HttpMethod.POST, "api"::"game"::Nil ) =>
-
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
               gameManagerService.callback( InitGame (data.asInstanceOf[Game]) ){
-                case InitGameSuccess => log.info( "Game "+data.asInstanceOf[Game].id+" initialized")
+                case InitGameSuccess => log.error( "Game "+data.asInstanceOf[Game].id+" initialized")
               }
               httpOutput.sendResponse( None, HttpResponseStatus.CREATED )
             case DataStored( Left( message ) )	=> log.debug(message); httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
