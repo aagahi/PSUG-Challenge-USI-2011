@@ -278,10 +278,9 @@
 								while (displayed_question["answer_" + answer_index] != null
 										&& displayed_question["answer_" + answer_index] != "") {
 									var ans = displayed_question["answer_" + answer_index];
-									var resp_link = '<li><a href="#" class="possible_answer" id="answer_'+answer_index+'>'
-											+ ans + '</a></li>'
+									var resp_link = '<li><a href="#" class="possible_answer" id="answer_'+answer_index+'">'+ ans + '</a></li>'
 									$answers.append(resp_link);
-									answer_index++;
+                                    answer_index++;
 								}
 
 								var question_answered = function(answered, status, jqXHR) {
