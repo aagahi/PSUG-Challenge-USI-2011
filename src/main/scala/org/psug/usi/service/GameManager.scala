@@ -133,14 +133,14 @@ class GameManager( services:Services,
 
     //TODO: I don't see a case in the spec where a user is allowed to query for a question that is not currentQuestionIndex
     case QueryQuestion(userId, questionIndex) 
-      if( questionIndex >= currentQuestionIndex && questionIndex <= currentQuestionIndex+1 && registredPlayersHistory.isDefinedAt(userId) )
+      if( ( questionIndex == 0 || questionIndex == currentQuestionIndex +1 ) && registredPlayersHistory.isDefinedAt(userId) )
       => queryQuestion(userId, questionIndex)
     case UserAnswer(userId, questionIndex, answerIndex) 
       if (registredPlayersHistory.isDefinedAt(userId) && questionIndex == currentQuestionIndex)
       => answer(userId, answerIndex)
     case TimeoutMessage(timeoutType, questionIndex, timeoutSec) 
       if (questionIndex == currentQuestionIndex) 
-      => log.info( "Timeout" + timeoutType + " questionIndex " +  questionIndex ); timeout(timeoutType)
+      => timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
     case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
@@ -216,10 +216,7 @@ class GameManager( services:Services,
    */
   private def queryQuestion(userId: Int, questionIndex: Int) {
 
-    log.info( "User " + userId  + " query Q " + questionIndex )
-
     val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
-
 
     questionPlayer.players(questionPlayer.playerIndex) = userId
 
@@ -253,6 +250,7 @@ class GameManager( services:Services,
           sender ! GameManagerError
       }
     }
+
 
   }
 
@@ -482,9 +480,6 @@ class GameManager( services:Services,
         }
       }
 
-      currentQuestionPlayer = nextQuestionPlayer
-      nextQuestionPlayer = new QuestionPlayer
-      currentQuestionIndex += 1
       timer.schedule( TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec), this )
     }
     else {
@@ -495,7 +490,16 @@ class GameManager( services:Services,
       //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
       if( gameState == InGame ){
         if(currentQuestionIndex == game.questions.size ) endGame()
-        else replyQuestion()
+        else{
+          if( timeoutType == TimeoutType.SYNCRO ){
+            currentQuestionPlayer = nextQuestionPlayer
+            nextQuestionPlayer = new QuestionPlayer
+            currentQuestionIndex += 1
+          }
+
+          replyQuestion()
+        }
+
       }
 
     }

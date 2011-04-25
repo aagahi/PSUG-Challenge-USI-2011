@@ -66,8 +66,7 @@ class HttpOutput( channel:Channel ) extends Logging {
 
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
 
-    if( status == HttpResponseStatus.OK )
-    {
+    if( status == HttpResponseStatus.OK ){
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
       if( contentType.startsWith("image") ){
         val content = FileUtils.readFileToByteArray( file )
@@ -368,8 +367,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
 
-    e.getMessage match
-      {
+    e.getMessage match {
         case request:HttpRequest =>
           var output = new HttpOutput(ctx.getChannel)
           try{
