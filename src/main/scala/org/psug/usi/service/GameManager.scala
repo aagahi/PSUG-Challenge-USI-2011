@@ -130,6 +130,8 @@ class GameManager( services:Services,
     case Register(user) => register(user)
     case QueryStats => 
       sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex,gameState)
+
+    //TODO: I don't see a case in the spec where a user is allowed to query for a question that is not currentQuestionIndex
     case QueryQuestion(userId, questionIndex) 
       if( questionIndex >= currentQuestionIndex && questionIndex <= currentQuestionIndex+1 && registredPlayersHistory.isDefinedAt(userId) )
       => queryQuestion(userId, questionIndex)
@@ -138,7 +140,7 @@ class GameManager( services:Services,
       => answer(userId, answerIndex)
     case TimeoutMessage(timeoutType, questionIndex, timeoutSec) 
       if (questionIndex == currentQuestionIndex) 
-      => timeout(timeoutType)
+      => log.info( "Timeout" + timeoutType + " questionIndex " +  questionIndex ); timeout(timeoutType)
     case QueryScoreSlice(userId) => queryScoreSlice(userId)
     case QueryScoreSliceAudit(userEmail) => queryScoreSliceAudit(userEmail)
     case QueryHistory( userEmail, questionIndex ) => queryGameHistoryAudit( userEmail, questionIndex )
@@ -213,10 +215,9 @@ class GameManager( services:Services,
    * questionIndex start at 0 (fyi octo rest api assume it starts at 1 => http request handler should have set -1)
    */
   private def queryQuestion(userId: Int, questionIndex: Int) {
-    //TODO: why not check that the user is in that game ?
-    
-    //TODO: I don't see a case in the spec where a user is allowed to
-    //query for a question that is not currentQuestionIndex
+
+    log.info( "User " + userId  + " query Q " + questionIndex )
+
     val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
 
