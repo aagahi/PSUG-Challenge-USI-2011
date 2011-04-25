@@ -33,6 +33,8 @@
 		.ranking th { background-color: #DEEDF7; color:#2779AA; font-weight: bold; }
 		.ranking td, .ranking th { border-color: #DEEDF7; border-bottom-width:1px ; border-style: solid; }
 		.ranking th { border-color: #DEEDF7; border-top-width:1px ; border-style: solid; }
+                #loading_div { position:absolute; top:42%; left:35%; width:350px; height: 80px; padding:1em; background: #ffeedd url('/web/images/loadinfo.net.gif') center 50px  no-repeat; border: 3px solid #be1511;z-index:101; }
+                #overlay { position:fixed; background-color: #EEFFEE; height:100%; width:100%; top:0; left:0; opacity:0.6; z-index:100;}
 </style>
 <script type="text/javascript">
 	// TODO vérifier le cookie
@@ -49,22 +51,24 @@
 			<div id="result_panel">
 				<span id="result_panel_text"></span> <span id="bad_sequence" class="error play none"> <br />
 				<br />
-				<a href='#' id='get_next_question'>Voir la question suivante</a> </span>
+				<a href='#' id='get_next_question' class="play">Voir la question suivante</a> </span>
 			</div>
 			<div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
-			<div class="play none">
+			<div class="play finish none" style="width:100%">
 				<div>
 					Score: <span id="score">0</span>
 				</div>
-				<ul id="score_container" class="answer_recap">
+				<ul id="score_container" class="answer_recap finish" style="width:100%">
 					<li>
 						<ul>
-							<li class="answer_true" style="width: 9em; text-align: right; padding-right: 1em;">Question :</li>
+							<li class="answer_true" style="width: 9em; text-align: right; padding-right:1em;">Question :</li>
 							<li class="answer_true" style="width: 9em; text-align: right; padding-right: 1em;">Réponse :</li>
 							<li class="answer_true" style="width: 9em; text-align: right; padding-right: 1em;">Bonne réponse :</li>
-						</ul></li>
+						  </ul>
+					</li>
 				</ul>
 				<br class="clear" />
+			      </div><div class="play none">
 				<div id="good_answer_container">
 					Bonne réponse : <span id="good_answer">...</span>
 				</div>
@@ -112,6 +116,8 @@
 			</div>
 		</div>
 	</div>
+	<div id="overlay"></div>
+	<div id="loading_div">Veuillez patienter...</div>
 	<script type="text/javascript" src="../js/jquery-1.5.2.min.js"></script>
 	<script type="text/javascript" src="../js/json2.js"></script>
 	<script type="text/javascript" src="../js/psug.js"></script>
@@ -128,6 +134,31 @@
 							var $see_ranking = $("#see_ranking");
 							var $ranking_panel = $("#ranking_panel");
 							var $bad_sequence = $("#bad_sequence");
+							var $overlay = $('#overlay');
+							var $loading_div = $('#loading_div');
+
+							$('#overlay').hide() // hide it initially
+							$('#loading_div').hide() // hide it initially
+							/*
+							 jQuery.ajaxSetup({
+							 beforeSend: function() {
+							 $('#loading_div').show()
+							 $('#overlay').show()
+							 },
+							 complete: function(){
+							 $('#loading_div').hide()
+							 $('#overlay').hide()
+							 }});
+							
+							 */
+							$loading_div.ajaxStart(function() {
+								$(this).show();
+								$overlay.show();
+							});
+							$loading_div.ajaxStop(function() {
+								$(this).hide();
+								$overlay.hide();
+							});
 
 							$result_panel.addClass("none");
 
@@ -196,28 +227,26 @@
 										error_ranking);
 							};
 
-
-
-                            /** the game **/
+							/** the game **/
 							var last_answer = " ";
-                            var displayed_question=[];
+							var displayed_question = [];
 							var add_answer_to_tab = function(answered) {
 								var are_u_right = answered["are_u_right"] ? "true" : "false";
-								var good_answer_lit = answered["good_answer"] ;
-                                var good_answer =good_answer_lit;
+								var good_answer_lit = answered["good_answer"];
+								var good_answer = good_answer_lit;
 								var score = answered["score"];
-                                var i=1;
-                                while (r=displayed_question["answer_" + i]) {
-                                    if (displayed_question["answer_" + i]===good_answer) {
-                                        good_answer=i;
-                                        break;
-                                    }
-                                    i++;
-                                }
+								var i = 1;
+								while (r = displayed_question["answer_" + i]) {
+									if (displayed_question["answer_" + i] === good_answer) {
+										good_answer = i;
+										break;
+									}
+									i++;
+								}
 								var result_class = "answer_" + are_u_right;
 								// var result_li=(are_u_right==="true"?"Bravo!":"Désolé");
 								$("#good_answer").html(good_answer);
-                                if (score != "-") {
+								if (score != "-") {
 									$("#score").html(score);
 								}
 								var result_html = [];
@@ -239,7 +268,7 @@
 							/* Ask a new question */
 							var question = function(result, status, jqXHR) {
 								let_the_show_begin();
-                                displayed_question=result;
+								displayed_question = result;
 
 								$question.html(displayed_question["question"]);
 								$question_nb.html(question_nb);
@@ -313,7 +342,7 @@
 										});
 							};
 
-							var show_this = function(){
+							var show_this = function() {
 								$(this).removeClass("none");
 							};
 							var hide_this = function() {
@@ -328,8 +357,8 @@
 							var get_next_question = function() {
 								$result_panel.addClass("none");
 								$result_panel.click(null);
-								
-								if (++question_nb === 20) {
+
+								if (question_nb++ === 20) {
 									// The end!!
 									$(".play").each(hide_this);
 									$(".finish").each(show_this);
@@ -361,6 +390,11 @@
 											score : "-"
 										};
 										add_answer_to_tab(answered);
+										if (question_nb === 20) {
+											// The end!!
+											$(".play").each(hide_this);
+											$(".finish").each(show_this);
+										} 
 									};
 									$.get('/api/question/' + question_nb).success(question)
 											.error(error_get_next_question);
