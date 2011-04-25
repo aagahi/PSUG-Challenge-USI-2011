@@ -54,7 +54,7 @@
 				<a href='#' id='get_next_question' class="play">Voir la question suivante</a> </span>
 			</div>
 			<div class="waiting_to_begin">Nous attendons que tous les joueurs soient connectés</div>
-			<div class="play finish none" style="width:100%">
+			<div id="score_board" class="play finish none" style="width:100%">
 				<div>
 					Score: <span id="score">0</span>
 				</div>
@@ -360,7 +360,9 @@
 								if (question_nb++ === 20) {
 									// The end!!
 									$(".play").each(hide_this);
-									$(".finish").each(show_this);
+                                    $("#score_board").show();
+                                    var show_finish=function(){$(".finish").each(show_this) ; };
+                                    setTimeout(show_finish, 8000);
 
 								} else {
 									var error_get_next_question = function(jqXHR, textStatus,
@@ -392,8 +394,10 @@
 										if (question_nb === 20) {
 											// The end!!
 											$(".play").each(hide_this);
-											$(".finish").each(show_this);
-										} 
+                                            $("#score_board").show();
+                                            var show_finish=function(){$(".finish").each(show_this) ; };
+                                            setTimeout(show_finish, 8000);
+										}
 									};
 									$.get('/api/question/' + question_nb).success(question)
 											.error(error_get_next_question);
