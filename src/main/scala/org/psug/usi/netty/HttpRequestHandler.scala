@@ -58,8 +58,9 @@ class HttpOutput( channel:Channel ) extends Logging {
     }
     val specificPath=path.replaceAll("web/", "web/"+lang+"/")
 
+    val file = new File( "."+specificPath )
 
-    val status =  if( new File( "."+specificPath ).exists ) HttpResponseStatus.OK
+    val status =  if( file.exists ) HttpResponseStatus.OK
                   else HttpResponseStatus.NOT_FOUND
 
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
@@ -68,15 +69,15 @@ class HttpOutput( channel:Channel ) extends Logging {
     {
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
       if( contentType.startsWith("image") ){
-        val content = FileUtils.readFileToByteArray( new File( "."+specificPath ) )
+        val content = FileUtils.readFileToByteArray( file )
         response.setContent(ChannelBuffers.copiedBuffer( content ))
       }
       else {
-        val content = Source.fromFile( "."+specificPath)(Codec.UTF8).mkString
+        val content = Source.fromFile( file )(Codec.UTF8).mkString
         response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
       }
     }
-    else log.info( "File not found: ." + specificPath )
+    else log.info( "File not found: "+ file.getAbsolutePath )
 
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
