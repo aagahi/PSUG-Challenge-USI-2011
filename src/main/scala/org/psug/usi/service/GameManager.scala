@@ -489,16 +489,15 @@ class GameManager( services:Services,
       // LOGIN OR SYNCHRO
       //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
       if( gameState == InGame ){
-        if(currentQuestionIndex == game.questions.size ) endGame()
-        else{
-          if( timeoutType == TimeoutType.SYNCRO ){
-            currentQuestionPlayer = nextQuestionPlayer
-            nextQuestionPlayer = new QuestionPlayer
-            currentQuestionIndex += 1
-          }
-
-          replyQuestion()
+        if( timeoutType == TimeoutType.SYNCRO ){
+          currentQuestionPlayer = nextQuestionPlayer
+          nextQuestionPlayer = new QuestionPlayer
+          currentQuestionIndex += 1
         }
+
+        if(currentQuestionIndex == game.questions.size ) endGame()
+        else replyQuestion()
+        
 
       }
 
