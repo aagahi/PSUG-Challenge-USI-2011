@@ -16,7 +16,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
   "scoring agent" should {
 
     "record correct answer update score on multiple responses for a single user" in {
-      val scorer = new Scorer(1)
+      val scorer = new Scorer()
       val user = User(0, "0", "", "", "")
 
       scorer.scoreAnwser(ScorerAnwserValue(user, 1)) must be_==(UserScore(user, 1))
@@ -26,7 +26,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
     }
 
     "users with same score must be sorted by firstname/lastname/mail" in {
-      val scorer = new Scorer(6, topSize = 5)
+      val scorer = new Scorer( topSize = 5)
       val user1 = User(0, "A", "A", "B", "")
       val user2 = User(1, "A", "A", "C", "")
       val user3 = User(2, "A", "A", "D", "")
@@ -104,7 +104,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
 
     "compute accurate user score for large number of player" in {
       val numberOfPlayers = 4000
-      val scorer = new Scorer(numberOfPlayers)
+      val scorer = new Scorer()
 
       val users = 1 until numberOfPlayers map (i => User(i, i.toString, "f" + i, "l" + 1, "e" + i))
       val numResponse = 10
@@ -123,9 +123,9 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       }
     }
 
-    "produce sorted scoreSlice for a very large number of player" in {
+    "produce sorted scoreSlice for a very large number of player and check scorer persistence" in {
       val numberOfPlayers = 4000
-      val scorer = new Scorer(numberOfPlayers, topSize = 100)
+      val scorer = new Scorer(topSize = 100)
 
       val users = 1 until numberOfPlayers map (i => User(i, (i % 8).toString, (i % 16).toString, i.toString, ""))
       for (user <- users) {
@@ -140,6 +140,16 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       for (user <- users) {
         val slice = scorer.scoreSlice(user)
         isSorted(slice) must beTrue
+      }
+
+
+      scorer.save( 1 )
+      val scorer2 = new Scorer( topSize = 100)
+      scorer2.load( 1 )
+      for (user <- users) {
+        val slice = scorer.scoreSlice(user)
+        val slice2 = scorer2.scoreSlice(user)
+        slice.deepEquals( slice2 ) must beTrue
       }
     }
 

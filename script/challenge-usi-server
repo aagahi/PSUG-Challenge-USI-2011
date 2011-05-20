@@ -1,0 +1,96 @@
+#!/bin/sh
+#
+# challenge-usi-server
+#
+# chkconfig: - 80 05
+# description: Start Challenge USI Server
+#
+
+### BEGIN INIT INFO
+# Provides:          challenge-usi-server
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Description:       Challenge USI Server
+# Short-Description: Challenge USI Server
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+SERVER_HOME=/home/user/challenge-usi
+SERVER_LIB=$SERVER_HOME/lib
+SERVER_JAR=$SERVER_HOME/challenge-usi.jar
+SERVER_CONSOLE=$SERVER_HOME/logs
+
+JAVA=/usr/bin/java
+JAVA_OPTIONS="-Dfile.encoding=UTF-8 -Xmx3000m -server"
+NAME=challenge-usi-server
+DESC="Challenge USI Server"
+USER=user
+
+
+test -e $SERVER_JAR || exit 0
+
+RETVAL=0
+set -e
+
+start_server () {
+    set +e
+
+    ntpdate 10.50.80.7
+
+    echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle
+    echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+
+    #echo "65535" > /proc/sys/fs/file-max
+    ulimit -n 65535
+    iptables -t nat -F
+
+    su - $USER -c "cd $SERVER_HOME; nohup $JAVA $JAVA_OPTIONS  -jar $SERVER_JAR  > $SERVER_CONSOLE &"
+
+    iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8082
+
+    set -e
+}
+
+stop_server () {
+    set +e
+
+    iptables -t nat -F
+
+    killall java
+    sleep 5
+    killall -KILL java
+
+
+    set -e
+}
+
+restart_restart() {
+    stop_server
+    start_server
+}
+
+case "$1" in
+    start)
+        echo -n "Starting $DESC: "
+        start_server
+        echo "$NAME."
+        ;;
+    stop)
+        echo -n "Stopping $DESC: "
+        stop_server
+        echo "$NAME."
+        ;;
+    restart)
+        echo -n "Restarting $DESC: "
+        restart_restart
+        echo "$NAME."
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        RETVAL=1
+        ;;
+esac
+
+exit $RETVAL

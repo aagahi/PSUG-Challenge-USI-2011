@@ -41,7 +41,7 @@ class GamesSpec extends SpecificationWithJUnit {
         question.answers.zipWithIndex.foreach{
           case( answer, answserIndex ) =>
           answer.anwser must be_==( "A"+(questionIndex+1)+(answserIndex+1) )
-          answer.status must be_==( questionIndex % 4 == answserIndex )  
+          answer.status must be_==( (questionIndex % 4) == answserIndex )
         }
       }
 
@@ -51,7 +51,7 @@ class GamesSpec extends SpecificationWithJUnit {
 
 
 
-  "in-memory game repository" should {
+  "game repository" should {
     val services = new ClientServices()
     import services._
 
@@ -62,7 +62,7 @@ class GamesSpec extends SpecificationWithJUnit {
     setSequential()
 
     def startRepository:Unit = {
-      serverService = new SimpleRepositoryServices()
+      serverService = new ServerServices()
       serverService.launch
       gameRepositoryService !? ClearRepository
 

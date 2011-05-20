@@ -273,6 +273,9 @@ abstract class BDBDataRepository[K<:Any,T<:Data[K]](override val databaseName: S
 
   override def findByStoreKey(key:K) = load(key)
 
+  override def findLast() = load(currentId)
+
+
   override protected def reset : RepositoryCleared = {
     currentId = currentIdResetValue
     removeDatabase

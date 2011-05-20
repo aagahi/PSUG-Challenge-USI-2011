@@ -15,13 +15,12 @@ import net.liftweb.json.Serialization.read
 import org.psug.usi.utils.{UserGenerator, GameGenerator, GamePlayer}
 import scala.util.Random
 import org.jboss.netty.handler.codec.http.HttpResponseStatus
-
 @RunWith(classOf[JUnitSuiteRunner])
 class AdminAuditingSpec extends SpecificationWithJUnit {
 
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  val serverServices = new SimpleRepositoryServices
+  val serverServices = new ServerServices
   val services = new ClientServices()
   import services._
 
@@ -76,6 +75,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       webServer.stop
       serverServices.shutdown
     }
+
 
     "provide user score if good auth key is provided, a game was played" in {
 
@@ -217,10 +217,47 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
           USER_MAIL_HTTP_PARAM -> "aNonExistingMail@mail.com" 
        ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
     }
-   
+
+
+
+    "works even if service are restarted" in {
+      val DataStored( Right( game ) ) = gameRepositoryService !? StoreData( GameGenerator( 3, 4, 64 ) )
+      val users = UserGenerator( userRepositoryService, 64 )
+
+      val gamePlayer = new GamePlayer( gameManagerService, game.asInstanceOf[Game], users )
+      gamePlayer.play()
+
+      users.foreach{
+        user =>
+        val ScoreSlice( ranking ) = ( gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
+        val expectedRanking = gamePlayer.expectedScoreSlice( user )
+        ranking.deepEquals( expectedRanking ) must beTrue
+
+      }
+
+      serverServices.shutdown
+      serverServices.launch
+
+
+      users.foreach{
+        user =>
+
+        val ScoreSlice( ranking ) = ( gameManagerService !? QueryScoreSliceAudit( user.mail )).asInstanceOf[ScoreSlice]
+        val expectedRanking = gamePlayer.expectedScoreSlice( user )
+        ranking.deepEquals( expectedRanking ) must beTrue
+
+      }
+
+    }
+
+
   }
   
-  
+
+
+
+
+
 }
 
 

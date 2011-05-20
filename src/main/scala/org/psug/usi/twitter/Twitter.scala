@@ -5,8 +5,9 @@ import org.scribe.builder.api.TwitterApi
 import org.scribe.model.{Verb, OAuthRequest, Token, Verifier}
 import java.util.Scanner
 
-import net.liftweb.json.JsonAST.{JInt, JField}
+import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonParser._
+import akka.util.Logging
 
 /**
  * User: alag
@@ -15,9 +16,14 @@ import net.liftweb.json.JsonParser._
  */
 
 /**
- * Use Twitter main program to setup the accessToken (if access token is set and test ok, you dont need to run the program
+ * Use Twitter main program to setup the accessToken (if access token is set and test ok, you dont need to run the program)
+ *
+ * Twitter account: http://twitter.com/#!/psugusi2011
+ * login: psugusi2011
+ * pwd: psugpsug
+ *
  */
-object Twitter {
+object Twitter extends Logging {
   val secretKey = "Aqzq8pi7KdbDdtehXr2BP0aZzo2nCalGmJb1zYirac"
   val apiKey = "1dUWI7wRZ3NzZdlQuQ6w"
   val twitterHost = "api.twitter.com"
@@ -40,10 +46,12 @@ object Twitter {
   }
 
   /**
+   *
+   * Check duplicate on http://twitter.com/#!/psugusi2011 -> if last tweet is the same as the updated on, tweet is not posted
    * @throws OAuthException may be caused by genuine authentication exception, or by network connectivity issues.
    */
   private def parseRequest(request: OAuthRequest) = {
-    val JField(_, JInt(id)) = parse(request.send.getBody) \ "id"
+    val JInt(id) = parse(request.send.getBody) \ "id"
     Some(id.longValue)
   }
 

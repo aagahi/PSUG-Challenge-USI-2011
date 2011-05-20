@@ -18,6 +18,8 @@ trait DataRepositoryMessage
 case class StoreData[K<:Any]( data:Data[K] ) extends DataRepositoryMessage
 case class DataStored[K<:Any,T<:Data[K]]( errorEitherData:Either[String,T] ) extends DataRepositoryMessage
 
+
+case object PullLast extends DataRepositoryMessage
 case class PullData[K<:Any]( key:K ) extends DataRepositoryMessage
 case class DataPulled[K<:Any]( data:Option[Data[K]] ) extends DataRepositoryMessage
 
@@ -30,6 +32,7 @@ trait DataRepository[K<:Any,T<:Data[K]] {
     any match{
       case StoreData( data ) if( data.isInstanceOf[T]) => DataStored[K,T]( store( data.asInstanceOf[T] ) )
       case PullData( key ) if( key.isInstanceOf[K] ) => DataPulled[K]( findByStoreKey( key.asInstanceOf[K] ) )
+      case PullLast => DataPulled[K]( findLast() )
       case ClearRepository => reset
       case x => throw new Exception( "Unexpected message " + any )
     }
@@ -52,6 +55,11 @@ trait DataRepository[K<:Any,T<:Data[K]] {
    * @return Some(T) if games with id registered in repository, or None
    */
   protected def findByStoreKey(key : K):Option[T]
+
+  /**
+   * @return Some(T) if games with id registered in repository, or None
+   */
+  protected def findLast():Option[T]
 
   /**
    * clear this repository's content.
@@ -84,6 +92,8 @@ class InMemoryDataRepository[T<:Data[Int]] extends DataRepository[Int,T] {
   }
 
   override protected def findByStoreKey(key : Int) = dataByKey.get(key)
+
+  override protected def findLast() = dataByKey.get(currentId)
 
   override protected def reset : RepositoryCleared = { currentId = 0;  dataByKey.clear ; RepositoryCleared(getClass.getName)}
 }

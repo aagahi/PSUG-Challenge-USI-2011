@@ -12,6 +12,8 @@ import io.{Codec, Source}
 import akka.util.Logging
 import org.psug.usi.service._
 import scala.collection.JavaConversions._
+import java.io.{FileInputStream, File}
+import org.apache.commons.io.FileUtils
 
 /**
  * User: alag
@@ -25,20 +27,58 @@ case class Status( nodeType:String )
 class HttpOutput( channel:Channel ) extends Logging {
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  def sendPage( path:String ){
-    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK )
+  def sendPage( path:String , request:HttpRequest){
+
     val contentType = path.substring( path.lastIndexOf(".") + 1 ) match {
       case "html" => "text/html; charset=utf-8"
       case "js" => "text/javascript; charset=utf-8"
+      case "css" => "text/css"
+      case "png" => "image/png"
+      case "jpg" => "image/jpeg"
+      case "gif" => "image/gif"
+      case "ico" => "image/vnd.microsoft.icon"
+      case "json" => "application/json"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
         "application/binary"
     }
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
 
 
-    val content = Source.fromFile( "."+path)(Codec.UTF8).mkString
-    response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+    // Hard coded
+    val existingLanguages=List("fr")
+    val defaultLanguage="fr"
+
+    val acceptedLangs=request.getHeader("Accept-Language") match {
+      case l if (l!=null) => l.split("[,;]").toList
+      case _ => List("fr")
+    }
+
+    val lang=acceptedLangs.filter(existingLanguages.contains(_) ) match {
+      case Nil   => defaultLanguage
+      case l => l.head
+    }
+    val specificPath=path.replaceAll("web/", "web/"+lang+"/")
+
+    val file = new File( "."+specificPath )
+
+    val status =  if( file.exists ) HttpResponseStatus.OK
+                  else HttpResponseStatus.NOT_FOUND
+
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
+
+    if( status == HttpResponseStatus.OK ){
+      response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
+      if( contentType.startsWith("image") ){
+        val content = FileUtils.readFileToByteArray( file )
+        response.setContent(ChannelBuffers.copiedBuffer( content ))
+      }
+      else {
+        val content = Source.fromFile( file )(Codec.UTF8).mkString
+        response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+      }
+    }
+    else log.info( "File not found: "+ file.getAbsolutePath )
+
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
   }
@@ -61,9 +101,13 @@ class HttpOutput( channel:Channel ) extends Logging {
     value.foreach{
       data =>
       val str = write( data )
+
+      log.info( "Output: " + str )
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json; charset=utf-8")
       response.setContent( ChannelBuffers.copiedBuffer( str, CharsetUtil.UTF_8) )
     }
+
+
 
     headers.foreach { header => response.setHeader(header._1,header._2) }
 
@@ -104,7 +148,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     in.toMap.map { case(k,v) => (k,v.toList) }
   }
 
-  def handleRequest( out:HttpOutput, request:HttpRequest ){
+  def handleRequest( httpOutput:HttpOutput, request:HttpRequest ){
 
     val method = request.getMethod
     val queryStringDecoder = new QueryStringDecoder( request.getUri() )
@@ -112,7 +156,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
     val content = request.getContent().toString(CharsetUtil.UTF_8)
     val path= if (queryStringDecoder.getPath=="/") Nil else queryStringDecoder.getPath.split('/').tail.toList
 
-    log.info( "Method: " + method +  " - Path:" + path.mkString(",") )
+    log.info( method +  " /" + path.mkString("/") )
 
 
     ( method, path ) match {
@@ -120,54 +164,62 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.GET, "api"::"user"::userId::Nil )  =>
         try {
           userRepositoryService.callback( PullData( userId.toInt ) ){
-            case DataPulled( Some( data ) )	=>  out.sendResponse( Some( data ), HttpResponseStatus.OK )
-            case DataPulled( None )	=> out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-            case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user/%s".format(userId)); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            case DataPulled( Some( data ) )	=>  httpOutput.sendResponse( Some( data ), HttpResponseStatus.OK )
+            case DataPulled( None )	=> httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user/%s".format(userId)); httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
           }
         } catch {
           case e:NumberFormatException => 
             log.debug("Bad UserId in /api/user/%s : was expecting an integer".format(userId))
-            out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
         }
 
       case ( HttpMethod.POST, "api"::"user"::Nil ) =>
         val userVO = read[UserVO](content)
         userRepositoryService.callback( StoreData( User( userVO ) ) ){
-          case DataStored( Right( data ) )	=> out.sendResponse( None, HttpResponseStatus.CREATED )
-          case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
-          case _  => log.debug("Unexpected message in HttpRequestHandler:/api/user"); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          case DataStored( Right( data ) )	=>
+            httpOutput.sendResponse( None, HttpResponseStatus.CREATED )
+          case DataStored( Left( message ) )	=>
+            httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          case _  =>
+            log.warn("Unexpected message in HttpRequestHandler:/api/user") 
+            httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
         }
 
 
       case ( HttpMethod.POST, "api"::"login"::Nil ) =>
         val credentials = read[Credentials](content)
+        val now=System.currentTimeMillis
         userRepositoryService.callback( AuthenticateUser(credentials) ){
           case UserAuthenticated (Left(user)) =>
             gameManagerService.callback( Register( user ) ){
-              case RegisterSuccess => out.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              case RegisterSuccess =>
+                httpOutput.sendResponse( None, HttpResponseStatus.CREATED, (HttpHeaders.Names.SET_COOKIE, encodeUserAsCookie(user)))
+              case _ =>
+                httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-          case UserAuthenticated (Right(message)) => out.sendResponse( Some(message), HttpResponseStatus.UNAUTHORIZED)
+          case UserAuthenticated (Right(message)) =>
+            httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED)
         }
+
 
         
       case ( HttpMethod.POST, "api"::"game"::Nil ) =>
-
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
-              gameManagerService.callback( InitGame (game) ){
-                case InitGameSuccess => log.info( "Game "+game.id+" initialized")
+              gameManagerService.callback( InitGame (data.asInstanceOf[Game]) ){
+                case InitGameSuccess => log.error( "Game "+data.asInstanceOf[Game].id+" initialized")
               }
-              out.sendResponse( None, HttpResponseStatus.CREATED )
-            case DataStored( Left( message ) )	=> log.debug(message); out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              httpOutput.sendResponse( None, HttpResponseStatus.CREATED )
+            case DataStored( Left( message ) )	=> log.debug(message); httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
           }
 
         }
         else{
-          out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+          httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
@@ -177,24 +229,22 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         decodeCookieAsAuthenticationToken( request ) match
         {
           case Some( AuthenticationToken( userId, mail ) ) =>
-            log.info("Get Q " + questionIndex )
             // api assume question starts at 1 but gamemanager starts at 0
             try {
               gameManagerService.callback( QueryQuestion( userId, questionIndex.toInt-1 ) ){
                 case QuestionResponse( question, score ) =>
-                  log.info("Reply Q " + questionIndex )
-                  out.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
-                case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                  httpOutput.sendResponse( Some( QuestionVO( question, score ) ), HttpResponseStatus.OK )
+                case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
               }
             } catch {
               case e:NumberFormatException => 
                 log.debug("Bad questionIndex in /api/question/%s : was expecting an integer".format(userId))
-                out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
     
           case None =>
             log.info("Unable to get session cookie")
-            out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+            httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
@@ -207,21 +257,35 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
             // api assume question & anwser starts at 1 but gamemanager starts at 0
             try {
               gameManagerService.callback(  UserAnswer( userId, questionIndex.toInt-1, answerVO.answer-1 ) ){
-                case UserAnswerResponse( answerStatus, correctAnwser, score ) => out.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.OK )
-                case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                case UserAnswerResponse( answerStatus, correctAnwser, score ) =>
+                  httpOutput.sendResponse( Some( UserAnswerResponseVO( answerStatus, correctAnwser, score ) ), HttpResponseStatus.CREATED )
+                case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
               }
             } catch {
               case e:NumberFormatException => 
                 log.debug("Bad questionIndex in /api/answer/%s : was expecting an integer".format(userId))
-                out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
 
           case None =>
-            out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+            httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+        }
+
+      case ( HttpMethod.GET, "api"::"ranking"::Nil ) =>
+        decodeCookieAsAuthenticationToken( request ) match
+        {
+          case Some( AuthenticationToken( userId, mail ) ) =>
+            gameManagerService.callback( QueryScoreSlice (userId) ){
+              case ScoreSlice(ranking) => httpOutput.sendResponse( Some( ranking ), HttpResponseStatus.OK )
+              case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+            }
+          case _ => httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
-      // TODO: refactor / factorize audit code + load last game created for game repo in case of jvm restart
+
+        
+      // TODO: refactor / factorize audit code
 
 
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>
@@ -232,12 +296,12 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
             params.get( USER_MAIL_HTTP_PARAM ) match {
               case Some( mail :: Nil) if( mail != null ) => 
                 gameManagerService.callback( QueryScoreSliceAudit (mail) ){
-                  case ScoreSlice(ranking) => out.sendResponse( Some( ranking ), HttpResponseStatus.OK )
-                  case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                  case ScoreSlice(ranking) => httpOutput.sendResponse( Some( ranking ), HttpResponseStatus.OK )
+                  case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
                 }
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+          case _ => httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
       case ( HttpMethod.GET, "api"::"audit"::Nil ) =>
@@ -248,12 +312,12 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
             params.get( USER_MAIL_HTTP_PARAM ) match {
               case Some( mail :: Nil) if( mail != null ) => 
                 gameManagerService.callback( QueryHistory(mail,None) ){
-                  case GameAnwsersHistory( answers ) => out.sendResponse( Some( answers ), HttpResponseStatus.OK )
-                  case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                  case GameAnwsersHistory( answers ) => httpOutput.sendResponse( Some( answers ), HttpResponseStatus.OK )
+                  case _ =>  httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
                 }
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+          case _ => httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
 
@@ -267,33 +331,40 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
                 // api assume question starts at 1 but gamemanager starts at 0
                 try {
                   gameManagerService.callback( QueryHistory(mail, Some( questionIndex.toInt - 1 ) ) ){
-                    case GameAnwserHistory( answer ) => out.sendResponse( Some( answer ), HttpResponseStatus.OK )
-                    case _ =>  out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                    case GameAnwserHistory( answer ) => httpOutput.sendResponse( Some( answer ), HttpResponseStatus.OK )
+                    case _ =>  httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
                   }
                 } catch {
-                  case e:NumberFormatException => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+                  case e:NumberFormatException => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
                 }
-              case _ => out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+              case _ => httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
             }
-          case _ => out.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
+          case _ => httpOutput.sendResponse( None, HttpResponseStatus.UNAUTHORIZED )
         }
 
       case ( HttpMethod.GET, "admin"::"status"::Nil ) =>
-        out.sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
+        httpOutput.sendResponse(Some(Status("Web")),HttpResponseStatus.OK)
 
 
+
+
+
+        
       case ( HttpMethod.GET, "web"::Nil )  =>
-        out.sendPage( "/web/index.html" )
+        httpOutput.sendPage( "/web/index.html", request )
+
+      case ( HttpMethod.GET, List() )  =>
+        httpOutput.sendRedirectToWeb("index.html")
 
       case ( HttpMethod.GET, "web"::subPath  )  =>
-        out.sendPage( queryStringDecoder.getPath )
+        httpOutput.sendPage( queryStringDecoder.getPath , request)
 
       case ( HttpMethod.GET, page::Nil )  =>
-        out.sendRedirectToWeb(page)
+        httpOutput.sendRedirectToWeb(page)
 
       case _ =>
-        log.warn( "Unknown request ("+method+"): " + queryStringDecoder.getPath  )
-        out.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+        log.warn( "Unknown request ("+method+"): " + path  )
+        httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
     }
   }
 
@@ -302,9 +373,18 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
 
-    e.getMessage match
-      {
-        case request:HttpRequest => handleRequest( new HttpOutput(ctx.getChannel), request )
+    e.getMessage match {
+        case request:HttpRequest =>
+          var output = new HttpOutput(ctx.getChannel)
+          try{
+            handleRequest( output, request )
+          }
+          catch {
+            case e =>
+              log.error( e, e.getMessage() )
+              output.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
+          }
+
         case x => log.warn( "Unknown message: "+ x  )
       }
   }

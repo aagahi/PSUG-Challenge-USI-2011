@@ -22,9 +22,9 @@ object WebServer{
   lazy val defaultWebServer = new WebServer
 
   val ioBufferSize = 1024*8
-  val keepAlive = true
+  val keepAlive = false
   val backLog = 5000
-  val tcpNoDelay = true
+  val tcpNoDelay = false
 }
 
 
@@ -53,7 +53,7 @@ class WebServer( val listenPort:Int = 18080, val services : Services = new Clien
     bootstrap.setPipelineFactory( new HttpServerPipelineFactory(services, webAuthenticationKey) )
     bootstrap.bind( new InetSocketAddress( "0.0.0.0", listenPort ) )
 
-    log.info("Started PSUG USI2011 Challenge server at 0.0.0.0:" + listenPort)
+    log.info("Started PSUG USI2011 Challenge web server at 0.0.0.0:" + listenPort)
   }
 
   def stop = {

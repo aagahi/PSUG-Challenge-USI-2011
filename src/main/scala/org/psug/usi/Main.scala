@@ -3,7 +3,8 @@ package org.psug.usi
 import _root_.akka.util.Logging
 import org.psug.usi.netty.WebServer
 import java.util.Properties
-import service.{ClientServices, ServerServices, SimpleRepositoryServices}
+import service.{ClientServices, ServerServices}
+import java.net.InetAddress
 
 /**
  * 
@@ -28,13 +29,36 @@ object Main {
     val servicesPort = properties.getProperty("services.port").toInt
     val servicesHost = properties.getProperty("services.host")
     val webAuthenticationKey = properties.getProperty("web.authentication.key")
-    val main = new Main
-    main.start( servicesHost, webPort, servicesPort, webAuthenticationKey )
 
-    while(System.in.read() == -1) wait(500)
-    main.stop
+    
+    val currentHost = InetAddress.getLocalHost().getHostName()
+
+    if( currentHost == servicesHost ){
+      // setup http proxy (for twitter client)
+      val proxyHost = properties.getProperty("http.proxy.host")
+      if( proxyHost != null ){
+        System.setProperty("java.net.useSystemProxies", "true");
+        System.setProperty("http.proxyHost", proxyHost )
+        val proxyPort = properties.getProperty("http.proxy.port")
+        if( proxyPort != null ) System.setProperty("http.proxyPort", proxyPort )
+      }
+    }
+    
+    val main = new Main
+    Runtime.getRuntime().addShutdownHook(new ShutdownHook(main))
+
+    main.start( currentHost, servicesHost, webPort, servicesPort, webAuthenticationKey )
+
+   
   }
 
+
+  class ShutdownHook(main:Main)  extends Thread with Logging{
+    override def run( ) {
+      log.info("Shutting down server")
+      main.stop()
+    }
+  }
 }
 
 class Main extends Logging {
@@ -42,22 +66,35 @@ class Main extends Logging {
   var services:ServerServices = null
   var webServer:WebServer = null
 
-  def start( servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
+  def start( currentHost:String, servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
     // Host/port conf is in akka.conf
-    services = new SimpleRepositoryServices
-    services.launch
-    
-    val remoteService = new ClientServices( servicesHost, servicesPort )
-    webServer = new WebServer( webPort, remoteService, webAuthenticationKey )
+    if( currentHost == servicesHost || servicesHost == "localhost" ){
+      log.info("Started PSUG USI2011 Challenge services at "+servicesHost+":" + servicesPort )
+      services = new ServerServices
+      services.launch
+    }
+
+
+
+    // if we are on local service host do not use remoting
+    webServer = if( currentHost == servicesHost ){
+      new WebServer( webPort, services, webAuthenticationKey )
+    }
+    else{
+      val remoteService = new ClientServices( servicesHost, servicesPort )
+      new WebServer( webPort, remoteService, webAuthenticationKey )
+    }
+
     webServer.start
-    log.info("Started PSUG USI2011 Challenge Server at 0.0.0.0 web port: " + webPort + " service port:" + servicesPort )
+
+
   }
 
   def stop() = {
     if( webServer != null ) webServer.stop
     if( services != null ) services.shutdown
 
-    log.info("Stopped PSUG USI2011 Challenge at 0.0.0.0" )
+    log.info("Stopped PSUG USI2011 Challenge" )
   }
 
 }

@@ -1,3 +1,6 @@
+.DS_Store
+scorer
+bdb
 auto
 *.log
 *.class

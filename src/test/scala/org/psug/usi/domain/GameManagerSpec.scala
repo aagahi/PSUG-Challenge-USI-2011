@@ -45,7 +45,7 @@ class TestGameManagerTimer extends GameManagerTimer {
 }
 class GameManagerSpec  extends SpecificationWithJUnit {
 
-  val serverServices = new SimpleRepositoryServices
+  val serverServices = new ServerServices
   val services = new ClientServices()
   import services._
 
@@ -73,7 +73,18 @@ class GameManagerSpec  extends SpecificationWithJUnit {
     startRepository.before
     exitRepository.after
 
+    "remove all existing player if initialized with a game with flushing data" in {
+      val game = GameGenerator( 3, 4, 160, flushUserTable = true )
+      val users = UserGenerator( userRepositoryService, 160 )
+      val DataPulled( data ) = userRepositoryService !? PullLast
+      data.isDefined must beTrue
 
+      gameManagerService !? InitGame(game)
+
+      val DataPulled( noData ) = userRepositoryService !? PullLast
+      noData.isEmpty must beTrue
+
+    }
 
     "register all players, provide question, userScore each answer, save user history after last response, and provide userScore slice (no timeout scenario)" in {
 
@@ -88,7 +99,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map( user => gameManagerService ! Register( user ) )
+      users.map( user => gameManagerService !? Register( user ) )
 
       // Ask for Q1
       val futuresQ1 = users.map( user => (gameManagerService !! QueryQuestion( user.id, currentQuestion )).asInstanceOf[Future[QuestionResponse]] )
@@ -168,7 +179,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
 
       val timer = new TestGameManagerTimer
-      val gameManager = new GameManager( gameUserHistoryService, serverServices.userRepositoryService, timer )
+      val gameManager = new GameManager( serverServices, timer )
       gameManager.start
       gameManager !? InitGame (game)
       val gamePlayer = new GamePlayer( gameManagerService, game, users )
@@ -176,7 +187,7 @@ class GameManagerSpec  extends SpecificationWithJUnit {
       var currentQuestion = 0
 
       // Register
-      users.map{ user => gameManager ! Register( user ) }
+      users.map{ user => gameManager !? Register( user ) }
       
       var messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
@@ -218,13 +229,13 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       // fire end question
       timer.fireLastMessage()
-      
-      currentQuestion += 1
+
 
       messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
       messages.head must be_==( TimeoutMessage( TimeoutType.SYNCRO, currentQuestion, game.synchroTimeSec ) )
 
+      currentQuestion += 1
 
 
       // 25% user ask for Q2 => we should get a question + synchro timeout

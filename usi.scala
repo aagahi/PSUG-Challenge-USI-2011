@@ -46,7 +46,6 @@ object usi {
   def mvnExecutable = if(getProperty("os.name").toLowerCase.startsWith("windows")) "mvn.bat" else "mvn"
 
   def main(args: Array[String]) = { 
-    val port = if(args.length > 0) args(0) else DEFAULT_PORT
 
     if(!assertInRootDirectory) { 
       println("Not in toplevel directory for project challenge-usi, giving up")
@@ -67,7 +66,7 @@ object usi {
     val classpath = "target/classes" + PATH + fromFile(new File(cpFile)).mkString
 
     println("generated classpath ")
-    val java = system(Array("java","org.psug.usi.Main",port), Map("CLASSPATH" -> classpath))
+    val java = system(Array("java","org.psug.usi.Main"), Map("CLASSPATH" -> classpath))
     
     collectOutput(java,out)
     reap(java)
