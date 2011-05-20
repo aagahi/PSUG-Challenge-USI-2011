@@ -6,7 +6,6 @@ import org.psug.usi.service._
 import org.psug.usi.store._
 import org.specs._
 import org.psug.usi.netty.WebServer
-import org.psug.usi.netty.HttpRequestHandler._
 import org.junit.runner.RunWith
 import org.specs.runner.JUnitSuiteRunner
 import com.sun.jersey.api.client._
@@ -28,21 +27,24 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
   val listenPort = 12345
   val webServer : WebServer = new WebServer( listenPort, services, webAuthenticationKey )
 
+  val param_key = "authentication_key"
+  val param_mail = "user_mail"
+
   setSequential()
 
   private[this] def webResource( path:String ) = new Client().resource("http://localhost:"+listenPort+path)
 
   private[this] def getScore(key:String, userEmail:String ):String = {
     val queryParams = new MultivaluedMapImpl()
-    queryParams.add(USER_MAIL_HTTP_PARAM, userEmail)
-    queryParams.add(AUTH_KEY_HTTP_PARAM, key)
+    queryParams.add(param_mail, userEmail)
+    queryParams.add(param_key, key)
     webResource("/api/score").queryParams(queryParams).get(classOf[String])
   } 
   
   private[this] def getAudit(key:String, userEmail:String, questionIndex:Option[Int] ):String = {
     val queryParams = new MultivaluedMapImpl()
-    queryParams.add(USER_MAIL_HTTP_PARAM, userEmail)
-    queryParams.add(AUTH_KEY_HTTP_PARAM, key)
+    queryParams.add(param_mail, userEmail)
+    queryParams.add(param_key, key)
     val uri = "/api/audit" + (questionIndex match {
       case Some(questionIndex) => "/"+questionIndex
       case None => ""
@@ -120,8 +122,8 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     //test for a POST in the uri
     def notGetRequest(uri:String) : Unit = {
       val queryParams = new MultivaluedMapImpl()
-      queryParams.add(USER_MAIL_HTTP_PARAM, "user@mail.com")
-      queryParams.add(AUTH_KEY_HTTP_PARAM, webAuthenticationKey)
+      queryParams.add(param_mail, "user@mail.com")
+      queryParams.add(param_key, webAuthenticationKey)
       val answer = webResource( uri ).`type`("application/x-www-form-urlencoded").post(classOf[ClientResponse], queryParams) 
           
       answer.getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
@@ -139,7 +141,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     
     //test for bad param name for key
     def badNameForParamKey(uri:String) : Unit = {
-      testWithParam(uri, Map(AUTH_KEY_HTTP_PARAM + "bad" -> webAuthenticationKey)).
+      testWithParam(uri, Map(param_key + "bad" -> webAuthenticationKey)).
         getStatus must be_==( HttpResponseStatus.UNAUTHORIZED.getCode ) 
     }
       
@@ -154,7 +156,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
     //test for bad param name for key
     def badParamKey(uri:String) : Unit = {
-      testWithParam(uri, Map(AUTH_KEY_HTTP_PARAM -> ("bad" + webAuthenticationKey))).
+      testWithParam(uri, Map(param_key -> ("bad" + webAuthenticationKey))).
         getStatus must be_==( HttpResponseStatus.UNAUTHORIZED.getCode ) 
     }
     
@@ -170,7 +172,7 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
     
     //test for bad param name for key
     def noUserParam(uri:String) : Unit = {
-      testWithParam(uri, Map(AUTH_KEY_HTTP_PARAM -> webAuthenticationKey)).
+      testWithParam(uri, Map(param_key -> webAuthenticationKey)).
         getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
     }
     
@@ -189,13 +191,13 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
 
       
       testWithParam("/api/score", Map( 
-          AUTH_KEY_HTTP_PARAM -> webAuthenticationKey , 
-          USER_MAIL_HTTP_PARAM -> "mail10" 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "mail10" 
        ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
        
       testWithParam("/api/audit/10", Map( 
-          AUTH_KEY_HTTP_PARAM -> webAuthenticationKey , 
-          USER_MAIL_HTTP_PARAM -> "mail10" 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "mail10" 
        ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
     
     }
@@ -208,13 +210,13 @@ class AdminAuditingSpec extends SpecificationWithJUnit {
       gamePlayer.play()
 
       testWithParam("/api/audit/10", Map( 
-          AUTH_KEY_HTTP_PARAM -> webAuthenticationKey , 
-          USER_MAIL_HTTP_PARAM -> "aNonExistingMail@mail.com" 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "aNonExistingMail@mail.com" 
        ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
       
       testWithParam("/api/score", Map( 
-          AUTH_KEY_HTTP_PARAM -> webAuthenticationKey , 
-          USER_MAIL_HTTP_PARAM -> "aNonExistingMail@mail.com" 
+          param_key -> webAuthenticationKey , 
+          param_mail -> "aNonExistingMail@mail.com" 
        ) ).getStatus must be_==( HttpResponseStatus.BAD_REQUEST.getCode )
     }
 

@@ -117,30 +117,24 @@ class HttpOutput( channel:Channel ) extends Logging {
 
 }
 
-object HttpRequestHandler {
-  val SESSION_KEY_COOKIE_NAME = "session_key"
-  val AUTH_KEY_HTTP_PARAM = "authentication_key"
-  val USER_MAIL_HTTP_PARAM = "user_mail"
-}
 
 @ChannelHandler.Sharable
 class HttpRequestHandler(services : Services, webAuthenticationKey:String ) extends SimpleChannelUpstreamHandler with Logging {
 
   import services._
-  import HttpRequestHandler._
   implicit val formats = Serialization.formats(NoTypeHints)
 
 
   private def encodeUserAsCookie(user : User) = {
     val encoder = new CookieEncoder(true)
-    encoder.addCookie(SESSION_KEY_COOKIE_NAME, AuthenticationToken.encrypt(AuthenticationToken(user.id,user.mail)))
+    encoder.addCookie("session_key", AuthenticationToken.encrypt(AuthenticationToken(user.id,user.mail)))
     encoder.encode()
   }
   private def decodeCookieAsAuthenticationToken(request:HttpRequest):Option[AuthenticationToken] = {
     val cookieStr = request.getHeader( HttpHeaders.Names.COOKIE )
     val decoder = new CookieDecoder()
     val cookies = decoder.decode(cookieStr)
-    cookies.find( _.getName == SESSION_KEY_COOKIE_NAME ).map( cookie => AuthenticationToken.decrypt( cookie.getValue ) )
+    cookies.find( _.getName == "session_key" ).map( cookie => AuthenticationToken.decrypt( cookie.getValue ) )
   }
   
   //utility method from Java to Scala
@@ -291,9 +285,9 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
       case ( HttpMethod.GET, "api"::"score"::Nil ) =>
         // TODO: what if param is not provided
         val params  = javamap2Scala(queryStringDecoder.getParameters)
-        params.get( AUTH_KEY_HTTP_PARAM ) match {
+        params.get( "authentication_key" ) match {
           case Some(key :: Nil) if(key == webAuthenticationKey ) => 
-            params.get( USER_MAIL_HTTP_PARAM ) match {
+            params.get( "user_mail" ) match {
               case Some( mail :: Nil) if( mail != null ) => 
                 gameManagerService.callback( QueryScoreSliceAudit (mail) ){
                   case ScoreSlice(ranking) => httpOutput.sendResponse( Some( ranking ), HttpResponseStatus.OK )
@@ -305,11 +299,11 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
         }
 
       case ( HttpMethod.GET, "api"::"audit"::Nil ) =>
-        val keyParam = queryStringDecoder.getParameters().get(AUTH_KEY_HTTP_PARAM)
+        val keyParam = queryStringDecoder.getParameters().get("authentication_key")
         val params  = javamap2Scala(queryStringDecoder.getParameters)
-        params.get( AUTH_KEY_HTTP_PARAM ) match {
+        params.get( "authentication_key" ) match {
           case Some(key :: Nil) if(key == webAuthenticationKey ) => 
-            params.get( USER_MAIL_HTTP_PARAM ) match {
+            params.get( "user_mail" ) match {
               case Some( mail :: Nil) if( mail != null ) => 
                 gameManagerService.callback( QueryHistory(mail,None) ){
                   case GameAnwsersHistory( answers ) => httpOutput.sendResponse( Some( answers ), HttpResponseStatus.OK )
@@ -322,11 +316,11 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
 
       case ( HttpMethod.GET, "api"::"audit"::questionIndex::Nil ) =>
-        val keyParam = queryStringDecoder.getParameters().get(AUTH_KEY_HTTP_PARAM)
+        val keyParam = queryStringDecoder.getParameters().get("authentication_key")
         val params  = javamap2Scala(queryStringDecoder.getParameters)
-        params.get( AUTH_KEY_HTTP_PARAM ) match {
+        params.get( "authentication_key" ) match {
           case Some(key :: Nil) if(key == webAuthenticationKey ) => 
-            params.get( USER_MAIL_HTTP_PARAM ) match {
+            params.get( "user_mail" ) match {
               case Some( mail :: Nil) if( mail != null ) => 
                 // api assume question starts at 1 but gamemanager starts at 0
                 try {

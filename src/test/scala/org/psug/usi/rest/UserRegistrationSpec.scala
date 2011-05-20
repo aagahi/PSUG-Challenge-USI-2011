@@ -13,7 +13,6 @@ import com.sun.jersey.api.client._
 
 import net.liftweb.json._
 import org.psug.usi.netty._
-import org.psug.usi.netty.HttpRequestHandler._
 import org.psug.usi.store.ClearRepository
 
 import org.jboss.netty.handler.codec.http.Cookie
@@ -140,7 +139,7 @@ class UserRegistrationSpec  extends SpecificationWithJUnit {
       val response = userLogsIn(Credentials("m.odersky@scala-lang.org", "0xcafebabe") )
       response.getStatus must be_==(ClientResponse.Status.CREATED.getStatusCode)
       val Some(martinCookie) = getCookieFrom( response )
-      martinCookie.getName must be_==(SESSION_KEY_COOKIE_NAME)
+      martinCookie.getName must be_==("session_key")
       decrypt(martinCookie.getValue) must be_==(AuthenticationToken(1, "m.odersky@scala-lang.org"))
       val Some(robertCookie) = getCookieFrom(userLogsIn(Credentials("r.odersky@scala-lang.org", "0xdeadbeef")))
       decrypt(robertCookie.getValue) must be_==(AuthenticationToken(2, "r.odersky@scala-lang.org"))
