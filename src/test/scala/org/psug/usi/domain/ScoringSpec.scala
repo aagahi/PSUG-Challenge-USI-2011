@@ -25,13 +25,13 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       scorer.scoreAnwser(ScorerAnwserValue(user, 5)) must be_==(UserScore(user, 5 + 1 + 0 + 5))
     }
 
-    "users with same score must be sorted by firstname/lastname/mail" in {
+    "users with same score must be sorted by lastname/firstname/mail" in {
       val scorer = new Scorer( topSize = 5)
       val user1 = User(0, "A", "A", "B", "")
       val user2 = User(1, "A", "A", "C", "")
       val user3 = User(2, "A", "A", "D", "")
-      val user4 = User(3, "A", "B", "E", "")
-      val user5 = User(4, "B", "B", "F", "")
+      val user4 = User(3, "B", "A", "D", "")
+      val user5 = User(4, "B", "B", "D", "")
       val user6 = User(5, "A", "A", "A", "")
 
 
@@ -44,10 +44,10 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
 
       //create the expected ranking for each user
       val top5 = ListScoresVO(
-        mail = Array("B", "C", "D", "E", "F"),
+        mail = Array("B", "C", "D", "D", "D"),
         scores = Array(1, 1, 1, 1, 1),
-        firstname = Array("A", "A", "A", "A", "B"),
-        lastname = Array("A", "A", "A", "B", "B")
+        firstname = Array("A", "A", "A", "B", "B"),
+        lastname = Array("A", "A", "A", "A", "B")
       )
 
       def haveSameRankingThan(ranking: RankingVO) = new Matcher[RankingVO] {
@@ -72,31 +72,31 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
 
       scorer.scoreSlice(user1) must haveSameRankingThan(RankingVO(1, top5,
         before = ListScoresVO(Array(), Array(), Array(), Array()),
-        after = ListScoresVO(Array("C", "D", "E", "F", "A"), Array(1, 1, 1, 1, 0), Array("A", "A", "A", "B", "A"), Array("A", "A", "B", "B", "A"))
+        after = ListScoresVO(Array("C", "D", "D", "D", "A"), Array(1, 1, 1, 1, 0), Array("A", "A", "B", "B", "A"), Array("A", "A", "A", "B", "A"))
       ))
 
       scorer.scoreSlice(user2) must haveSameRankingThan(RankingVO(1, top5,
         before = ListScoresVO(Array("B"), Array(1), Array("A"), Array("A")),
-        after = ListScoresVO(Array("D", "E", "F", "A"), Array(1, 1, 1, 0), Array("A", "A", "B", "A"), Array("A", "B", "B", "A"))
+        after = ListScoresVO(Array("D", "D", "D", "A"), Array(1, 1, 1, 0), Array("A", "B", "B", "A"), Array("A", "A", "B", "A"))
       ))
 
       scorer.scoreSlice(user3) must haveSameRankingThan(RankingVO(1, top5,
         before = ListScoresVO(Array("B", "C"), Array(1, 1), Array("A", "A"), Array("A", "A")),
-        after = ListScoresVO(Array("E", "F", "A"), Array(1, 1, 0), Array("A", "B", "A"), Array("B", "B", "A"))
+        after = ListScoresVO(Array("D", "D", "A"), Array(1, 1, 0), Array("B", "B", "A"), Array("A", "B", "A"))
       ))
 
       scorer.scoreSlice(user4) must haveSameRankingThan(RankingVO(1, top5,
         before = ListScoresVO(Array("B", "C", "D"), Array(1, 1, 1), Array("A", "A", "A"), Array("A", "A", "A")),
-        after = ListScoresVO(Array("F", "A"), Array(1, 0), Array("B", "A"), Array("B", "A"))
+        after = ListScoresVO(Array("D", "A"), Array(1, 0), Array("B", "A"), Array("B", "A"))
       ))
 
       scorer.scoreSlice(user5) must haveSameRankingThan(RankingVO(1, top5,
-        before = ListScoresVO(Array("B", "C", "D", "E"), Array(1, 1, 1, 1), Array("A", "A", "A", "A"), Array("A", "A", "A", "B")),
+        before = ListScoresVO(Array("B", "C", "D", "D"), Array(1, 1, 1, 1), Array("A", "A", "A", "B"), Array("A", "A", "A", "A")),
         after = ListScoresVO(Array("A"), Array(0), Array("A"), Array("A"))
       ))
 
       scorer.scoreSlice(user6) must haveSameRankingThan(RankingVO(0, top5,
-        before = ListScoresVO(Array("B", "C", "D", "E", "F"), Array(1, 1, 1, 1, 1), Array("A", "A", "A", "A", "B"), Array("A", "A", "A", "B", "B")),
+        before = ListScoresVO(Array("B", "C", "D", "D", "D"), Array(1, 1, 1, 1, 1), Array("A", "A", "A", "B", "B"), Array("A", "A", "A", "A", "B")),
         after = ListScoresVO(Array(), Array(), Array(), Array())
       ))
     }
@@ -127,7 +127,7 @@ class ScoringSpec extends SpecificationWithJUnit with PerfUtilities {
       val numberOfPlayers = 4000
       val scorer = new Scorer(topSize = 100)
 
-      val users = 1 until numberOfPlayers map (i => User(i, (i % 8).toString, (i % 16).toString, i.toString, ""))
+      val users = 1 until numberOfPlayers map (i => User(i, (i % 16).toString, (i % 8).toString, i.toString, ""))
       for (user <- users) {
         if (user.id % 1000 == 0) scorer.scoreAnwser(ScorerAnwserValue(user, 1))
         else if (user.id % 10 == 0) scorer.scoreAnwser(ScorerAnwserValue(user, 1))

@@ -18,11 +18,11 @@ object  RankingUtil {
         if (l.scores(i) > l.scores(i + 1)) true
         else if (l.scores(i) < l.scores(i + 1)) false
         else {
-          if (l.firstname(i) < l.firstname(i + 1)) true
-          else if (l.firstname(i) > l.firstname(i + 1)) false
+          if (l.lastname(i) < l.lastname(i + 1)) true
+          else if (l.lastname(i) > l.lastname(i + 1)) false
           else {
-            if (l.lastname(i) < l.lastname(i + 1)) true
-            else if (l.lastname(i) > l.lastname(i + 1)) false
+            if (l.firstname(i) < l.firstname(i + 1)) true
+            else if (l.firstname(i) > l.firstname(i + 1)) false
             else l.mail(i) <= l.mail(i + 1)
           }
         }
