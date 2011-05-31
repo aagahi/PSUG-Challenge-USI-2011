@@ -39,10 +39,12 @@ start_server () {
 
     ntpdate 10.50.80.7
 
+    echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle
+    echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+
     #echo "65535" > /proc/sys/fs/file-max
     ulimit -n 65535
     iptables -t nat -F
-
 
     su - $USER -c "cd $SERVER_HOME; nohup $JAVA $JAVA_OPTIONS  -jar $SERVER_JAR  > $SERVER_CONSOLE &"
 

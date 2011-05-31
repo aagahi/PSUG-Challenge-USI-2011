@@ -229,13 +229,13 @@ class GameManagerSpec  extends SpecificationWithJUnit {
 
       // fire end question
       timer.fireLastMessage()
-      
-      currentQuestion += 1
+
 
       messages = timer.awaitOneOrMoreMessage
       messages.size must be_==( 1 )
       messages.head must be_==( TimeoutMessage( TimeoutType.SYNCRO, currentQuestion, game.synchroTimeSec ) )
 
+      currentQuestion += 1
 
 
       // 25% user ask for Q2 => we should get a question + synchro timeout

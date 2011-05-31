@@ -87,11 +87,11 @@ class DefaultGameManagerTimer extends GameManagerTimer {
 trait GameState
 case object Uninitialized extends GameState
 //init done, and no user requested /api/login yet
-case object Initialized extends GameState 
+case object Initialized extends GameState
 case object WaitingRegistrationAndQ1 extends GameState
 //could be a couple of ProcessingQueryQuestion(i) / ProcessingReplyQuestion(i)
 //in place of GameManager.currentQuestionIndex
-case object InGame extends GameState 
+case object InGame extends GameState
 //case class ProcessingQueryQuestion(number:Int) extends GameState
 //case class ProcessingReplyQuestion(number:Int) extends GameState
 case object EndGame extends GameState
@@ -123,14 +123,17 @@ class GameManager( services:Services,
 
   val registredPlayersHistory = new HashMap[Int, UserAnswerHistory]
 
-  // TODO: add trycatch to avoid actor crash
+
+
   def receive = {
     case InitGame(game) => initGame(game)
     case Register(user) => register(user)
     case QueryStats => 
       sender ! GameManagerStats(registredPlayersHistory.size, currentQuestionPlayer.playerIndex,gameState)
+
+    //TODO: I don't see a case in the spec where a user is allowed to query for a question that is not currentQuestionIndex
     case QueryQuestion(userId, questionIndex) 
-      if( questionIndex >= currentQuestionIndex && questionIndex <= currentQuestionIndex+1 && registredPlayersHistory.isDefinedAt(userId) )
+      if( ( questionIndex == 0 || questionIndex == currentQuestionIndex +1 ) && registredPlayersHistory.isDefinedAt(userId) )
       => queryQuestion(userId, questionIndex)
     case UserAnswer(userId, questionIndex, answerIndex) 
       if (registredPlayersHistory.isDefinedAt(userId) && questionIndex == currentQuestionIndex)
@@ -201,7 +204,7 @@ class GameManager( services:Services,
         tryToAddUser
       case WaitingRegistrationAndQ1 =>
         tryToAddUser
-      case _ => 
+      case _ =>
         sender ! RegisterFailure
     }
   }
@@ -212,12 +215,8 @@ class GameManager( services:Services,
    * questionIndex start at 0 (fyi octo rest api assume it starts at 1 => http request handler should have set -1)
    */
   private def queryQuestion(userId: Int, questionIndex: Int) {
-    //TODO: why not check that the user is in that game ?
-    
-    //TODO: I don't see a case in the spec where a user is allowed to
-    //query for a question that is not currentQuestionIndex
-    val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
+    val questionPlayer = if (questionIndex > currentQuestionIndex) nextQuestionPlayer else currentQuestionPlayer
 
     questionPlayer.players(questionPlayer.playerIndex) = userId
 
@@ -235,7 +234,8 @@ class GameManager( services:Services,
           replyQuestion()
 
         case _ =>
-          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+          log.error("Not supposed to query question in current game state " + gameState )
+          sender ! GameManagerError
       }
     }
     else if (questionIndex == currentQuestionIndex && currentQuestionPlayer.playerIndex >= game.nbUsersThreshold ) {
@@ -246,10 +246,12 @@ class GameManager( services:Services,
         case InGame =>
           replyQuestion()
         case _ =>
-          log.error("TODO: error message: Not supposed to query question in current game state " + gameState )
+          log.error("Not supposed to query question in current game state " + gameState )
+          sender ! GameManagerError
       }
-
     }
+
+
   }
 
   /**
@@ -264,9 +266,10 @@ class GameManager( services:Services,
 
     val currentQuestion = game.questions(currentQuestionIndex)
 
+
     val answerValue = if (currentQuestion.answers(answerIndex).status){
         val bonus = userAnswerHistory.answerBonus
-        userAnswerHistory.answerBonus = bonus + 1
+        userAnswerHistory.answerBonus += 1
         currentQuestion.value + bonus
       } else {
         userAnswerHistory.answerBonus = 0
@@ -453,6 +456,7 @@ class GameManager( services:Services,
     Actor.spawn{
       val properties = new Properties()
       properties.load( getClass.getResourceAsStream( "/configuration.properties" ) )
+      log.error("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
       if( properties.getProperty("endgame.twitter.enabled").toBoolean )
         Twitter.update("Notre application supporte "+registredPlayersHistory.size+" joueurs #challengeUSI2011")
     }
@@ -471,13 +475,11 @@ class GameManager( services:Services,
         if (!currentQuestionPlayer.playerActors.contains( userId ) ) {
           val userAnswerHistory = registredPlayersHistory( userId )
 
-          userAnswerHistory.answerBonus = 0
+          if( userAnswerHistory.answersHistory.find( _.questionIndex == currentQuestionIndex ).isEmpty )
+            userAnswerHistory.answerBonus = 0
         }
       }
 
-      currentQuestionPlayer = nextQuestionPlayer
-      nextQuestionPlayer = new QuestionPlayer
-      currentQuestionIndex += 1
       timer.schedule( TimeoutMessage(TimeoutType.SYNCRO, currentQuestionIndex, game.synchroTimeSec), this )
     }
     else {
@@ -487,8 +489,16 @@ class GameManager( services:Services,
       // LOGIN OR SYNCHRO
       //if last question, does nothing and just hope that score and ranking are available ;) <= should be as scorer is synchrone
       if( gameState == InGame ){
+        if( timeoutType == TimeoutType.SYNCRO ){
+          currentQuestionPlayer = nextQuestionPlayer
+          nextQuestionPlayer = new QuestionPlayer
+          currentQuestionIndex += 1
+        }
+
         if(currentQuestionIndex == game.questions.size ) endGame()
         else replyQuestion()
+        
+
       }
 
     }

@@ -68,8 +68,13 @@ class Main extends Logging {
 
   def start( currentHost:String, servicesHost:String, webPort:Int, servicesPort:Int, webAuthenticationKey:String ) = {
     // Host/port conf is in akka.conf
-    services = new ServerServices
-    services.launch
+    if( currentHost == servicesHost || servicesHost == "localhost" ){
+      log.info("Started PSUG USI2011 Challenge services at "+servicesHost+":" + servicesPort )
+      services = new ServerServices
+      services.launch
+    }
+
+
 
     // if we are on local service host do not use remoting
     webServer = if( currentHost == servicesHost ){
@@ -81,7 +86,6 @@ class Main extends Logging {
     }
 
     webServer.start
-    log.info("Started PSUG USI2011 Challenge Server on "+currentHost+" web port: " + webPort + " service port:" + servicesPort )
 
 
   }

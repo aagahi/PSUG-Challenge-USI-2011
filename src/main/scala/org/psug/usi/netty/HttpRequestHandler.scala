@@ -11,8 +11,9 @@ import org.psug.usi.store.{StoreData, PullData, DataPulled, DataStored}
 import io.{Codec, Source}
 import akka.util.Logging
 import org.psug.usi.service._
-import java.io.File
 import scala.collection.JavaConversions._
+import java.io.{FileInputStream, File}
+import org.apache.commons.io.FileUtils
 
 /**
  * User: alag
@@ -34,6 +35,8 @@ class HttpOutput( channel:Channel ) extends Logging {
       case "css" => "text/css"
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
+      case "gif" => "image/gif"
+      case "ico" => "image/vnd.microsoft.icon"
       case "json" => "application/json"
       case x =>
         log.warn( "Unknown file type "+x+", using binary content type" )
@@ -56,18 +59,25 @@ class HttpOutput( channel:Channel ) extends Logging {
     }
     val specificPath=path.replaceAll("web/", "web/"+lang+"/")
 
+    val file = new File( "."+specificPath )
 
-    val status =  if( new File( "."+specificPath ).exists ) HttpResponseStatus.OK
+    val status =  if( file.exists ) HttpResponseStatus.OK
                   else HttpResponseStatus.NOT_FOUND
 
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status )
 
-    if( status == HttpResponseStatus.OK )
-    {
+    if( status == HttpResponseStatus.OK ){
       response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType )
-      val content = Source.fromFile( "."+specificPath)(Codec.UTF8).mkString
-      response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+      if( contentType.startsWith("image") ){
+        val content = FileUtils.readFileToByteArray( file )
+        response.setContent(ChannelBuffers.copiedBuffer( content ))
+      }
+      else {
+        val content = Source.fromFile( file )(Codec.UTF8).mkString
+        response.setContent(ChannelBuffers.copiedBuffer( content, CharsetUtil.UTF_8))
+      }
     }
+    else log.info( "File not found: "+ file.getAbsolutePath )
 
     val future = channel.write(response)
     future.addListener(ChannelFutureListener.CLOSE)
@@ -173,6 +183,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
       case ( HttpMethod.POST, "api"::"login"::Nil ) =>
         val credentials = read[Credentials](content)
+        val now=System.currentTimeMillis
         userRepositoryService.callback( AuthenticateUser(credentials) ){
           case UserAuthenticated (Left(user)) =>
             gameManagerService.callback( Register( user ) ){
@@ -188,14 +199,13 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
         
       case ( HttpMethod.POST, "api"::"game"::Nil ) =>
-
         val createGame = read[RegisterGame](content)
         if( createGame.authentication_key == webAuthenticationKey ){
           val game: Game = Game(createGame.parameters)
           gameRepositoryService.callback( StoreData( game ) ){
             case DataStored( Right( data ) )	=>
               gameManagerService.callback( InitGame (data.asInstanceOf[Game]) ){
-                case InitGameSuccess => log.info( "Game "+data.asInstanceOf[Game].id+" initialized")
+                case InitGameSuccess => log.error( "Game "+data.asInstanceOf[Game].id+" initialized")
               }
               httpOutput.sendResponse( None, HttpResponseStatus.CREATED )
             case DataStored( Left( message ) )	=> log.debug(message); httpOutput.sendResponse( None, HttpResponseStatus.BAD_REQUEST )
@@ -357,8 +367,7 @@ class HttpRequestHandler(services : Services, webAuthenticationKey:String ) exte
 
   override def messageReceived( ctx:ChannelHandlerContext , e:MessageEvent ) {
 
-    e.getMessage match
-      {
+    e.getMessage match {
         case request:HttpRequest =>
           var output = new HttpOutput(ctx.getChannel)
           try{
